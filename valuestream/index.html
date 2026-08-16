@@ -14,6 +14,7 @@
     --bg-navy-site: #253551;
     --gold: #C29635;
     --gold-light: #D4AF37;
+    --gold-glow: rgba(194, 150, 53, 0.35);
     --text-primary: #FFFFFF;
     --text-secondary: #B0B8C4;
     --dv-card: #12233C;
@@ -74,6 +75,42 @@ h1 .gold { color: var(--gold-light); }
     border: 1px solid var(--dv-border);
     border-radius: 999px;
     padding: 4px 12px;
+}
+
+/* ---------- refresh ---------- */
+.refresh-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 4px 16px;
+}
+.refresh-btn {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--gold);
+    color: var(--bg-deep);
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    min-height: 44px;
+    cursor: pointer;
+    box-shadow: 0 0 14px var(--gold-glow);
+    transition: background 0.2s;
+}
+.refresh-btn:hover { background: var(--gold-light); }
+.run-label {
+    font-family: var(--font-display);
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+.sheet { transition: opacity 0.22s ease; }
+.sheet.fading { opacity: 0.25; }
+@media (prefers-reduced-motion: reduce) {
+    .sheet, .refresh-btn { transition: none; }
 }
 
 /* ---------- tabelle ---------- */
@@ -213,6 +250,11 @@ tr.subtle td:first-child { font-style: italic; }
     <span class="demo-badge">Modello dimostrativo — numeri illustrativi</span>
 </header>
 
+<div class="refresh-bar">
+    <button type="button" class="refresh-btn" onclick="newRun()">↻ Refresh — nuovo run</button>
+    <span class="run-label" id="run-label">Run #1 · valori base del modello</span>
+</div>
+
 <div class="sheet">
     <div class="block-title">Confronto col costo target <span class="unit">— target <span class="target-val">€ 30,00/pezzo</span></span></div>
     <table>
@@ -300,6 +342,7 @@ tr.subtle td:first-child { font-style: italic; }
     <p><sup>2</sup> Ottimizzato: seconda stazione di test e setup ridotto. Gli ammortamenti salgono (+0,15 €/pz per il nuovo investimento), il costo totale scende di 1,25 €/pz: il ritorno si vede prima di firmare l'ordine.</p>
     <p><sup>3</sup> Stress: domanda raddoppiata (960 pz/turno) senza investimenti. «Altro» include straordinari, penali e outsourcing del test; gli stessi ammortamenti pesano su meno pezzi buoni.</p>
     <p>Base comune: linea elettronica SMT + assemblaggio · 2 turni · 220 gg/anno · costo target € 30,00/pezzo.</p>
+    <p>Il bottone <strong>Refresh</strong> lancia un nuovo run del modello: stessi scenari, seed diverso — i valori oscillano nelle bande stimate dalla simulazione. Gli ammortamenti annui restano fissi: il costo unitario cambia perché cambiano i pezzi buoni su cui si spalmano.</p>
 </div>
 
 <div class="method-note">
@@ -315,5 +358,100 @@ tr.subtle td:first-child { font-style: italic; }
 </footer>
 
 </div>
+
+<script>
+/* Un run = un ricampionamento coerente del modello.
+   Vincoli mantenuti a ogni run: pezzi/anno = pezzi/turno x 2 turni x 220 gg;
+   ammortamenti unitari = ammortamento annuo fisso / pezzi buoni anno;
+   totale = somma delle voci; margine = target - totale; annua = margine x pezzi anno. */
+var TARGET = 30.00;
+var TURNI_GG = 2 * 220;
+var BASE = {
+    asis:   { prod: 410, dem: 480, oee: 71, lt: 4.2, scrap: 3.7,
+              mat: 15.50, pers: 6.80, man: 1.60, en: 2.10, altro: 0.90, ammTot: 432960,
+              jProd: 6, jPers: 0.015, jAltro: 0.05 },
+    opt:    { prod: 480, dem: 480, oee: 81, lt: 3.4, scrap: 2.2,
+              mat: 15.15, pers: 6.10, man: 1.45, en: 1.95, altro: 0.85, ammTot: 538560,
+              jProd: 5, jPers: 0.015, jAltro: 0.05 },
+    stress: { prod: 370, dem: 960, oee: 54, lt: 7.1, scrap: 8.8,
+              mat: 16.90, pers: 9.80, man: 2.35, en: 2.75, altro: 2.90, ammTot: 432960,
+              jProd: 8, jPers: 0.03, jAltro: 0.08 }
+};
+var runN = 1;
+
+function rnd() { return Math.random() * 2 - 1; }
+function noisePct(v, pct) { return v * (1 + rnd() * pct); }
+function fmt2(n) { return n.toFixed(2).replace('.', ','); }
+function fmt1(n) { return n.toFixed(1).replace('.', ','); }
+function fmtInt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function signed(n, f) { return (n < 0 ? '−' : '+') + f(Math.abs(n)); }
+
+function sample(key, baseline) {
+    var b = BASE[key];
+    var s = {};
+    if (baseline) {
+        s.prod = b.prod; s.oee = b.oee; s.lt = b.lt; s.scrap = b.scrap;
+        s.mat = b.mat; s.pers = b.pers; s.man = b.man; s.en = b.en; s.altro = b.altro;
+    } else {
+        s.prod = Math.round(b.prod + rnd() * b.jProd);
+        s.oee = Math.round(b.oee + rnd() * 1.4);
+        s.lt = b.lt + rnd() * 0.2;
+        s.scrap = Math.max(0.1, b.scrap + rnd() * 0.3);
+        s.mat = noisePct(b.mat, 0.01);
+        s.pers = noisePct(b.pers, b.jPers);
+        s.man = noisePct(b.man, 0.03);
+        s.en = noisePct(b.en, 0.02);
+        s.altro = noisePct(b.altro, b.jAltro);
+    }
+    s.anno = s.prod * TURNI_GG;
+    s.cop = Math.round(s.prod / b.dem * 100);
+    s.amm = b.ammTot / s.anno;
+    s.tot = s.mat + s.pers + s.man + s.en + s.amm + s.altro;
+    s.margine = TARGET - s.tot;
+    s.annua = s.margine * s.anno;
+    return s;
+}
+
+function fillRow(table, r, vals) {
+    var row = table.tBodies[0].rows[r];
+    for (var c = 0; c < 3; c++) row.cells[c + 1].textContent = vals[c];
+}
+
+function render(baseline) {
+    var d = ['asis', 'opt', 'stress'].map(function (k) { return sample(k, baseline); });
+    var t = document.querySelectorAll('.sheet table');
+    function col(fn) { return d.map(fn); }
+    /* blocco 1 — confronto col costo target */
+    fillRow(t[0], 0, col(function (s) { return fmt2(s.tot); }));
+    fillRow(t[0], 1, col(function (s) { return signed(s.margine, fmt2); }));
+    fillRow(t[0], 2, col(function (s) { return signed(s.annua, fmtInt); }));
+    /* blocco 2 — costo unitario device */
+    fillRow(t[1], 0, col(function (s) { return fmt2(s.mat); }));
+    fillRow(t[1], 1, col(function (s) { return fmt2(s.pers); }));
+    fillRow(t[1], 2, col(function (s) { return fmt2(s.man); }));
+    fillRow(t[1], 3, col(function (s) { return fmt2(s.en); }));
+    fillRow(t[1], 4, col(function (s) { return fmt2(s.amm); }));
+    fillRow(t[1], 5, col(function (s) { return fmt2(s.altro); }));
+    fillRow(t[1], 6, col(function (s) { return fmt2(s.tot); }));
+    /* blocco 3 — produzione */
+    fillRow(t[2], 0, col(function (s) { return String(s.prod); }));
+    fillRow(t[2], 1, col(function (s) { return s.cop + '%'; }));
+    fillRow(t[2], 2, col(function (s) { return s.oee + '%'; }));
+    fillRow(t[2], 3, col(function (s) { return fmt1(s.lt); }));
+    fillRow(t[2], 4, col(function (s) { return fmt1(s.scrap) + '%'; }));
+    fillRow(t[2], 5, col(function (s) { return fmtInt(s.anno); }));
+}
+
+function newRun() {
+    runN += 1;
+    var sheets = document.querySelectorAll('.sheet');
+    for (var i = 0; i < sheets.length; i++) sheets[i].classList.add('fading');
+    setTimeout(function () {
+        render(false);
+        document.getElementById('run-label').textContent = 'Run #' + runN + ' · seed casuale';
+        for (var i = 0; i < sheets.length; i++) sheets[i].classList.remove('fading');
+    }, 200);
+}
+</script>
 </body>
 </html>
