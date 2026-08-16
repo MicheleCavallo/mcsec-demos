@@ -96,6 +96,13 @@ h1 .gold { color: var(--gold-light); }
     border-bottom: 1px solid var(--dv-border);
 }
 .block-title .unit { color: var(--text-secondary); font-weight: 500; letter-spacing: 0.06em; text-transform: none; }
+.block-title .target-val {
+    color: var(--gold-light);
+    font-weight: 800;
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 col.c-label { width: 37%; }
 thead th {
@@ -207,7 +214,7 @@ tr.subtle td:first-child { font-style: italic; }
 </header>
 
 <div class="sheet">
-    <div class="block-title">Confronto col costo target <span class="unit">— target € 30,00/pezzo</span></div>
+    <div class="block-title">Confronto col costo target <span class="unit">— target <span class="target-val">€ 30,00/pezzo</span></span></div>
     <table>
         <colgroup><col class="c-label"><col><col><col></colgroup>
         <thead>
