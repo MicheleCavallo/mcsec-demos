@@ -234,6 +234,12 @@ tr.totrow td { font-weight: 700; border-top: 1px solid var(--dv-border); }
     .step-arrow { display: none; }
     .btn { flex: 1; padding: 13px 18px; font-size: 13.5px; }
     .cockpit-spacer { display: none; }
+    /* Analisi su schermi stretti: meno colonne, tutte visibili senza scroll */
+    th.hm, td.hm { display: none; }
+    #analysisPanel table { min-width: 0; }
+    #analysisPanel th:first-child, #analysisPanel td:first-child { white-space: normal; }
+    td { font-size: 12.5px; padding: 7px 8px; }
+    th { font-size: 10px; padding: 6px 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .btn-live.on .dot, .step.run .ico { animation: none; }
@@ -589,7 +595,10 @@ function kpiHtml(items) {
 }
 function anHead(cols) {
     $("#anThead").innerHTML = "<tr>" + cols.map(function (c) {
-        return "<th" + (c.num ? " class=\"num\"" : "") + ">" + c.h + "</th>";
+        var k = [];
+        if (c.num) k.push("num");
+        if (c.hm) k.push("hm");
+        return "<th" + (k.length ? " class=\"" + k.join(" ") + "\"" : "") + ">" + c.h + "</th>";
     }).join("") + "</tr>";
 }
 function anRow(cells, cls) {
@@ -597,17 +606,18 @@ function anRow(cells, cls) {
         var klass = [];
         if (c.num) klass.push("num");
         if (c.tone) klass.push(c.tone);
+        if (c.hm) klass.push("hm");
         return "<td" + (klass.length ? " class=\"" + klass.join(" ") + "\"" : "") + ">" + c.t + "</td>";
     }).join("") + "</tr>";
 }
-function cell(t, num, tone) { return { t: t, num: num, tone: tone }; }
+function cell(t, num, tone, hm) { return { t: t, num: num, tone: tone, hm: hm }; }
 function deltaCells(cons, budg, invert) {
     var d = cons - budg;
     var fav = invert ? -d : d;
     var tone = Math.abs(fav) < 0.005 * Math.abs(budg) ? null : (fav > 0 ? "pos" : "neg");
     var sign = signOf(d);
     return [
-        cell(sign + money(Math.abs(d)), true, tone),
+        cell(sign + money(Math.abs(d)), true, tone, true),
         cell(sign + fmtDec1.format(Math.abs(d) / budg * 100) + "%", true, tone)
     ];
 }
@@ -671,7 +681,7 @@ function renderAnalysis() {
             { l: "Margine lordo", n: money(ml), s: fmtDec1.format(ml / c.ricavi * 100) + "% su ricavi · budget " + fmtDec1.format(mlB / b.ricavi * 100) + "%" },
             { l: "EBITDA progressivo", n: money(ebitda), s: fmtDec1.format(ebitda / c.ricavi * 100) + "% su ricavi" }
         ]);
-        anHead([{ h: "Voce" }, { h: "Consuntivo", num: true }, { h: "Budget", num: true }, { h: "Δ", num: true }, { h: "Δ %", num: true }]);
+        anHead([{ h: "Voce" }, { h: "Consuntivo", num: true }, { h: "Budget", num: true, hm: true }, { h: "Δ", num: true, hm: true }, { h: "Δ %", num: true }]);
         var rows = [
             ["Ricavi", c.ricavi, b.ricavi, false, null],
             ["Materie prime", c.materie, b.materie, true, null],
@@ -684,7 +694,7 @@ function renderAnalysis() {
             ["EBITDA", ebitda, ebitdaB, false, "calc"]
         ];
         $("#anTbody").innerHTML = rows.map(function (rw) {
-            return anRow([cell(rw[0]), cell(money(rw[1]), true), cell(money(rw[2]), true)].concat(deltaCells(rw[1], rw[2], rw[3])), rw[4]);
+            return anRow([cell(rw[0]), cell(money(rw[1]), true), cell(money(rw[2]), true, null, true)].concat(deltaCells(rw[1], rw[2], rw[3])), rw[4]);
         }).join("");
         wfRender([
             { label: "Ricavi", v: c.ricavi / 1000, total: true },
@@ -708,14 +718,15 @@ function renderAnalysis() {
             return a;
         }, MKT_CH.map(function (c2) { return { canale: c2[0], campagna: c2[1], lead: 0, spesa: 0 }; }));
         var oggi = marketingDaily(day);
-        var totLead = 0, totSpesa = 0;
+        var totLead = 0, totSpesa = 0, totLeadO = 0, totSpesaO = 0;
         cum.forEach(function (ch) { totLead += ch.lead; totSpesa += ch.spesa; });
+        oggi.forEach(function (ch) { totLeadO += ch.lead; totSpesaO += ch.spesa; });
         $("#kpis").innerHTML = kpiHtml([
             { l: "Lead progressivi", n: fmtInt.format(totLead), s: fmtInt.format(Math.round(totLead / days * 7)) + " a settimana" },
             { l: "CPL medio", n: fmtDec1.format(totSpesa / totLead) + " €", s: "spesa totale / lead totali" },
             { l: "Spesa progressiva", n: money(totSpesa), s: "tutti i canali" }
         ]);
-        anHead([{ h: "Canale" }, { h: "Campagna" }, { h: "Lead", num: true }, { h: "Spesa", num: true }, { h: "CPL prog. €", num: true }, { h: "CPL oggi €", num: true }, { h: "Δ %", num: true }]);
+        anHead([{ h: "Canale" }, { h: "Campagna", hm: true }, { h: "Lead", num: true }, { h: "Spesa", num: true, hm: true }, { h: "CPL prog. €", num: true, hm: true }, { h: "CPL oggi €", num: true }, { h: "Δ %", num: true }]);
         $("#anTbody").innerHTML = cum.map(function (ch, i) {
             var cplP = ch.spesa > 0 ? ch.spesa / ch.lead : null;
             var o = oggi[i];
@@ -727,17 +738,17 @@ function renderAnalysis() {
                 dcells = cell(signOf(dp) + fmtDec1.format(Math.abs(dp)) + "%", true, tone);
             } else dcells = cell("—", true);
             return anRow([
-                cell(ch.canale), cell(ch.campagna),
+                cell(ch.canale), cell(ch.campagna, false, null, true),
                 cell(fmtInt.format(ch.lead), true),
-                cell(ch.spesa > 0 ? money(ch.spesa) : "—", true),
-                cell(cplP ? fmtDec1.format(cplP) : "—", true),
+                cell(ch.spesa > 0 ? money(ch.spesa) : "—", true, null, true),
+                cell(cplP ? fmtDec1.format(cplP) : "—", true, null, true),
                 cell(cplO ? fmtDec1.format(cplO) : "—", true),
                 dcells
             ]);
         }).join("") + anRow([
-            cell("Totale"), cell(""),
-            cell(fmtInt.format(totLead), true), cell(money(totSpesa), true),
-            cell(fmtDec1.format(totSpesa / totLead), true), cell("", true), cell("", true)
+            cell("Totale"), cell("", false, null, true),
+            cell(fmtInt.format(totLead), true), cell(money(totSpesa), true, null, true),
+            cell(fmtDec1.format(totSpesa / totLead), true, null, true), cell(fmtDec1.format(totSpesaO / totLeadO), true), cell("", true)
         ], "totrow");
         $("#wfWrap").hidden = true;
         state.an = { dom: "marketing", cum: cum, oggi: oggi, totLead: totLead, totSpesa: totSpesa, days: days };
@@ -757,7 +768,7 @@ function renderAnalysis() {
             { l: "Pezzi prodotti", n: fmtInt.format(totP), s: fmtInt.format(Math.round(totP / days)) + " al giorno" },
             { l: "Costo scarti stimato", n: money(totS * COSTO_SCARTO), s: fmtDec1.format(COSTO_SCARTO) + " € a pezzo" }
         ]);
-        anHead([{ h: "Linea" }, { h: "Pezzi", num: true }, { h: "Scarti", num: true }, { h: "% prog.", num: true }, { h: "% oggi", num: true }, { h: "Δ pp", num: true }]);
+        anHead([{ h: "Linea" }, { h: "Pezzi", num: true, hm: true }, { h: "Scarti", num: true, hm: true }, { h: "% prog.", num: true }, { h: "% oggi", num: true }, { h: "Δ pp", num: true }]);
         $("#anTbody").innerHTML = cumQ.map(function (l, i) {
             var pProg = l.scarti / l.pezzi * 100;
             var o = oggiQ[i];
@@ -766,14 +777,14 @@ function renderAnalysis() {
             var tone = Math.abs(dpp) < 0.3 ? null : (dpp > 0 ? "neg" : "pos");
             return anRow([
                 cell(l.linea),
-                cell(fmtInt.format(l.pezzi), true),
-                cell(fmtInt.format(l.scarti), true),
+                cell(fmtInt.format(l.pezzi), true, null, true),
+                cell(fmtInt.format(l.scarti), true, null, true),
                 cell(fmtDec1.format(pProg) + "%", true),
                 cell(fmtDec1.format(pOggi) + "%", true, pOggi >= 3 ? "neg" : null),
                 cell(signOf(dpp) + fmtDec1.format(Math.abs(dpp)), true, tone)
             ]);
         }).join("") + anRow([
-            cell("Totale"), cell(fmtInt.format(totP), true), cell(fmtInt.format(totS), true),
+            cell("Totale"), cell(fmtInt.format(totP), true, null, true), cell(fmtInt.format(totS), true, null, true),
             cell(fmtDec1.format(totS / totP * 100) + "%", true), cell("", true), cell("", true)
         ], "totrow");
         $("#wfWrap").hidden = true;
