@@ -1034,12 +1034,18 @@ document.querySelectorAll("#seg button").forEach(function (b) {
 renderHead(DOMAINS.finance);
 $("#gridNote").textContent = "La griglia si popola alla prima estrazione · dati simulati";
 
-/* Altezza per l'iframe su mcsec.it: comunica al parent quanto è alta la pagina */
+/* Altezza per l'iframe su mcsec.it: comunica al parent l'altezza del CONTENUTO.
+   Mai usare scrollHeight qui: dipende dalla viewport (e dal min-height:100vh),
+   e col parent che allarga l'iframe creerebbe un loop di crescita infinita. */
 if (window.parent !== window) {
+    document.body.style.minHeight = "0";
     var lastH = 0;
     setInterval(function () {
-        var h = document.documentElement.scrollHeight;
-        if (h !== lastH) {
+        var wrap = document.querySelector(".wrap");
+        if (!wrap) return;
+        var pad = parseFloat(getComputedStyle(document.body).paddingBottom) || 0;
+        var h = Math.ceil(wrap.getBoundingClientRect().bottom + window.scrollY + pad);
+        if (Math.abs(h - lastH) > 8) {
             lastH = h;
             window.parent.postMessage({ mcsecDemo: "pi-cockpit", height: h }, "*");
         }
