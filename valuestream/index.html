@@ -102,6 +102,43 @@ h1 .gold { color: var(--gold-light); }
     transition: background 0.2s;
 }
 .refresh-btn:hover { background: var(--gold-light); }
+.live-btn {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--gold-light);
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    padding: 11px 18px;
+    min-height: 44px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.live-btn:hover { background: rgba(194, 150, 53, 0.12); }
+.live-btn .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    margin-right: 8px;
+    vertical-align: 1px;
+}
+.live-btn.on {
+    background: rgba(194, 150, 53, 0.12);
+    box-shadow: 0 0 14px var(--gold-glow);
+}
+.live-btn.on .dot {
+    background: var(--dv-ok);
+    animation: mc-pulse 1.1s ease-in-out infinite;
+}
+@keyframes mc-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
 .run-label {
     font-family: var(--font-display);
     font-size: 12.5px;
@@ -110,7 +147,8 @@ h1 .gold { color: var(--gold-light); }
 .sheet { transition: opacity 0.22s ease; }
 .sheet.fading { opacity: 0.25; }
 @media (prefers-reduced-motion: reduce) {
-    .sheet, .refresh-btn { transition: none; }
+    .sheet, .refresh-btn, .live-btn { transition: none; }
+    .live-btn.on .dot { animation: none; }
 }
 
 /* ---------- tabelle ---------- */
@@ -252,6 +290,7 @@ tr.subtle td:first-child { font-style: italic; }
 
 <div class="refresh-bar">
     <button type="button" class="refresh-btn" onclick="newRun()">↻ Refresh — nuovo run</button>
+    <button type="button" class="live-btn" id="live-btn" onclick="toggleLive()"><span class="dot"></span><span id="live-txt">Live</span></button>
     <span class="run-label" id="run-label">Run #1 · valori base del modello</span>
 </div>
 
@@ -310,6 +349,8 @@ tr.subtle td:first-child { font-style: italic; }
             <tr><td>Ammortamenti</td><td>2,40</td><td>2,55</td><td>2,66</td></tr>
             <tr><td>Altro</td><td>0,90</td><td>0,85</td><td>2,90</td></tr>
             <tr class="total"><td>Totale</td><td>29,30</td><td>28,05</td><td>37,36</td></tr>
+            <tr class="subtle"><td id="range-max-label">Max osservato</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr class="subtle"><td>Min osservato</td><td>—</td><td>—</td><td>—</td></tr>
         </tbody>
     </table>
 </div>
@@ -343,6 +384,7 @@ tr.subtle td:first-child { font-style: italic; }
     <p><sup>3</sup> Stress: domanda raddoppiata (960 pz/turno) senza investimenti. «Altro» include straordinari, penali e outsourcing del test; gli stessi ammortamenti pesano su meno pezzi buoni.</p>
     <p>Base comune: linea elettronica SMT + assemblaggio · 2 turni · 220 gg/anno · costo target € 30,00/pezzo.</p>
     <p>Il bottone <strong>Refresh</strong> lancia un nuovo run del modello: stessi scenari, seed diverso — i valori oscillano nelle bande stimate dalla simulazione. Gli ammortamenti annui restano fissi: il costo unitario cambia perché cambiano i pezzi buoni su cui si spalmano.</p>
+    <p>Il bottone <strong>Live</strong> fa girare il modello in continuo, un run dopo l'altro: ogni oscillazione rispetta gli stessi vincoli contabili. Le righe min–max sotto il totale registrano la forbice del costo unitario osservata durante il live. È così che si guarda un gemello digitale mentre lavora.</p>
 </div>
 
 <div class="method-note">
@@ -386,23 +428,38 @@ function fmt1(n) { return n.toFixed(1).replace('.', ','); }
 function fmtInt(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function signed(n, f) { return (n < 0 ? '−' : '+') + f(Math.abs(n)); }
 
-function sample(key, baseline) {
+/* Driver del modello (continui, interpolabili) e grandezze derivate:
+   i vincoli contabili si ricalcolano dai driver, quindi valgono anche
+   su ogni fotogramma intermedio del live. */
+var KEYS = ['asis', 'opt', 'stress'];
+
+function drivers(key, baseline) {
+    var b = BASE[key];
+    if (baseline) {
+        return { prod: b.prod, oee: b.oee, lt: b.lt, scrap: b.scrap,
+                 mat: b.mat, pers: b.pers, man: b.man, en: b.en, altro: b.altro };
+    }
+    return {
+        prod: b.prod + rnd() * b.jProd,
+        oee: b.oee + rnd() * 1.4,
+        lt: b.lt + rnd() * 0.2,
+        scrap: Math.max(0.1, b.scrap + rnd() * 0.3),
+        mat: noisePct(b.mat, 0.01),
+        pers: noisePct(b.pers, b.jPers),
+        man: noisePct(b.man, 0.03),
+        en: noisePct(b.en, 0.02),
+        altro: noisePct(b.altro, b.jAltro)
+    };
+}
+
+function derive(key, drv) {
     var b = BASE[key];
     var s = {};
-    if (baseline) {
-        s.prod = b.prod; s.oee = b.oee; s.lt = b.lt; s.scrap = b.scrap;
-        s.mat = b.mat; s.pers = b.pers; s.man = b.man; s.en = b.en; s.altro = b.altro;
-    } else {
-        s.prod = Math.round(b.prod + rnd() * b.jProd);
-        s.oee = Math.round(b.oee + rnd() * 1.4);
-        s.lt = b.lt + rnd() * 0.2;
-        s.scrap = Math.max(0.1, b.scrap + rnd() * 0.3);
-        s.mat = noisePct(b.mat, 0.01);
-        s.pers = noisePct(b.pers, b.jPers);
-        s.man = noisePct(b.man, 0.03);
-        s.en = noisePct(b.en, 0.02);
-        s.altro = noisePct(b.altro, b.jAltro);
-    }
+    s.prod = Math.round(drv.prod);
+    s.oee = Math.round(drv.oee);
+    s.lt = drv.lt;
+    s.scrap = drv.scrap;
+    s.mat = drv.mat; s.pers = drv.pers; s.man = drv.man; s.en = drv.en; s.altro = drv.altro;
     s.anno = s.prod * TURNI_GG;
     s.cop = Math.round(s.prod / b.dem * 100);
     s.amm = b.ammTot / s.anno;
@@ -412,13 +469,23 @@ function sample(key, baseline) {
     return s;
 }
 
+var cur = {};
+KEYS.forEach(function (k) { cur[k] = drivers(k, true); });
+
 function fillRow(table, r, vals) {
     var row = table.tBodies[0].rows[r];
     for (var c = 0; c < 3; c++) row.cells[c + 1].textContent = vals[c];
 }
 
 function render(baseline) {
-    var d = ['asis', 'opt', 'stress'].map(function (k) { return sample(k, baseline); });
+    var d = KEYS.map(function (k) {
+        cur[k] = drivers(k, baseline);
+        return derive(k, cur[k]);
+    });
+    renderData(d);
+}
+
+function renderData(d) {
     var t = document.querySelectorAll('.sheet table');
     function col(fn) { return d.map(fn); }
     /* blocco 1 — confronto col costo target */
@@ -443,6 +510,7 @@ function render(baseline) {
 }
 
 function newRun() {
+    if (live.on) stopLive(false);
     runN += 1;
     var sheets = document.querySelectorAll('.sheet');
     for (var i = 0; i < sheets.length; i++) sheets[i].classList.add('fading');
@@ -451,6 +519,102 @@ function newRun() {
         document.getElementById('run-label').textContent = 'Run #' + runN + ' · seed casuale';
         for (var i = 0; i < sheets.length; i++) sheets[i].classList.remove('fading');
     }, 200);
+}
+
+/* ---------- modalità LIVE ---------- */
+var live = { on: false, raf: 0, timer: 0 };
+var LIVE_DUR = 1600; /* ms da un run al successivo */
+var REDUCED = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+/* Forbice min–max del totale osservata durante il live: si azzera a ogni
+   avvio del live, si aggiorna a ogni run campionato, resta congelata allo stop. */
+var range = { n: 0, max: {}, min: {} };
+
+function resetRange() {
+    range.n = 0;
+    KEYS.forEach(function (k) { range.max[k] = -Infinity; range.min[k] = Infinity; });
+    renderRange();
+}
+
+function noteRun(d) {
+    range.n += 1;
+    for (var i = 0; i < KEYS.length; i++) {
+        var k = KEYS[i], tot = d[i].tot;
+        if (tot > range.max[k]) range.max[k] = tot;
+        if (tot < range.min[k]) range.min[k] = tot;
+    }
+    renderRange();
+}
+
+function renderRange() {
+    var t = document.querySelectorAll('.sheet table')[1];
+    var has = range.n > 0;
+    fillRow(t, 7, KEYS.map(function (k) { return has ? fmt2(range.max[k]) : '—'; }));
+    fillRow(t, 8, KEYS.map(function (k) { return has ? fmt2(range.min[k]) : '—'; }));
+    document.getElementById('range-max-label').textContent =
+        'Max osservato' + (has ? ' (' + range.n + ' run)' : '');
+}
+
+function liveCycle() {
+    var from = {}, to = {};
+    KEYS.forEach(function (k) { from[k] = cur[k]; to[k] = drivers(k, false); });
+    noteRun(KEYS.map(function (k) { return derive(k, to[k]); }));
+    var start = performance.now();
+    function step(now) {
+        if (!live.on) return;
+        var t = Math.min(1, (now - start) / LIVE_DUR);
+        var e = easeInOut(t);
+        var d = KEYS.map(function (k) {
+            var f = from[k], g = to[k], m = {};
+            for (var p in f) m[p] = lerp(f[p], g[p], e);
+            cur[k] = m;
+            return derive(k, m);
+        });
+        renderData(d);
+        if (t < 1) live.raf = requestAnimationFrame(step);
+        else liveCycle();
+    }
+    live.raf = requestAnimationFrame(step);
+}
+
+function liveTickReduced() {
+    var d = KEYS.map(function (k) {
+        cur[k] = drivers(k, false);
+        return derive(k, cur[k]);
+    });
+    renderData(d);
+    noteRun(d);
+}
+
+function toggleLive() {
+    if (live.on) { stopLive(true); return; }
+    live.on = true;
+    document.getElementById('live-btn').classList.add('on');
+    document.getElementById('live-txt').textContent = 'Stop';
+    document.getElementById('run-label').textContent = 'LIVE · il modello gira in continuo';
+    resetRange();
+    if (REDUCED) {
+        liveTickReduced();
+        live.timer = setInterval(liveTickReduced, 2000);
+    } else {
+        liveCycle();
+    }
+}
+
+function stopLive(withLabel) {
+    live.on = false;
+    if (live.raf) cancelAnimationFrame(live.raf);
+    if (live.timer) { clearInterval(live.timer); live.timer = 0; }
+    document.getElementById('live-btn').classList.remove('on');
+    document.getElementById('live-txt').textContent = 'Live';
+    if (withLabel) {
+        runN += 1;
+        document.getElementById('run-label').textContent = 'Run #' + runN + ' · istantanea dal live';
+    }
 }
 </script>
 </body>
