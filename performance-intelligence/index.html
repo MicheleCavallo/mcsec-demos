@@ -234,12 +234,13 @@ tr.totrow td { font-weight: 700; border-top: 1px solid var(--dv-border); }
     .step-arrow { display: none; }
     .btn { flex: 1; padding: 13px 18px; font-size: 13.5px; }
     .cockpit-spacer { display: none; }
-    /* Analisi su schermi stretti: meno colonne, tutte visibili senza scroll */
+    /* Tabelle su schermi stretti: meno colonne, tutte visibili senza scroll */
     th.hm, td.hm { display: none; }
-    #analysisPanel table { min-width: 0; }
-    #analysisPanel th:first-child, #analysisPanel td:first-child { white-space: normal; }
+    .table-scroll table { min-width: 0; }
+    .table-scroll th, .table-scroll td { white-space: normal; }
     td { font-size: 12.5px; padding: 7px 8px; }
     th { font-size: 10px; padding: 6px 8px; }
+    #wfWrap svg { min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
     .btn-live.on .dot, .step.run .ico { animation: none; }
@@ -389,7 +390,7 @@ var DOMAINS = {
         file: function (d) { return "ERP_giornale_" + dISO(d) + ".csv"; },
         source: "ERP — contabilità generale",
         total: function (r) { return 1180 + Math.floor(r() * 140); },
-        cols: [{ h: "Data" }, { h: "Reg." }, { h: "Conto" }, { h: "Descrizione" }, { h: "CDC" }, { h: "Importo €", num: true }],
+        cols: [{ h: "Data" }, { h: "Reg.", hm: true }, { h: "Conto" }, { h: "Descrizione", hm: true }, { h: "CDC", hm: true }, { h: "Importo €", num: true }],
         gen: function (day, r, d) {
             var rows = [], reg = 12400 + day * 38;
             var forn = [["Metallurgica Adriatica Srl", 6000, 16000], ["Acciai del Tirreno SpA", 4500, 12000], ["Polimeri Sud Srl", 3000, 9000]];
@@ -419,7 +420,7 @@ var DOMAINS = {
         file: function (d) { return "crm_ads_lead_" + dISO(d) + ".csv"; },
         source: "CRM + piattaforme ads",
         total: function (r) { return 84 + Math.floor(r() * 26); },
-        cols: [{ h: "Data" }, { h: "Canale" }, { h: "Campagna" }, { h: "Lead", num: true }, { h: "Spesa €", num: true }, { h: "CPL €", num: true }],
+        cols: [{ h: "Data", hm: true }, { h: "Canale" }, { h: "Campagna", hm: true }, { h: "Lead", num: true }, { h: "Spesa €", num: true, hm: true }, { h: "CPL €", num: true }],
         gen: function (day, r, d) {
             var cpiMeta = (1 + 0.03 * day) * (evBoost("marketing", day) ? 1.36 : 1);
             var src = [
@@ -445,7 +446,7 @@ var DOMAINS = {
         file: function (d) { return "MES_produzione_scarti_" + dISO(d) + ".csv"; },
         source: "MES — linee di produzione",
         total: function (r) { return 310 + Math.floor(r() * 50); },
-        cols: [{ h: "Data" }, { h: "Linea" }, { h: "Turno" }, { h: "Pezzi", num: true }, { h: "Scarti", num: true }, { h: "% scarto", num: true }],
+        cols: [{ h: "Data", hm: true }, { h: "Linea" }, { h: "Turno", hm: true }, { h: "Pezzi", num: true }, { h: "Scarti", num: true, hm: true }, { h: "% scarto", num: true }],
         gen: function (day, r, d) {
             var linee = [
                 ["Linea 1 — Stampaggio", 700, 950, 1.1, 1.9, 0],
@@ -560,21 +561,26 @@ function setStep(i, mode, detail) {
 }
 function renderHead(dom) {
     $("#thead").innerHTML = "<tr>" + dom.cols.map(function (c) {
-        return "<th" + (c.num ? " class=\"num\"" : "") + ">" + c.h + "</th>";
+        var k = [];
+        if (c.num) k.push("num");
+        if (c.hm) k.push("hm");
+        return "<th" + (k.length ? " class=\"" + k.join(" ") + "\"" : "") + ">" + c.h + "</th>";
     }).join("") + "</tr>";
 }
-function renderRows(rows) {
+function renderRows(rows, cols) {
     var tb = $("#tbody");
     tb.innerHTML = "";
     rows.forEach(function (row, ri) {
         var tr = document.createElement("tr");
         tr.style.animationDelay = reduced ? "0s" : (ri * 55) + "ms";
-        tr.innerHTML = row.map(function (cell) {
+        tr.innerHTML = row.map(function (cell, ci) {
+            var k = cols && cols[ci] && cols[ci].hm ? ["hm"] : [];
             if (cell && typeof cell === "object") {
+                if (cell.num) k.push("num");
                 var v = cell.warn ? "<span class=\"warn\">" + cell.text + "</span>" : cell.text;
-                return "<td" + (cell.num ? " class=\"num\"" : "") + ">" + v + "</td>";
+                return "<td" + (k.length ? " class=\"" + k.join(" ") + "\"" : "") + ">" + v + "</td>";
             }
-            return "<td>" + cell + "</td>";
+            return "<td" + (k.length ? " class=\"" + k.join(" ") + "\"" : "") + ">" + cell + "</td>";
         }).join("");
         tb.appendChild(tr);
     });
@@ -623,7 +629,10 @@ function deltaCells(cons, budg, invert) {
 }
 
 function wfRender(items) {
-    var W = 760, H = 220, padL = 48, padB = 32, padT = 22;
+    var compact = window.innerWidth <= 640;
+    var W = compact ? 460 : 760, H = 220, padL = compact ? 36 : 48, padB = compact ? 28 : 32, padT = 22;
+    var fVal = compact ? 10 : 11, fCat = compact ? 9 : 10.5, fAxis = compact ? 9 : 10;
+    $("#wf").setAttribute("viewBox", "0 0 " + W + " " + H);
     var plotW = W - padL - 12, plotH = H - padT - padB;
     var top = Math.ceil(items[0].v / 200) * 200 || 200;
     var lev = 0, minLev = 0;
@@ -633,12 +642,12 @@ function wfRender(items) {
     });
     var bottom = minLev < 0 ? Math.floor(minLev / 100) * 100 : 0;
     var y = function (v) { return padT + plotH * (top - v) / (top - bottom); };
-    var n = items.length, slot = plotW / n, bw = Math.min(66, slot * 0.62);
+    var n = items.length, slot = plotW / n, bw = Math.min(compact ? 42 : 66, slot * 0.62);
     var svg = "";
     for (var g = 0; g <= 4; g++) {
         var gv = bottom + (top - bottom) * g / 4, gy = y(gv);
         svg += "<line x1=\"" + padL + "\" y1=\"" + gy + "\" x2=\"" + (W - 10) + "\" y2=\"" + gy + "\" stroke=\"#23395A\" stroke-width=\"1\" opacity=\"0.6\"/>";
-        svg += "<text x=\"" + (padL - 6) + "\" y=\"" + (gy + 4) + "\" text-anchor=\"end\" font-size=\"10\" fill=\"#B0B8C4\">" + fmtInt.format(Math.round(gv)) + "</text>";
+        svg += "<text x=\"" + (padL - 6) + "\" y=\"" + (gy + 4) + "\" text-anchor=\"end\" font-size=\"" + fAxis + "\" fill=\"#B0B8C4\">" + fmtInt.format(Math.round(gv)) + "</text>";
     }
     var run = 0, prevX2 = null;
     items.forEach(function (it, i) {
@@ -650,9 +659,10 @@ function wfRender(items) {
             svg += "<line x1=\"" + prevX2 + "\" y1=\"" + y0 + "\" x2=\"" + x + "\" y2=\"" + y0 + "\" stroke=\"#B0B8C4\" stroke-width=\"1\" stroke-dasharray=\"3 3\" opacity=\"0.5\"/>";
         }
         svg += "<rect x=\"" + x + "\" y=\"" + y0 + "\" width=\"" + bw + "\" height=\"" + Math.max(2, y1 - y0) + "\" fill=\"" + fill + "\" rx=\"2\"/>";
-        svg += "<text x=\"" + (x + bw / 2) + "\" y=\"" + (y0 - 6) + "\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"#F2F5F9\">" +
+        svg += "<text x=\"" + (x + bw / 2) + "\" y=\"" + (y0 - 6) + "\" text-anchor=\"middle\" font-size=\"" + fVal + "\" font-weight=\"700\" fill=\"#F2F5F9\">" +
             (it.total ? (it.v < 0 ? "−" : "") : "−") + fmtInt.format(Math.abs(Math.round(it.v))) + "</text>";
-        svg += "<text x=\"" + (x + bw / 2) + "\" y=\"" + (H - 10) + "\" text-anchor=\"middle\" font-size=\"10.5\" fill=\"#B0B8C4\">" + it.label + "</text>";
+        svg += "<text x=\"" + (x + bw / 2) + "\" y=\"" + (H - 8) + "\" text-anchor=\"middle\" font-size=\"" + fCat + "\" fill=\"#B0B8C4\">" +
+            (compact && it.labelS ? it.labelS : it.label) + "</text>";
         prevX2 = x + bw;
     });
     $("#wf").innerHTML = svg;
@@ -698,11 +708,11 @@ function renderAnalysis() {
         }).join("");
         wfRender([
             { label: "Ricavi", v: c.ricavi / 1000, total: true },
-            { label: "Materie", v: c.materie / 1000 },
-            { label: "Margine lordo", v: ml / 1000, total: true },
-            { label: "Energia", v: c.energia / 1000 },
-            { label: "Personale", v: c.personale / 1000 },
-            { label: "Altri costi", v: altriC / 1000 },
+            { label: "Materie", labelS: "Mat.", v: c.materie / 1000 },
+            { label: "Margine lordo", labelS: "M. lordo", v: ml / 1000, total: true },
+            { label: "Energia", labelS: "Ene.", v: c.energia / 1000 },
+            { label: "Personale", labelS: "Pers.", v: c.personale / 1000 },
+            { label: "Altri costi", labelS: "Altri", v: altriC / 1000 },
             { label: "EBITDA", v: ebitda / 1000, total: true }
         ]);
         $("#wfWrap").hidden = false;
@@ -974,7 +984,7 @@ function run(trigger) {
     }, 1550);
     later(function () {
         setStep(3, "ok", "data warehouse aggiornato");
-        renderRows(rows);
+        renderRows(rows, dom.cols);
         $("#gridNote").textContent = fmtInt.format(ok) + " righe caricate — in tabella le ultime " + rows.length + " · dati simulati";
         renderAnalysis();
         $("#aiPanel").hidden = false;
