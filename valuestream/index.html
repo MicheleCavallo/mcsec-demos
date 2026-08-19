@@ -102,6 +102,55 @@ h1 .gold { color: var(--gold-light); }
     transition: background 0.2s;
 }
 .refresh-btn:hover { background: var(--gold-light); }
+.refresh-btn:disabled {
+    background: var(--dv-border);
+    color: var(--text-secondary);
+    box-shadow: none;
+    cursor: default;
+}
+
+/* ---------- contatori da inizio mese ---------- */
+.kpi-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 4px 16px;
+}
+.kpi-card {
+    flex: 1 1 200px;
+    background: var(--dv-card);
+    border: 1px solid var(--dv-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+.kpi-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.kpi-val {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(24px, 6vw, 32px);
+    line-height: 1.1;
+    color: var(--gold-light);
+    font-variant-numeric: tabular-nums;
+}
+.kpi-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+.kpi-sub span {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--gold-light);
+    font-variant-numeric: tabular-nums;
+}
 .live-btn {
     font-family: var(--font-display);
     font-weight: 800;
@@ -289,9 +338,21 @@ tr.subtle td:first-child { font-style: italic; }
 </header>
 
 <div class="refresh-bar">
-    <button type="button" class="refresh-btn" onclick="newRun()">↻ Refresh — nuovo run</button>
-    <button type="button" class="live-btn" id="live-btn" onclick="toggleLive()"><span class="dot"></span><span id="live-txt">Live</span></button>
-    <span class="run-label" id="run-label">Run #1 · valori base del modello</span>
+    <button type="button" class="refresh-btn" id="photo-btn" onclick="loadPhoto()">↻ Dati da inizio mese</button>
+    <button type="button" class="live-btn" id="live-btn" onclick="toggleLive()"><span class="dot"></span><span id="live-txt">Dati live da inizio mese</span></button>
+    <span class="run-label" id="run-label">La linea è collegata — premi «Dati da inizio mese» per caricare la fotografia</span>
+</div>
+
+<div class="kpi-bar">
+    <div class="kpi-card">
+        <div class="kpi-label">Pezzi lanciati da inizio mese</div>
+        <div class="kpi-val" id="kpi-lanciati">—</div>
+        <div class="kpi-sub">Costo unitario · <span id="kpi-costo">—</span></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Pezzi finiti da inizio mese</div>
+        <div class="kpi-val" id="kpi-finiti">—</div>
+    </div>
 </div>
 
 <div class="sheet">
@@ -383,8 +444,8 @@ tr.subtle td:first-child { font-style: italic; }
     <p><sup>2</sup> Ottimizzato: seconda stazione di test e setup ridotto. Gli ammortamenti salgono (+0,15 €/pz per il nuovo investimento), il costo totale scende di 1,25 €/pz: il ritorno si vede prima di firmare l'ordine.</p>
     <p><sup>3</sup> Stress: domanda raddoppiata (960 pz/turno) senza investimenti. «Altro» include straordinari, penali e outsourcing del test; gli stessi ammortamenti pesano su meno pezzi buoni.</p>
     <p>Base comune: linea elettronica SMT + assemblaggio · 2 turni · 220 gg/anno · costo target € 30,00/pezzo.</p>
-    <p>Il bottone <strong>Refresh</strong> lancia un nuovo run del modello: stessi scenari, seed diverso — i valori oscillano nelle bande stimate dalla simulazione. Gli ammortamenti annui restano fissi: il costo unitario cambia perché cambiano i pezzi buoni su cui si spalmano.</p>
-    <p>Il bottone <strong>Live</strong> fa girare il modello in continuo, un run dopo l'altro: ogni oscillazione rispetta gli stessi vincoli contabili. Le righe min–max sotto il totale registrano la forbice del costo unitario osservata durante il live. È così che si guarda un gemello digitale mentre lavora.</p>
+    <p>Il bottone <strong>Dati da inizio mese</strong> carica la fotografia della linea dal 1° del mese a oggi: pezzi lanciati, pezzi finiti e i tre scenari a confronto. È un'istantanea: si carica una volta sola e resta ferma.</p>
+    <p>Il bottone <strong>Dati live da inizio mese</strong> collega il gemello alla linea che gira: parte dalla stessa fotografia e avanza in continuo — i contatori salgono, i valori oscillano nei vincoli contabili del modello. Le righe min–max sotto il totale registrano la forbice del costo unitario osservata durante il live. È così che si guarda un gemello digitale mentre lavora.</p>
 </div>
 
 <div class="method-note">
@@ -419,8 +480,6 @@ var BASE = {
               mat: 16.90, pers: 9.80, man: 2.35, en: 2.75, altro: 2.90, ammTot: 432960,
               jProd: 8, jPers: 0.03, jAltro: 0.08 }
 };
-var runN = 1;
-
 function rnd() { return Math.random() * 2 - 1; }
 function noisePct(v, pct) { return v * (1 + rnd() * pct); }
 function fmt2(n) { return n.toFixed(2).replace('.', ','); }
@@ -488,6 +547,8 @@ function render(baseline) {
 function renderData(d) {
     var t = document.querySelectorAll('.sheet table');
     function col(fn) { return d.map(fn); }
+    /* costo unitario AS-IS anche nella card in alto (richiesta 19/08) */
+    document.getElementById('kpi-costo').textContent = '€ ' + fmt2(d[0].tot) + '/pezzo';
     /* blocco 1 — confronto col costo target */
     fillRow(t[0], 0, col(function (s) { return fmt2(s.tot); }));
     fillRow(t[0], 1, col(function (s) { return signed(s.margine, fmt2); }));
@@ -509,14 +570,68 @@ function renderData(d) {
     fillRow(t[2], 5, col(function (s) { return fmtInt(s.anno); }));
 }
 
-function newRun() {
-    if (live.on) stopLive(false);
-    runN += 1;
+/* ---------- fotografia da inizio mese ---------- */
+/* All'apertura la pagina è VUOTA: si popola solo al click (decisione
+   Michele 19/08). «Dati da inizio mese» = fotografia statica, un solo
+   click; il live parte dalla stessa fotografia e la fa avanzare. */
+var photoLoaded = false;
+var mtd = { lanc: 0, fin: 0 };   /* contatori pezzi da inizio mese */
+
+function workingDaysElapsed() {
+    /* giorni lavorativi (lun-ven) dal 1° del mese a ieri + frazione di
+       oggi sui 2 turni (06-22) */
+    var now = new Date(), gg = 0;
+    for (var d = 1; d < now.getDate(); d++) {
+        var wd = new Date(now.getFullYear(), now.getMonth(), d).getDay();
+        if (wd !== 0 && wd !== 6) gg += 1;
+    }
+    var wdToday = now.getDay();
+    if (wdToday !== 0 && wdToday !== 6) {
+        var h = now.getHours() + now.getMinutes() / 60;
+        gg += Math.max(0, Math.min(1, (h - 6) / 16));
+    }
+    return gg;
+}
+
+function computeMTD() {
+    /* la linea reale è lo scenario AS-IS: pezzi buoni/turno x 2 turni */
+    var b = BASE.asis;
+    var gg = workingDaysElapsed();
+    var fin = Math.round(b.prod * 2 * gg);
+    var lanc = Math.round(fin / (1 - b.scrap / 100)) + 130; /* scarti + WIP in linea */
+    mtd.fin = fin;
+    mtd.lanc = lanc;
+}
+
+function renderKpi() {
+    document.getElementById('kpi-lanciati').textContent = fmtInt(mtd.lanc);
+    document.getElementById('kpi-finiti').textContent = fmtInt(mtd.fin);
+}
+
+function emptyAll() {
+    var t = document.querySelectorAll('.sheet table');
+    var dash = ['—', '—', '—'];
+    for (var i = 0; i < t.length; i++)
+        for (var r = 0; r < t[i].tBodies[0].rows.length; r++) fillRow(t[i], r, dash);
+    document.getElementById('kpi-lanciati').textContent = '—';
+    document.getElementById('kpi-finiti').textContent = '—';
+    document.getElementById('kpi-costo').textContent = '—';
+}
+
+function loadPhoto() {
+    if (photoLoaded) return;
+    photoLoaded = true;
+    var btn = document.getElementById('photo-btn');
+    btn.disabled = true;
     var sheets = document.querySelectorAll('.sheet');
     for (var i = 0; i < sheets.length; i++) sheets[i].classList.add('fading');
     setTimeout(function () {
-        render(false);
-        document.getElementById('run-label').textContent = 'Run #' + runN + ' · seed casuale';
+        render(true);
+        computeMTD();
+        renderKpi();
+        renderRange();
+        document.getElementById('run-label').textContent =
+            'Fotografia dal 1° del mese a oggi · statica';
         for (var i = 0; i < sheets.length; i++) sheets[i].classList.remove('fading');
     }, 200);
 }
@@ -559,10 +674,21 @@ function renderRange() {
         'Max osservato' + (has ? ' (' + range.n + ' run)' : '');
 }
 
+function tickCounters() {
+    /* la linea avanza: i lanci precedono le finiture, il WIP resta sano */
+    var dl = 1 + Math.floor(Math.random() * 3);
+    var df = 1 + Math.floor(Math.random() * 3);
+    if (mtd.fin + df > mtd.lanc + dl - 60) df = Math.max(0, df - 1);
+    mtd.lanc += dl;
+    mtd.fin += df;
+    renderKpi();
+}
+
 function liveCycle() {
     var from = {}, to = {};
     KEYS.forEach(function (k) { from[k] = cur[k]; to[k] = drivers(k, false); });
     noteRun(KEYS.map(function (k) { return derive(k, to[k]); }));
+    tickCounters();
     var start = performance.now();
     function step(now) {
         if (!live.on) return;
@@ -588,14 +714,24 @@ function liveTickReduced() {
     });
     renderData(d);
     noteRun(d);
+    tickCounters();
 }
 
 function toggleLive() {
     if (live.on) { stopLive(true); return; }
+    if (!photoLoaded) {
+        /* il live parte SEMPRE dai dati di inizio mese */
+        photoLoaded = true;
+        document.getElementById('photo-btn').disabled = true;
+        render(true);
+        computeMTD();
+        renderKpi();
+    }
     live.on = true;
     document.getElementById('live-btn').classList.add('on');
     document.getElementById('live-txt').textContent = 'Stop';
-    document.getElementById('run-label').textContent = 'LIVE · il modello gira in continuo';
+    document.getElementById('run-label').textContent =
+        'LIVE · dati da inizio mese in avanzamento';
     resetRange();
     if (REDUCED) {
         liveTickReduced();
@@ -610,12 +746,15 @@ function stopLive(withLabel) {
     if (live.raf) cancelAnimationFrame(live.raf);
     if (live.timer) { clearInterval(live.timer); live.timer = 0; }
     document.getElementById('live-btn').classList.remove('on');
-    document.getElementById('live-txt').textContent = 'Live';
+    document.getElementById('live-txt').textContent = 'Dati live da inizio mese';
     if (withLabel) {
-        runN += 1;
-        document.getElementById('run-label').textContent = 'Run #' + runN + ' · istantanea dal live';
+        document.getElementById('run-label').textContent =
+            'Live fermato · i contatori restano al punto raggiunto';
     }
 }
+
+/* all'apertura la pagina è vuota */
+emptyAll();
 </script>
 </body>
 </html>
