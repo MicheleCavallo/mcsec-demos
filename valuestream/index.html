@@ -109,6 +109,33 @@ h1 .gold { color: var(--gold-light); }
     cursor: default;
 }
 
+/* ---------- barra caricamento dati ---------- */
+.load-bar { margin: 0 4px 16px; }
+.load-bar[hidden] { display: none; }
+.load-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+}
+.load-track {
+    height: 10px;
+    background: var(--dv-card);
+    border: 1px solid var(--dv-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.load-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 999px;
+    box-shadow: 0 0 10px var(--gold-glow);
+}
+
 /* ---------- contatori da inizio mese ---------- */
 .kpi-bar {
     display: flex;
@@ -341,6 +368,11 @@ tr.subtle td:first-child { font-style: italic; }
     <button type="button" class="refresh-btn" id="photo-btn" onclick="loadPhoto()">↻ Dati da inizio mese</button>
     <button type="button" class="live-btn" id="live-btn" onclick="toggleLive()"><span class="dot"></span><span id="live-txt">Dati live da inizio mese</span></button>
     <span class="run-label" id="run-label">La linea è collegata — premi «Dati da inizio mese» per caricare la fotografia</span>
+</div>
+
+<div class="load-bar" id="load-bar" hidden>
+    <div class="load-label">Caricamento dati</div>
+    <div class="load-track"><div class="load-fill" id="load-fill"></div></div>
 </div>
 
 <div class="kpi-bar">
@@ -618,22 +650,48 @@ function emptyAll() {
     document.getElementById('kpi-costo').textContent = '—';
 }
 
+/* Barra CARICAMENTO DATI (richiesta Michele 19/08): ogni collegamento
+   ai dati — fotografia o avvio live — impiega ~4,5 s con avanzamento
+   leggermente irregolare, come un caricamento vero. Lo Stop è immediato. */
+var loading = false;
+var LOAD_MS = 4500;
+
+function startLoading(done) {
+    loading = true;
+    var bar = document.getElementById('load-bar');
+    var fill = document.getElementById('load-fill');
+    bar.hidden = false;
+    fill.style.width = '0%';
+    var p = 0, tick = 120, steps = LOAD_MS / tick;
+    var timer = setInterval(function () {
+        p += (100 / steps) * (0.4 + Math.random() * 1.2);
+        if (p >= 100) {
+            clearInterval(timer);
+            fill.style.width = '100%';
+            setTimeout(function () {
+                bar.hidden = true;
+                loading = false;
+                done();
+            }, 180);
+            return;
+        }
+        fill.style.width = p.toFixed(1) + '%';
+    }, tick);
+}
+
 function loadPhoto() {
-    if (photoLoaded) return;
+    if (photoLoaded || loading) return;
     photoLoaded = true;
-    var btn = document.getElementById('photo-btn');
-    btn.disabled = true;
-    var sheets = document.querySelectorAll('.sheet');
-    for (var i = 0; i < sheets.length; i++) sheets[i].classList.add('fading');
-    setTimeout(function () {
+    document.getElementById('photo-btn').disabled = true;
+    document.getElementById('run-label').textContent = '';
+    startLoading(function () {
         render(true);
         computeMTD();
         renderKpi();
         renderRange();
         document.getElementById('run-label').textContent =
             'Fotografia dal 1° del mese a oggi · statica';
-        for (var i = 0; i < sheets.length; i++) sheets[i].classList.remove('fading');
-    }, 200);
+    });
 }
 
 /* ---------- modalità LIVE ---------- */
@@ -719,26 +777,33 @@ function liveTickReduced() {
 
 function toggleLive() {
     if (live.on) { stopLive(true); return; }
-    if (!photoLoaded) {
+    if (loading) return;
+    var wasEmpty = !photoLoaded;
+    if (wasEmpty) {
         /* il live parte SEMPRE dai dati di inizio mese */
         photoLoaded = true;
         document.getElementById('photo-btn').disabled = true;
-        render(true);
-        computeMTD();
-        renderKpi();
     }
-    live.on = true;
-    document.getElementById('live-btn').classList.add('on');
-    document.getElementById('live-txt').textContent = 'Stop';
-    document.getElementById('run-label').textContent =
-        'LIVE · dati da inizio mese in avanzamento';
-    resetRange();
-    if (REDUCED) {
-        liveTickReduced();
-        live.timer = setInterval(liveTickReduced, 2000);
-    } else {
-        liveCycle();
-    }
+    document.getElementById('run-label').textContent = '';
+    startLoading(function () {
+        if (wasEmpty) {
+            render(true);
+            computeMTD();
+            renderKpi();
+        }
+        live.on = true;
+        document.getElementById('live-btn').classList.add('on');
+        document.getElementById('live-txt').textContent = 'Stop';
+        document.getElementById('run-label').textContent =
+            'LIVE · dati da inizio mese in avanzamento';
+        resetRange();
+        if (REDUCED) {
+            liveTickReduced();
+            live.timer = setInterval(liveTickReduced, 2000);
+        } else {
+            liveCycle();
+        }
+    });
 }
 
 function stopLive(withLabel) {
