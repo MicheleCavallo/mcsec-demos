@@ -144,6 +144,145 @@ body::before {
 .tab.tab-stress.active { background: var(--warn); color: #0D1B2A; box-shadow: 0 0 16px rgba(224,138,60,0.4); }
 .tab.tab-stress.active .tab-sub { color: rgba(13,27,42,0.85); }
 
+/* ========== CONTROLLI CARICO DATI ========== */
+.controls-bar {
+  position: relative; z-index: 10;
+  padding: 14px 32px 0;
+}
+.controls-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.refresh-btn, .live-btn {
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border-radius: 8px; padding: 11px 18px; min-height: 44px;
+  cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+}
+.refresh-btn { background: var(--gold); color: var(--bg-deep); border: none; box-shadow: 0 0 14px var(--gold-glow); }
+.refresh-btn:hover { background: var(--gold-light); }
+.refresh-btn:disabled { background: var(--navy-light); color: var(--text-muted); box-shadow: none; cursor: default; }
+.live-btn { background: transparent; color: var(--gold-light); border: 1px solid var(--gold); }
+.live-btn:hover { background: rgba(194,150,53,0.12); }
+.live-btn:disabled { opacity: 0.4; cursor: default; }
+.live-btn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); margin-right: 8px; vertical-align: 1px; }
+.live-btn.on { background: rgba(194,150,53,0.12); box-shadow: 0 0 14px var(--gold-glow); }
+.live-btn.on .dot { background: var(--gold-light); animation: blink-dot 1.1s ease-in-out infinite; }
+.stop-btn {
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  background: transparent; color: var(--red); border: 1px solid var(--red);
+  border-radius: 8px; padding: 11px 18px; min-height: 44px;
+  cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+}
+.stop-btn:hover { background: rgba(217,87,87,0.12); box-shadow: 0 0 14px var(--red-glow); }
+.stop-btn:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+@keyframes blink-dot { 50% { opacity: 0.25; } }
+.run-label { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+.run-label.live { color: var(--gold-light); font-weight: 700; font-family: var(--font-display); }
+
+.load-bar { margin-top: 11px; }
+.load-bar[hidden] { display: none; }
+.load-label { font-family: var(--font-display); font-weight: 700; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+.load-track { height: 10px; background: var(--navy-mid); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.load-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 999px; box-shadow: 0 0 10px var(--gold-glow); }
+
+.arrivo { margin-top: 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px 12px; }
+.arrivo .at { font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+.filechip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 10px; min-height: 20px; }
+.filechip .csv { font-family: var(--font-display); font-weight: 800; font-size: 10px; letter-spacing: 0.12em; color: var(--gold-light); border: 1px solid var(--gold); border-radius: 4px; padding: 2px 6px; }
+.filechip .fname { font-family: Consolas, 'Cascadia Mono', monospace; font-size: 13px; color: var(--text); }
+.filechip .fmeta { font-size: 12px; color: var(--text-muted); }
+.steps { display: flex; flex-wrap: wrap; gap: 6px 0; align-items: flex-start; }
+.step { display: flex; align-items: flex-start; gap: 8px; opacity: 0.35; transition: opacity 0.3s; min-width: 150px; flex: 1; }
+.step.run, .step.ok { opacity: 1; }
+.step .ico { width: 18px; height: 18px; border-radius: 50%; flex: none; margin-top: 1px; border: 1.5px solid var(--gold); color: var(--ok); font-size: 11px; line-height: 15px; text-align: center; font-weight: 700; }
+.step.run .ico { border-top-color: transparent; animation: spin-ico 0.8s linear infinite; }
+.step.ok .ico { border-color: var(--ok); }
+@keyframes spin-ico { to { transform: rotate(360deg); } }
+.step .t { font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.step .d { font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+.step-arrow { color: var(--gold); font-weight: 700; padding: 0 10px; margin-top: 2px; }
+
+/* sezioni in attesa dei dati: nascoste del tutto finché non arriva la fotografia */
+body.predata .gate { display: none !important; }
+body:not(.predata) .gate { animation: gate-in 0.5s ease both; }
+@keyframes gate-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* ========== LANCI DEL MESE + QUADRATURA WIP ========== */
+.launch-panel {
+  position: relative; z-index: 10;
+  margin: 0 32px 16px;
+  display: flex; align-items: stretch; gap: 24px; flex-wrap: wrap;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px 24px;
+  animation: launch-in 0.6s ease both;
+}
+.launch-panel[hidden] { display: none; }
+@keyframes launch-in { from { opacity: 0; transform: translateY(-10px); } }
+.lp-main { flex: 1 1 320px; }
+.lp-label {
+  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+.lp-big {
+  font-family: var(--font-display); font-weight: 800; font-size: 44px;
+  line-height: 1; color: var(--gold-light); font-variant-numeric: tabular-nums;
+}
+.lp-big .lp-unit { font-size: 16px; font-weight: 700; color: var(--text-muted); }
+.lp-split { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.lp-type {
+  flex: 1 1 170px; min-width: 170px; max-width: 240px;
+  background: var(--navy-mid); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; font-variant-numeric: tabular-nums;
+}
+.lp-type-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+.lp-type-head b { font-family: var(--font-display); font-weight: 700; color: var(--gold-light); font-size: 13px; }
+.lp-type-head span { font-size: 12px; color: var(--text-muted); }
+.lp-tr { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 12.5px; }
+.lp-tr span { color: var(--text-muted); }
+.lp-tr b { font-family: var(--font-display); font-weight: 700; color: var(--text); }
+.lp-tr b.mut { color: var(--text-muted); font-weight: 600; }
+.lp-tr b.neg { color: var(--red); }
+.lp-tr b.pos { color: var(--ok); }
+.lp-tr.sep { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 5px; }
+.lp-recon { flex: 1 1 300px; border-left: 1px solid var(--border); padding-left: 24px; }
+.lp-recon-title {
+  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.lp-recon table { border-collapse: collapse; width: 100%; max-width: 340px; font-variant-numeric: tabular-nums; }
+.lp-recon td { font-size: 13px; color: var(--text); padding: 3px 0; }
+.lp-recon td.sign { width: 18px; color: var(--text-muted); }
+.lp-recon td.num { text-align: right; font-family: var(--font-display); font-weight: 700; }
+.lp-recon tr.tot td { border-top: 1px solid var(--border); padding-top: 6px; font-weight: 800; }
+.lp-recon tr.tot td.num { color: var(--gold-light); }
+.lp-recon td.lbl { color: var(--text-muted); }
+.wd-toggle {
+  margin-top: 8px; background: none; border: none; padding: 0;
+  font-family: var(--font-display); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-light);
+  cursor: pointer;
+}
+.wd-toggle:hover { color: var(--gold); }
+.lp-detail[hidden] { display: none; }
+.lp-detail {
+  flex: 1 1 320px; min-width: 300px; max-width: 420px;
+  border-left: 1px solid var(--border); padding-left: 24px;
+  animation: launch-in 0.4s ease both;
+}
+.lp-detail table { border-collapse: collapse; width: 100%; max-width: 380px; font-variant-numeric: tabular-nums; }
+.lp-detail td { font-size: 12px; color: var(--text); padding: 2.5px 0 2.5px 12px; }
+.lp-detail td:first-child { padding-left: 0; }
+.lp-detail td.num { text-align: right; font-family: var(--font-display); font-weight: 700; }
+.lp-detail td.mutc, .lp-detail td.lbl { color: var(--text-muted); font-weight: 500; }
+.lp-detail tr.wd-head td { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.lp-detail tr.tot td { border-top: 1px solid var(--border); padding-top: 5px; font-weight: 800; }
+.lp-detail tr.tot td.num { color: var(--gold-light); }
+.wd-note { margin-top: 7px; font-size: 10.5px; color: var(--text-muted); font-style: italic; max-width: 380px; line-height: 1.45; }
+@media (max-width: 720px) {
+  .lp-recon, .lp-detail { border-left: none; padding-left: 0; border-top: 1px solid var(--border); padding-top: 12px; }
+}
+
 /* live pulse */
 .live-badge {
   display: flex; align-items: center; gap: 6px;
@@ -443,7 +582,7 @@ body::before {
 
 </style>
 </head>
-<body>
+<body class="predata">
 
 <!-- HEADER -->
 <div class="header">
@@ -453,10 +592,10 @@ body::before {
       <div class="header-eyebrow">MCSec · Pillar 2 — Digital Twin</div>
       <div class="header-title">Value Stream Simulation — <span>Device Elettronici</span></div>
       <div class="header-sub">Modello AS-IS · Linea SMT + Assemblaggio · Aggiornamento simulato ogni 5 min</div>
-      <div class="live-badge"><div class="live-dot"></div> Simulazione attiva</div>
+      <div class="live-badge idle" id="live-badge"><div class="live-dot"></div> <span id="live-badge-txt">In attesa dei dati</span></div>
     </div>
   </div>
-  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+  <div class="gate" style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
     <div class="scenario-tabs">
       <button class="tab active" onclick="setScenario('asis', this)">
         AS-IS
@@ -474,8 +613,35 @@ body::before {
   </div>
 </div>
 
+<!-- CONTROLLI CARICO DATI -->
+<div class="controls-bar">
+  <div class="controls-row">
+    <button type="button" class="refresh-btn" id="photo-btn" onclick="loadPhoto()">↻ Dati da inizio mese</button>
+    <button type="button" class="live-btn" id="live-btn" onclick="startLive()" disabled><span class="dot"></span><span id="live-txt">Dati live da inizio mese</span></button>
+    <button type="button" class="stop-btn" id="stop-btn" onclick="stopLive()" disabled>■ Stop simulazione live</button>
+    <span class="run-label" id="run-label">La linea è collegata — premi «Dati da inizio mese» per caricare la fotografia</span>
+  </div>
+  <div class="load-bar" id="load-bar" hidden>
+    <div class="load-label">Caricamento dati</div>
+    <div class="load-track"><div class="load-fill" id="load-fill"></div></div>
+  </div>
+  <div class="arrivo">
+    <div class="at">Arrivo dati</div>
+    <div class="filechip" id="filechip"><span class="fmeta">Nessun file ancora ricevuto.</span></div>
+    <div class="steps">
+      <div class="step" id="st0"><span class="ico"></span><div><div class="t">Trigger</div><div class="d" id="st0d">—</div></div></div>
+      <div class="step-arrow">›</div>
+      <div class="step" id="st1"><span class="ico"></span><div><div class="t">Estrazione</div><div class="d" id="st1d">—</div></div></div>
+      <div class="step-arrow">›</div>
+      <div class="step" id="st2"><span class="ico"></span><div><div class="t">Validazione</div><div class="d" id="st2d">—</div></div></div>
+      <div class="step-arrow">›</div>
+      <div class="step" id="st3"><span class="ico"></span><div><div class="t">Caricamento</div><div class="d" id="st3d">—</div></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- KPI BAR -->
-<div class="kpi-bar">
+<div class="kpi-bar gate">
   <div class="kpi-card">
     <div class="kpi-label">Lead Time Totale</div>
     <div class="kpi-value warn" id="kpi-lt">4.2 gg</div>
@@ -509,7 +675,63 @@ body::before {
 </div>
 
 <!-- PIPELINE -->
-<div class="pipeline-section">
+<!-- LANCI DEL MESE + QUADRATURA WIP (appare col carico dati) -->
+<div class="launch-panel" id="launch-panel" hidden>
+  <div class="lp-main">
+    <div class="lp-label" id="lp-label">Prodotti lanciati nel mese — fotografia delle 06:00</div>
+    <div class="lp-big"><span id="lp-big-num">9.480</span> <span class="lp-unit">pz</span></div>
+    <div class="lp-split">
+      <div class="lp-type">
+        <div class="lp-type-head"><b>Tipo A</b><span id="tpzA">4.740 pz</span></div>
+        <div class="lp-tr"><span>Costo unitario</span><b id="tcA">€ 28,10</b></div>
+        <div class="lp-tr"><span>Budget</span><b class="mut">€ 27,50</b></div>
+        <div class="lp-tr sep"><span>Δ vs budget</span><b id="tdA" class="neg">+ € 0,60</b></div>
+      </div>
+      <div class="lp-type">
+        <div class="lp-type-head"><b>Tipo B</b><span id="tpzB">2.850 pz</span></div>
+        <div class="lp-tr"><span>Costo unitario</span><b id="tcB">€ 29,90</b></div>
+        <div class="lp-tr"><span>Budget</span><b class="mut">€ 30,20</b></div>
+        <div class="lp-tr sep"><span>Δ vs budget</span><b id="tdB" class="pos">− € 0,30</b></div>
+      </div>
+      <div class="lp-type">
+        <div class="lp-type-head"><b>Tipo C</b><span id="tpzC">1.890 pz</span></div>
+        <div class="lp-tr"><span>Costo unitario</span><b id="tcC">€ 31,40</b></div>
+        <div class="lp-tr"><span>Budget</span><b class="mut">€ 31,00</b></div>
+        <div class="lp-tr sep"><span>Δ vs budget</span><b id="tdC" class="neg">+ € 0,40</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="lp-recon">
+    <div class="lp-recon-title">Quadratura WIP</div>
+    <table>
+      <tr><td class="sign"></td><td class="lbl">WIP al mese precedente</td><td class="num">610</td></tr>
+      <tr><td class="sign">+</td><td class="lbl">Prodotti lanciati nel mese</td><td class="num" id="qw-lanc">9.480</td></tr>
+      <tr><td class="sign">−</td><td class="lbl">Completati (pz OUT)</td><td class="num" id="qw-out">8.953</td></tr>
+      <tr><td class="sign">−</td><td class="lbl">Scrap di linea</td><td class="num" id="qw-scrap">290</td></tr>
+      <tr class="tot"><td class="sign">=</td><td class="lbl">WIP in linea oggi</td><td class="num" id="qw-tot">847</td></tr>
+      <tr><td class="sign">×</td><td class="lbl">Costo medio assorbito/pz</td><td class="num" id="qw-avg">€ 21,83</td></tr>
+      <tr class="tot"><td class="sign">=</td><td class="lbl">WIP valorizzato — circolante in linea</td><td class="num" id="qw-val">€ 18.489</td></tr>
+    </table>
+    <button type="button" class="wd-toggle" id="wd-toggle" onclick="toggleWipDetail()">calcolo per fase ▸</button>
+  </div>
+  <div class="lp-detail" id="wip-detail" hidden>
+    <div class="lp-recon-title">Calcolo per fase</div>
+    <table>
+        <tr class="wd-head"><td>In coda a…</td><td class="num">WIP pz</td><td class="num">€/pz assorbito</td><td class="num">Valore</td></tr>
+        <tr><td class="lbl">Logistica</td><td class="num" id="wd-p0">38</td><td class="num mutc">€ 15,50</td><td class="num" id="wd-v0">589</td></tr>
+        <tr><td class="lbl">Prep. SMT</td><td class="num" id="wd-p1">62</td><td class="num mutc">€ 16,30</td><td class="num" id="wd-v1">1.011</td></tr>
+        <tr><td class="lbl">SMT / Reflow</td><td class="num" id="wd-p2">84</td><td class="num mutc">€ 18,50</td><td class="num" id="wd-v2">1.554</td></tr>
+        <tr><td class="lbl">AOI / Test</td><td class="num" id="wd-p3">412</td><td class="num mutc">€ 21,60</td><td class="num" id="wd-v3">8.899</td></tr>
+        <tr><td class="lbl">Assemblaggio</td><td class="num" id="wd-p4">148</td><td class="num mutc">€ 24,20</td><td class="num" id="wd-v4">3.582</td></tr>
+        <tr><td class="lbl">Test Finale</td><td class="num" id="wd-p5">68</td><td class="num mutc">€ 27,20</td><td class="num" id="wd-v5">1.850</td></tr>
+        <tr><td class="lbl">Spedizione</td><td class="num" id="wd-p6">35</td><td class="num mutc">€ 28,70</td><td class="num" id="wd-v6">1.005</td></tr>
+        <tr class="tot"><td class="lbl">Totale</td><td class="num" id="wd-tp">847</td><td class="num" id="wd-ta">€ 21,83</td><td class="num" id="wd-tv">€ 18.489</td></tr>
+      </table>
+    <div class="wd-note">Materiali € 15,50 assorbiti al 100% all'ingresso + conversione cumulata delle fasi già attraversate (pieno € 29,30 all'uscita). Ripartizione illustrativa: sul modello reale viene dalla distinta di ciclo.</div>
+  </div>
+</div>
+
+<div class="pipeline-section gate">
   <div class="section-label">Flusso produttivo — ogni particella è un lotto · <span style="color:var(--red);">rosso = lotto in ingresso (assorbe capacità)</span> · <span style="color:var(--ok);">verde = lotto in uscita (libera capacità)</span> · linea tratteggiata = soglia max di fase</div>
   <div class="pipeline-wrap">
     <canvas id="pipeline-canvas" style="width:100%;height:226px;display:block;"></canvas>
@@ -517,7 +739,7 @@ body::before {
 </div>
 
 <!-- BOTTOM GRID -->
-<div class="bottom-grid">
+<div class="bottom-grid gate">
 
   <!-- WIP per fase -->
   <div class="chart-card">
@@ -624,7 +846,7 @@ body::before {
 </div>
 
 <!-- PROCESS + ECONOMICS -->
-<div class="process-grid">
+<div class="process-grid gate">
 
   <!-- Processo & Efficienza -->
   <div class="chart-card">
@@ -646,7 +868,7 @@ body::before {
 </div>
 
 <!-- CTA FOOTER -->
-<div class="cta-footer">
+<div class="cta-footer gate">
   <div>
     <div class="cta-text">Vuoi vedere questo modello calibrato sulla tua linea reale?</div>
     <div class="cta-sub">MCSec costruisce il Digital Twin partendo dai tuoi dati ERP/MES. Discovery gratuita di 20 minuti, senza impegno.</div>
@@ -655,7 +877,7 @@ body::before {
 </div>
 
 <!-- METHOD NOTE -->
-<div class="method-note">
+<div class="method-note gate">
   <b>Come gira questa simulazione</b> — Sistema chiuso a <span class="gold">WIP costante (logica CONWIP)</span>: in linea circola un numero fisso di lotti e un nuovo lancio (pz START) parte solo quando un lotto completato esce (pz OUT). Il ritmo di ingresso si adatta da solo al ritmo del collo di bottiglia: per questo le code crescono fino a un livello di equilibrio e non esplodono. Nel Digital Twin di progetto la politica di rilascio è una leva di scenario — <span class="gold">push</span> (lanci a takt/MRP) vs <span class="gold">pull</span> (CONWIP/kanban) — con effetti misurabili su WIP, lead time e cassa.
 </div>
 
@@ -805,6 +1027,267 @@ const SCENARIOS = {
 let currentScenario = 'asis';
 let animFrame;
 
+/* ---------- carico dati: fotografia + live (Michele 31/08) ---------- */
+/* All'apertura la dashboard è in attesa (body.predata): «Dati da inizio mese»
+   simula il trigger del mattino — barra + fasi Arrivo dati — e popola la
+   fotografia statica; «Dati live» accende/spegne la simulazione animata. */
+let running = false, loadingData = false, photoLoaded = false, barTimer = null;
+const TT = [];
+const laterT = (fn, ms) => TT.push(setTimeout(fn, ms));
+const $id = i => document.getElementById(i);
+
+function setStep(i, mode, detail) {
+  const s = $id('st' + i), ico = s.querySelector('.ico');
+  s.classList.remove('run', 'ok');
+  if (mode) s.classList.add(mode);
+  ico.textContent = mode === 'ok' ? '✓' : '';
+  if (detail !== undefined) $id('st' + i + 'd').textContent = detail;
+}
+
+function setBadge(mode, txt) {
+  const b = $id('live-badge');
+  b.classList.remove('idle', 'photo');
+  if (mode) b.classList.add(mode);
+  $id('live-badge-txt').textContent = txt;
+}
+
+/* contatori della fotografia, quadrati col pannello Lanci del mese:
+   WIP mese prec 610 + lanciati 9.480 − completati 8.953 − scrap 290 = WIP oggi 847 */
+function seedPhoto() {
+  wipCount = SCENARIOS[currentScenario].wipData.slice();
+  stageFlash = new Array(STAGES.length).fill(null);
+  totStart = 9480; totOut = 8953; totScrap = 290;
+  lastStartLot = null; lastOutLot = null;
+}
+
+function drawStatic() {
+  cancelAnimationFrame(animFrame);
+  barWip = wipCount.slice();
+  drawPipeline();
+}
+
+function stopSim() {
+  running = false;
+  cancelAnimationFrame(animFrame);
+  if (liveDom) { clearInterval(liveDom); liveDom = null; }
+  $id('live-btn').classList.remove('on');
+  $id('stop-btn').disabled = true;
+}
+
+/* ---------- costi per tipo (lanci del mese) ----------
+   Media ponderata dei base = € 29,30 → quadra col Device Unitary Cost AS-IS */
+let liveDom = null;
+const TYPES = [
+  { k: 'A', pz: 4740, bdg: 27.50, base: 28.10 },
+  { k: 'B', pz: 2850, bdg: 30.20, base: 29.90 },
+  { k: 'C', pz: 1890, bdg: 31.00, base: 31.40 }
+];
+const eur = v => '€ ' + v.toFixed(2).replace('.', ',');
+
+function renderTypeCosts(noise) {
+  TYPES.forEach(t => {
+    t.cur = t.base + (noise ? (Math.random() - 0.5) * 0.14 : 0);
+    $id('tc' + t.k).textContent = eur(t.cur);
+    const d = t.cur - t.bdg;
+    const de = $id('td' + t.k);
+    de.textContent = (d >= 0 ? '+ ' : '− ') + eur(Math.abs(d));
+    de.className = d >= 0 ? 'neg' : 'pos';
+  });
+}
+
+/* in live: WIP per fase e KPI seguono i contatori della simulazione,
+   il costo unitario oscilla col mix dei tipi */
+function liveWipTick() {
+  const s = SCENARIOS[currentScenario];
+  const maxVal = Math.max(...s.wipData);
+  wipCount.forEach((v, i) => {
+    const val = Math.max(0, Math.round(v));
+    $id('wb-' + i).style.width = Math.min(100, Math.round((val / maxVal) * 100)) + '%';
+    $id('wc-' + i).textContent = val;
+  });
+  $id('kpi-wip').textContent = Math.round(wipCount.reduce((a, b) => a + b, 0));
+}
+
+/* live: la quadratura WIP segue i contatori cumulati della simulazione
+   (lanciati/completati/scrap avanzano; il WIP in linea è calcolato e quadra sempre) */
+const fmtI = n => Math.round(n).toLocaleString('it-IT');
+/* costo assorbito da un pezzo in coda a ciascuna fase: materiali € 15,50 al 100%
+   + conversione cumulata delle fasi già attraversate (totale pieno € 29,30) */
+const CUMC = [15.50, 16.30, 18.50, 21.60, 24.20, 27.20, 28.70];
+function liveQuadTick() {
+  const S = Math.round(totStart), O = Math.round(totOut), Sc = Math.round(totScrap);
+  $id('qw-lanc').textContent = fmtI(S);
+  $id('qw-out').textContent = fmtI(O);
+  $id('qw-scrap').textContent = fmtI(Sc);
+  $id('qw-tot').textContent = fmtI(610 + S - O - Sc);
+  /* valorizzazione per fase: WIP di fase × costo cumulato di fase */
+  const wv = wipCount.reduce((a, v, i) => a + v * (CUMC[i] || 0), 0);
+  const wtot = wipCount.reduce((a, b) => a + b, 0);
+  if (wtot > 0) $id('qw-avg').textContent = eur(wv / wtot);
+  $id('qw-val').textContent = '€ ' + fmtI(wv);
+  /* tabella di dettaglio per fase */
+  wipCount.forEach((v, i) => {
+    const p = $id('wd-p' + i);
+    if (!p) return;
+    p.textContent = fmtI(Math.max(0, v));
+    $id('wd-v' + i).textContent = fmtI(Math.max(0, v) * (CUMC[i] || 0));
+  });
+  $id('wd-tp').textContent = fmtI(wtot);
+  if (wtot > 0) $id('wd-ta').textContent = eur(wv / wtot);
+  $id('wd-tv').textContent = '€ ' + fmtI(wv);
+  $id('lp-big-num').textContent = fmtI(S);
+  /* split per tipo nelle proporzioni della fotografia (4.740/2.850/1.890 su 9.480) */
+  const a = Math.round(S * 4740 / 9480), b = Math.round(S * 2850 / 9480);
+  $id('tpzA').textContent = fmtI(a) + ' pz';
+  $id('tpzB').textContent = fmtI(b) + ' pz';
+  $id('tpzC').textContent = fmtI(S - a - b) + ' pz';
+}
+
+function liveEconTick() {
+  renderTypeCosts(true);
+  const wcur = TYPES.reduce((a, t) => a + t.cur * t.pz, 0) / 9480;
+  const s = SCENARIOS[currentScenario];
+  let base = parseFloat(String(s.duc).replace(/[^0-9,.-]/g, '').replace(',', '.'));
+  if (isNaN(base)) base = 29.30;
+  const heroLive = base + (wcur - 29.30);
+  $id('duc-hero-val').textContent = eur(heroLive);
+  liveTablesTick(heroLive);
+}
+
+/* primo numero di una stringa, con virgola o punto decimale */
+const parseNum = str => {
+  const m = String(str).replace(',', '.').match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+};
+/* riscrive il numero dentro la stringa mantenendone il formato (decimali, virgola, suffissi) */
+function fmtLike(orig, val) {
+  const s = String(orig);
+  const m = s.replace(',', '.').match(/-?\d+(\.\d+)?/);
+  if (!m) return s;
+  const dec = (m[0].split('.')[1] || '').length;
+  let out = val.toFixed(dec);
+  if (s.includes(',')) out = out.replace('.', ',');
+  return s.replace(/-?\d+([.,]\d+)?/, out);
+}
+
+/* live: colonna ATTIVO di Processo & Efficienza + voci di costo.
+   Le voci quadrano sempre col totale: ammortamenti fissi, «Altro» chiude il conto. */
+function liveTablesTick(heroVal) {
+  const s = SCENARIOS[currentScenario];
+  const wipTot = Math.round(wipCount.reduce((a, b) => a + b, 0));
+  const prows = document.querySelectorAll('#proc-table tr');
+  s.proc.forEach((row, i) => {
+    const cell = prows[i + 1] && prows[i + 1].children[2];
+    if (!cell) return;
+    const base = parseNum(row[1]);
+    if (/wip/i.test(row[0])) cell.textContent = fmtLike(row[1], wipTot);
+    else if (!isNaN(base)) cell.textContent = fmtLike(row[1], base * (1 + (Math.random() - 0.5) * 0.02));
+  });
+  const erows = document.querySelectorAll('#econ-table tr');
+  const vals = s.econ.map(r => parseNum(r[1]));
+  const out = vals.slice();
+  let sumOthers = 0;
+  s.econ.forEach((r, i) => {
+    if (i === s.econ.length - 1) return;
+    if (!/ammortament/i.test(r[0])) out[i] = vals[i] * (1 + (Math.random() - 0.5) * 0.012);
+    sumOthers += out[i];
+  });
+  out[out.length - 1] = Math.max(0.05, heroVal - sumOthers);
+  s.econ.forEach((r, i) => {
+    const cell = erows[i + 1] && erows[i + 1].children[2];
+    if (cell) cell.textContent = fmtLike(r[1], out[i]);
+  });
+}
+
+function runBar() {
+  const lf = $id('load-fill');
+  lf.style.width = '0%';
+  let wv = 0;
+  barTimer = setInterval(() => {
+    wv = Math.min(wv + 1.5 + Math.random() * 7, 96);   /* avanzamento irregolare, come la semplice */
+    lf.style.width = wv + '%';
+  }, 160);
+}
+
+function loadPhoto() {
+  if (loadingData) return;
+  loadingData = true;
+  stopSim();
+  TT.forEach(clearTimeout); TT.length = 0;
+  if (barTimer) { clearInterval(barTimer); barTimer = null; }
+  $id('photo-btn').disabled = true; $id('live-btn').disabled = true;
+  for (let i = 0; i < 4; i++) setStep(i, null, '—');
+  $id('filechip').innerHTML = '<span class="fmeta">Nessun file ancora ricevuto.</span>';
+  const rl = $id('run-label');
+  rl.classList.remove('live');
+  rl.textContent = 'Caricamento dati dalla linea…';
+  $id('load-bar').hidden = false;
+  runBar();
+  laterT(() => setStep(0, 'run', 'trigger delle 06:00'), 200);
+  laterT(() => {
+    setStep(0, 'ok');
+    $id('filechip').innerHTML = '<span class="csv">CSV</span> <span class="fname">estrazione_mes_linea1.csv</span> <span class="fmeta">· oggi 06:00 · automatico</span>';
+    setStep(1, 'run', 'MES linea SMT · ERP');
+  }, 900);
+  laterT(() => { setStep(1, 'ok', '2.416 record estratti'); setStep(2, 'run', 'controlli di coerenza…'); }, 2200);
+  laterT(() => { setStep(2, 'ok', '2.410 ok · 6 in quarantena'); setStep(3, 'run', 'aggiornamento modello…'); }, 3300);
+  laterT(() => setStep(3, 'ok', 'modello aggiornato'), 4200);
+  laterT(() => {
+    if (barTimer) { clearInterval(barTimer); barTimer = null; }
+    $id('load-fill').style.width = '100%';
+  }, 4300);
+  laterT(() => {
+    $id('load-bar').hidden = true;
+    document.body.classList.remove('predata');
+    $id('launch-panel').hidden = false;
+    photoLoaded = true; loadingData = false;
+    $id('photo-btn').disabled = false; $id('live-btn').disabled = false;
+    setBadge('photo', 'Fotografia da inizio mese · statica');
+    rl.textContent = 'Fotografia dal 1° del mese a oggi · statica — premi «Dati live» per vedere la linea che gira';
+    renderTypeCosts(false);
+    /* le sezioni erano display:none → il canvas va rimisurato appena visibile */
+    requestAnimationFrame(() => { resizeCanvas(); seedPhoto(); liveQuadTick(); drawStatic(); });
+  }, 4700);
+}
+
+function toggleWipDetail() {
+  const d = $id('wip-detail'), b = $id('wd-toggle');
+  d.hidden = !d.hidden;
+  b.textContent = d.hidden ? 'calcolo per fase ▸' : 'chiudi calcolo ◂';
+}
+
+function startLive() {
+  if (!photoLoaded || loadingData || running) return;
+  const rl = $id('run-label');
+  running = true;
+  $id('live-btn').classList.add('on');
+  $id('stop-btn').disabled = false;
+  setBadge(null, 'Simulazione attiva');
+  rl.classList.add('live');
+  rl.textContent = 'LIVE · dati da inizio mese in avanzamento';
+  $id('lp-label').textContent = 'Prodotti lanciati nel mese — live in avanzamento';
+  cancelAnimationFrame(animFrame);
+  drawPipeline();
+  liveWipTick(); liveEconTick(); liveQuadTick();
+  liveDom = setInterval(() => { liveWipTick(); liveEconTick(); liveQuadTick(); }, 1600);
+}
+
+function stopLive() {
+  if (!running) return;
+  const rl = $id('run-label');
+  stopSim();
+  setBadge('photo', 'Fotografia da inizio mese · statica');
+  rl.classList.remove('live');
+  rl.textContent = 'Fotografia dal 1° del mese a oggi · statica — premi «Dati live» per vedere la linea che gira';
+  /* torna ai valori ufficiali della fotografia */
+  seedPhoto();
+  updateWIP(); updateKPIs(); updateEconomics();
+  renderTypeCosts(false);
+  liveQuadTick();
+  $id('lp-label').textContent = 'Prodotti lanciati nel mese — fotografia delle 06:00';
+  drawStatic();
+}
+
 function setScenario(name, btn) {
   currentScenario = name;
   // riallinea i contatori al nuovo scenario (da qui in poi si muovono solo a eventi)
@@ -823,6 +1306,12 @@ function setScenario(name, btn) {
   updateInsights();
   updateProcess();
   updateEconomics();
+  /* dopo il carico dati: ripristina i cumulati del mese (setScenario li azzera) */
+  if (photoLoaded) {
+    seedPhoto();
+    renderTypeCosts(false);
+    if (!running) drawStatic();
+  }
 }
 
 function updateProcess() {
@@ -1279,7 +1768,7 @@ function drawPipeline() {
   ctx.textAlign = 'center';
 
   // particles
-  particles.forEach(p => {
+  if (running) particles.forEach(p => {
     const xFrac = (p.x - pipeX1) / (pipeX2 - pipeX1);
     const inBottle = xFrac > 0.40 && xFrac < 0.56 && s.bottleneck >= 0;
 
@@ -1351,15 +1840,17 @@ function drawPipeline() {
     ctx.fill();
   });
 
-  pulse++;
-  animFrame = requestAnimationFrame(drawPipeline);
+  if (running) { pulse++; animFrame = requestAnimationFrame(drawPipeline); }
 }
 
 // init
 window.addEventListener('resize', () => {
   cancelAnimationFrame(animFrame);
+  /* i cumulati del mese sopravvivono al resize (resizeCanvas li azzera ricreando le particelle) */
+  const keep = { s: totStart, o: totOut, sc: totScrap };
   resizeCanvas();
-  drawPipeline();
+  if (photoLoaded) { totStart = keep.s; totOut = keep.o; totScrap = keep.sc; }
+  if (running) drawPipeline(); else drawStatic();
 });
 
 window.addEventListener('load', () => {
@@ -1370,7 +1861,7 @@ window.addEventListener('load', () => {
   updateInsights();
   updateProcess();
   updateEconomics();
-  drawPipeline();
+  drawStatic();   /* frame fermo: la simulazione parte solo dopo il carico dati */
 });
 </script>
 </body>
