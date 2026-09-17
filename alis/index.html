@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCSec per ALIS — Presentazione</title>
+<!-- Se il deck apre con un hash (#s3) evita lo scroll animato fino a metà pagina -->
+<script>if (location.hash) { document.documentElement.style.scrollBehavior = 'auto'; }</script>
+
+<!-- Font brand MCSec (stessi del sito) + Playfair corsivo per il descrittore dei Pillar -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   TOKEN BRAND MCSEC — fonte: skill brand-info / design-tokens.css
+   Non modificare: il look è deciso lì.
+   ============================================================ */
+:root {
+    --bg-deep: #080C10;
+    --bg-navy: #0D1B2A;
+    --bg-navy-site: #253551;
+    --gold: #C29635;
+    --gold-light: #D4AF37;
+    --text-primary: #FFFFFF;
+    --text-secondary: #B0B8C4;
+    --gold-glow: rgba(194, 150, 53, 0.35);
+
+    --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-descr: 'Playfair Display', Georgia, serif;
+
+    --title-size: clamp(1.5rem, 5vw, 4rem);
+    --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+    --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+    --body-size: clamp(0.75rem, 1.5vw, 1.125rem);
+    --small-size: clamp(0.65rem, 1vw, 0.875rem);
+    --slide-padding: clamp(1rem, 4vw, 4rem);
+    --slide-padding-left: clamp(1.5rem, 7vw, 6rem);
+    --content-gap: clamp(0.5rem, 2vw, 2rem);
+    --element-gap: clamp(0.25rem, 1vw, 1rem);
+
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-normal: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ============================================================
+   VIEWPORT FITTING — base obbligatoria (skill frontend-slides)
+   ============================================================ */
+html, body { height: 100%; overflow-x: hidden; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+body { background: var(--bg-deep); color: var(--text-primary); font-family: var(--font-body); }
+
+.slide {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    /* Sfondo firma MCSec, identico su ogni slide */
+    background:
+        radial-gradient(ellipse at 75% 15%, rgba(37, 53, 81, 0.55) 0%, transparent 55%),
+        linear-gradient(165deg, var(--bg-navy) 0%, var(--bg-deep) 90%);
+}
+.slide-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    max-height: 100%;
+    overflow: hidden;
+    padding: var(--slide-padding) var(--slide-padding) clamp(2.2rem, 6vh, 3.5rem) var(--slide-padding-left);
+}
+.narrow { max-width: min(92vw, 1100px); width: 100%; }
+.narrow.wide { max-width: min(94vw, 1400px); }
+
+img, .image-container { max-width: 100%; object-fit: contain; }
+
+@media (max-height: 700px) {
+    :root { --slide-padding: clamp(0.75rem, 3vw, 2rem); --content-gap: clamp(0.4rem, 1.5vw, 1rem); --title-size: clamp(1.25rem, 4.5vw, 2.5rem); --h2-size: clamp(1rem, 3vw, 1.75rem); }
+}
+@media (max-height: 600px) {
+    :root { --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem); --content-gap: clamp(0.3rem, 1vw, 0.75rem); --title-size: clamp(1.1rem, 4vw, 2rem); --body-size: clamp(0.7rem, 1.2vw, 0.95rem); }
+    .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-width: 600px) { :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); } }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+    html { scroll-behavior: auto; }
+}
+
+/* ============================================================
+   COMPONENTI BRAND (da brand-info/references/components.html)
+   ============================================================ */
+.kicker {
+    font-family: var(--font-display); font-weight: 700; font-size: var(--small-size);
+    letter-spacing: 0.4em; text-transform: uppercase; color: var(--gold);
+    margin-bottom: clamp(0.5rem, 1.5vh, 1rem);
+}
+.kicker::after {
+    content: ""; display: inline-block; width: clamp(26px, 3.5vw, 48px); height: 1px;
+    background: var(--gold); margin-left: 14px; vertical-align: middle;
+}
+
+h1, h2 { font-family: var(--font-display); font-weight: 800; line-height: 1.08; }
+h1 { font-size: var(--title-size); }
+h2 { font-size: var(--h2-size); }
+h3 { font-family: var(--font-display); font-weight: 700; font-size: var(--h3-size); }
+.gold { color: var(--gold-light); }
+
+.lede {
+    border-left: 2px solid var(--gold); padding-left: clamp(0.8rem, 1.5vw, 1.4rem);
+    font-size: var(--body-size); color: var(--text-secondary); max-width: 60ch; line-height: 1.5;
+    margin-top: var(--content-gap);
+}
+/* Descrittore italiano dei Pillar (regola della coppia): Playfair corsivo, testo secondario */
+.descriptor {
+    font-family: var(--font-descr); font-style: italic; color: var(--text-secondary);
+    font-size: clamp(0.85rem, 1.7vw, 1.15rem); margin-top: 0.3em; line-height: 1.35;
+}
+.tagline {
+    font-family: var(--font-body); font-style: italic; font-size: clamp(0.85rem, 2vh, 1.2rem);
+    color: var(--gold-light); margin-top: var(--content-gap);
+}
+.tagline .src { color: var(--text-secondary); font-style: normal; font-size: 0.8em; }
+.big-quote { font-size: clamp(0.95rem, 2.6vh, 1.45rem); line-height: 1.55; max-width: 46ch; color: var(--text-primary); margin-top: var(--content-gap); }
+.quote { border-left: 2px solid var(--gold); padding-left: 1em; font-style: italic; color: var(--text-secondary); max-width: 52ch; line-height: 1.5; margin-top: var(--content-gap); }
+.panel { background: rgba(37, 53, 81, 0.35); border: 1px solid rgba(194, 150, 53, 0.25); border-radius: 10px; padding: clamp(0.7rem, 2.2vh, 1.5rem); }
+
+/* Elenco puntato brand: max 3-4 voci per slide */
+.bullets { list-style: none; margin-top: var(--content-gap); max-width: 62ch; display: flex; flex-direction: column; gap: clamp(0.4rem, 1.2vh, 0.8rem); }
+.bullets li { position: relative; padding-left: 1.4em; font-size: var(--body-size); line-height: 1.45; color: var(--text-primary); }
+.bullets li::before { content: "›"; position: absolute; left: 0; color: var(--gold); font-family: var(--font-display); font-weight: 800; }
+.bullets li b { color: var(--gold-light); }
+
+/* ---- Copertina: due colonne, testo + ritratto ---- */
+.hero { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: var(--content-gap); align-items: center; max-width: min(94vw, 1200px); width: 100%; }
+/* .hero.wide: per la foto 16:9 a destra, due colonne uguali e più larghezza (altrimenti la foto esce piccola) */
+.hero.wide { grid-template-columns: 1fr 1fr; gap: clamp(1rem, 3vw, 3rem); max-width: min(94vw, 1560px); }
+@media (max-width: 760px) { .hero, .hero.wide { grid-template-columns: 1fr; } .hero .portrait-wrap { display: none; } }
+.portrait-wrap { display: flex; justify-content: center; }
+.portrait {
+    max-height: min(66vh, 560px); width: auto; border-radius: 14px;
+    border: 1px solid rgba(194, 150, 53, 0.35); box-shadow: 0 0 34px rgba(194, 150, 53, 0.25); object-fit: cover;
+}
+.portrait.wide { width: 100%; max-height: min(56vh, 520px); aspect-ratio: 16 / 9; }
+.hero-roles { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.7rem, 1.7vh, 1rem); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-secondary); margin-top: var(--content-gap); }
+.hero-roles .sep { color: var(--gold); }
+.trilogy { display: flex; gap: clamp(0.5rem, 1.5vw, 1.1rem); align-items: center; margin-top: var(--content-gap); font-family: var(--font-display); font-weight: 700; font-size: clamp(0.7rem, 1.7vh, 1rem); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-secondary); }
+.trilogy .sep { color: var(--gold); }
+.brand-logo { height: clamp(40px, 8vh, 76px); width: auto; max-width: min(70vw, 380px); align-self: flex-start; object-fit: contain; margin-bottom: clamp(0.8rem, 2.5vh, 1.6rem); filter: drop-shadow(0 0 18px rgba(194, 150, 53, 0.35)); animation: logo-glow 4s ease-in-out infinite; }
+@keyframes logo-glow { 0%, 100% { filter: drop-shadow(0 0 12px rgba(194,150,53,0.25)); } 50% { filter: drop-shadow(0 0 26px rgba(194,150,53,0.5)); } }
+.watermark { position: absolute; right: -1vw; bottom: -8vh; font-family: var(--font-display); font-weight: 800; font-size: clamp(9rem, 34vh, 20rem); line-height: 1; color: transparent; -webkit-text-stroke: 1px rgba(194, 150, 53, 0.14); user-select: none; pointer-events: none; }
+
+/* ---- Il percorso: tappe anno + cosa + come (3 colonne; .two = 2 colonne) ---- */
+.acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(0.6rem, 2vh, 1.3rem) var(--content-gap); max-width: min(94vw, 1120px); margin-top: var(--content-gap); }
+.acts.two { grid-template-columns: repeat(2, 1fr); max-width: min(90vw, 900px); }
+@media (max-width: 900px) { .acts { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .acts, .acts.two { grid-template-columns: 1fr; } }
+.act .year { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.1rem, 3vh, 1.7rem); color: var(--gold-light); }
+.act .what { font-weight: 700; font-size: clamp(0.75rem, 1.9vh, 1.05rem); margin: 0.25em 0; }
+.act .how { font-size: var(--small-size); color: var(--text-secondary); line-height: 1.4; }
+
+/* ---- La convinzione: affermazioni numerate + provocazioni ---- */
+.beliefs { display: flex; flex-direction: column; gap: clamp(0.7rem, 2.8vh, 1.8rem); margin-top: var(--content-gap); max-width: min(92vw, 900px); }
+.belief { display: flex; align-items: baseline; gap: clamp(0.7rem, 1.8vw, 1.4rem); }
+.belief .n { font-family: var(--font-display); font-weight: 800; font-size: clamp(1rem, 2.8vh, 1.7rem); color: var(--gold-light); flex: 0 0 auto; }
+.belief .t { font-size: clamp(0.95rem, 2.7vh, 1.5rem); line-height: 1.4; color: var(--text-primary); font-weight: 700; }
+.belief .soft { color: var(--text-secondary); font-weight: 400; font-style: italic; }
+.provocations { display: flex; flex-direction: column; gap: clamp(0.25rem, 0.9vh, 0.55rem); margin-top: var(--content-gap); font-style: italic; font-size: clamp(0.8rem, 2.1vh, 1.15rem); color: var(--text-secondary); }
+.provocations b { color: var(--text-primary); font-weight: 700; }
+
+/* ---- Griglia 2×2 di carte numerate ---- */
+.dirs { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(0.5rem, 1.8vh, 1.2rem) var(--content-gap); max-width: min(94vw, 1020px); margin-top: var(--content-gap); }
+@media (max-width: 700px) { .dirs { grid-template-columns: 1fr; } }
+.dir .n { font-family: var(--font-display); font-weight: 800; font-size: clamp(1rem, 2.6vh, 1.6rem); color: var(--gold-light); }
+.dir .t { font-weight: 700; font-size: var(--body-size); margin: 0.25em 0; }
+.dir .d { font-size: var(--small-size); color: var(--text-secondary); line-height: 1.45; }
+
+/* ---- Stat: numero enorme + label + fonte ---- */
+.stat { text-align: left; }
+.stat .num { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.2rem, 9vh, 5rem); color: var(--gold-light); line-height: 1; }
+.stat .label { font-size: var(--small-size); color: var(--text-secondary); margin-top: 0.4em; max-width: 44ch; line-height: 1.35; }
+.stat .src { color: var(--text-secondary); opacity: 0.7; font-size: 0.9em; white-space: nowrap; }
+
+/* ---- Flow: nodi › nodi ---- */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.4rem, 1vw, 0.9rem); font-family: var(--font-display); font-weight: 700; font-size: clamp(0.6rem, 1.5vh, 0.9rem); letter-spacing: 0.06em; text-transform: uppercase; margin-top: var(--content-gap); }
+.flow .node { border: 1px solid rgba(194, 150, 53, 0.5); border-radius: 6px; padding: clamp(0.35rem, 1vh, 0.7rem) clamp(0.5rem, 1.4vw, 1rem); background: rgba(13, 27, 42, 0.6); }
+.flow .arrow { color: var(--gold); font-size: clamp(0.9rem, 2.2vh, 1.3rem); }
+
+/* ---- Pillar: tre colonne con icona circolare ---- */
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); max-width: min(92vw, 1050px); margin-top: var(--content-gap); }
+@media (max-width: 700px) { .pillars { grid-template-columns: 1fr; } }
+.pillar-card { text-align: left; }
+.pillar-icon { width: clamp(40px, 7vh, 62px); height: clamp(40px, 7vh, 62px); border-radius: 50%; border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: clamp(0.8rem, 2vh, 1.15rem); color: var(--gold-light); box-shadow: 0 0 24px var(--gold-glow); margin-bottom: clamp(0.5rem, 1.5vh, 1rem); }
+.pillar-card .name { font-family: var(--font-display); font-weight: 800; font-size: clamp(0.85rem, 2.1vh, 1.2rem); }
+.pillar-card .desc { font-size: var(--small-size); color: var(--text-secondary); margin-top: 0.4em; line-height: 1.4; }
+.pillar-card .descriptor { font-size: clamp(0.75rem, 1.6vh, 1rem); }
+
+/* ---- Step numerati 01 › 02 › 03 › 04 ---- */
+.steps { display: flex; flex-wrap: wrap; align-items: stretch; gap: clamp(0.4rem, 1.2vw, 1rem); margin-top: var(--content-gap); width: 100%; }
+.step { flex: 1 1 0; min-width: min(150px, 40vw); }
+.step .n { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.1rem, 3vh, 1.8rem); color: var(--gold-light); }
+.step .t { font-weight: 700; font-size: var(--body-size); margin-top: 0.2em; }
+.step .d { font-size: var(--small-size); color: var(--text-secondary); margin-top: 0.25em; line-height: 1.35; }
+
+/* ---- Tabella di posizionamento ---- */
+.pos-table { width: 100%; margin-top: var(--content-gap); border-collapse: collapse; }
+.pos-table thead th { text-align: left; font-family: var(--font-display); font-weight: 700; font-size: clamp(0.55rem, 1vh, 0.72rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); padding-bottom: clamp(0.3rem, 1vh, 0.6rem); border-bottom: 1px solid rgba(194, 150, 53, 0.4); }
+.pos-table tbody td { padding: clamp(0.4rem, 1.4vh, 0.9rem) clamp(0.6rem, 1vw, 1rem) clamp(0.4rem, 1.4vh, 0.9rem) 0; border-bottom: 1px solid rgba(176, 184, 196, 0.14); vertical-align: top; }
+.pos-table tbody tr:last-child td { border-bottom: none; }
+.pos-num { font-family: var(--font-display); font-weight: 800; color: var(--gold-light); font-size: clamp(0.6rem, 1vh, 0.75rem); }
+.pos-nome { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.72rem, 1.5vh, 1rem); margin-top: 2px; line-height: 1.2; }
+.pos-desc { font-size: clamp(0.66rem, 1.35vh, 0.92rem); color: var(--text-secondary); line-height: 1.35; }
+.pos-desc b { color: var(--text-primary); font-weight: 700; }
+.partner-badge { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: clamp(0.55rem, 1vh, 0.7rem); color: var(--gold-light); border: 1px solid rgba(194, 150, 53, 0.5); border-radius: 999px; padding: 0.2em 0.8em; background: rgba(194, 150, 53, 0.08); white-space: nowrap; }
+.partner-solo { color: var(--text-secondary); font-size: clamp(0.6rem, 1.1vh, 0.78rem); }
+
+/* ---- Split: testo a sinistra, immagine a destra ---- */
+.split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(1rem, 3vw, 3rem); align-items: center; max-width: min(94vw, 1400px); width: 100%; }
+@media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+.figure-wrap { display: flex; justify-content: center; align-items: center; }
+.figure {
+    width: auto; max-width: 100%; max-height: min(64vh, 620px); align-self: flex-start;
+    border-radius: 12px; border: 1px solid rgba(194, 150, 53, 0.3); box-shadow: 0 0 30px rgba(8, 12, 16, 0.6); object-fit: contain;
+}
+.figure.placeholder {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    width: 100%; min-height: min(40vh, 380px); padding: 1.5rem;
+    border: 1px dashed rgba(194, 150, 53, 0.5); color: var(--text-secondary); font-style: italic; font-size: var(--small-size);
+    background: rgba(37, 53, 81, 0.25);
+}
+
+/* ---- Immagine a tutta slide con didascalia ---- */
+.full-image { margin-top: var(--content-gap); width: 100%; display: flex; justify-content: center; }
+.full-image img { max-height: min(62vh, 640px); width: auto; max-width: 100%; border-radius: 10px; border: 1px solid rgba(194, 150, 53, 0.25); }
+.caption { font-size: var(--small-size); color: var(--text-secondary); margin-top: var(--element-gap); max-width: 80ch; line-height: 1.4; }
+
+/* ---- Chiusura (unica slide centrata) ---- */
+.slide-cta .slide-content { align-items: center; text-align: center; padding-left: var(--slide-padding); }
+.slide-cta .big-quote { max-width: 34ch; }
+.slide-cta .brand-logo { align-self: center; }
+.contact { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.9rem, 2.2vh, 1.3rem); color: var(--text-primary); margin-top: var(--content-gap); line-height: 1.9; }
+.cta-btn {
+    display: inline-block; padding: clamp(0.6rem, 1.6vh, 0.95rem) clamp(1.4rem, 3.5vw, 2.6rem); border-radius: 999px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--bg-deep);
+    font-family: var(--font-display); font-weight: 800; font-size: clamp(0.8rem, 2vh, 1.1rem); letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none;
+    box-shadow: 0 0 28px var(--gold-glow); transition: transform 0.25s var(--ease-out-expo), box-shadow 0.25s ease;
+}
+.cta-btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 44px rgba(194, 150, 53, 0.55); }
+
+/* ---- Footer fisso su ogni slide ---- */
+.slide-footer { position: absolute; bottom: clamp(10px, 2vh, 22px); left: 0; right: 0; text-align: center; font-size: clamp(0.55rem, 1.2vh, 0.75rem); letter-spacing: 0.12em; color: var(--text-secondary); opacity: 0.75; }
+
+/* ============================================================
+   ANIMAZIONI — reveal a scaglioni quando la slide entra in vista
+   ============================================================ */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity var(--duration-normal) var(--ease-out-expo), transform var(--duration-normal) var(--ease-out-expo); }
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.15s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.25s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.35s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.45s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.55s; }
+
+/* ============================================================
+   NAVIGAZIONE — barra progresso + pallini
+   ============================================================ */
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--gold), var(--gold-light)); z-index: 9000; transition: width 0.25s ease; }
+.nav-dots { position: fixed; right: clamp(8px, 1.5vw, 22px); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 9000; }
+.nav-dots button { width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(194, 150, 53, 0.5); background: transparent; cursor: pointer; padding: 0; transition: background 0.3s, transform 0.3s; }
+.nav-dots button.active { background: var(--gold-light); transform: scale(1.35); }
+
+/* ============================================================
+   COMPONENTI SPECIFICI DI QUESTO DECK — aggiungere qui sotto, con commento
+   ============================================================ */
+
+/* Striscia partner sotto la tabella (slide 9): dicitura + logo bianco + nome */
+.partner-strip { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(0.5rem, 1.2vw, 1rem); margin-top: var(--content-gap); font-size: var(--small-size); color: var(--text-secondary); }
+.partner-strip img { height: clamp(20px, 3.6vh, 36px); width: auto; opacity: 0.95; }
+.partner-strip .partner-name { font-family: var(--font-display); font-weight: 700; color: var(--text-primary); font-size: var(--small-size); letter-spacing: 0.04em; }
+.partner-strip .soft { color: var(--text-secondary); font-weight: 400; }
+
+/* Card dei servizi con immagine sopra (slide 2) */
+.pillars.with-img { max-width: min(94vw, 1300px); }
+.pillar-card .card-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid rgba(194, 150, 53, 0.3); box-shadow: 0 0 24px rgba(8, 12, 16, 0.6); margin-bottom: clamp(0.5rem, 1.5vh, 1rem); }
+.pillars.with-img .pillar-icon { width: clamp(32px, 5vh, 46px); height: clamp(32px, 5vh, 46px); font-size: clamp(0.7rem, 1.6vh, 0.95rem); }
+
+/* Riga loghi in copertina: MCSec + filetto oro + logo del destinatario */
+.logo-row { display: flex; align-items: center; gap: clamp(0.8rem, 1.6vw, 1.6rem); margin-bottom: clamp(0.8rem, 2.5vh, 1.6rem); }
+.logo-row .brand-logo { margin-bottom: 0; }
+.logo-row .sep { width: 1px; height: clamp(28px, 5vh, 52px); background: rgba(194, 150, 53, 0.5); }
+.logo-row .partner-logo { height: clamp(30px, 6vh, 58px); width: auto; max-width: min(40vw, 260px); object-fit: contain; opacity: 0.95; }
+
+/* Copertina ALIS: piu' spazio a testi e loghi, foto piu' contenuta (richiesta Michele 16/09) */
+#s1 .hero.wide { grid-template-columns: 1.45fr 0.95fr; align-items: center; }
+#s1 .portrait.wide { max-height: min(46vh, 430px); }
+#s1 .logo-row .brand-logo { height: clamp(52px, 10vh, 96px); max-width: min(70vw, 460px); }
+#s1 .logo-row .partner-logo { height: clamp(44px, 8.5vh, 82px); max-width: min(40vw, 320px); }
+#s1 .logo-row .sep { height: clamp(40px, 7.5vh, 72px); }
+
+/* Copertina: filigrana MC centrata in basso (richiesta Michele 16/09) */
+#s1 .watermark { right: auto; left: 50%; transform: translateX(-50%); bottom: -9vh; }
+
+/* Copertina: sottotitolo piu' grande (richiesta Michele 16/09) */
+#s1 .lede { font-size: clamp(1rem, 1.95vw, 1.5rem); line-height: 1.45; max-width: 48ch; }
+
+#s1 .watermark { font-size: clamp(7rem, 30vh, 18rem); letter-spacing: 0.01em; }
+
+/* Filigrana: piu' a destra; riempimento color fondo sopra il contorno per nascondere le linee interne della «e» */
+#s1 .watermark { left: 58%; color: #090E14; paint-order: stroke fill; -webkit-text-stroke: 2px rgba(194, 150, 53, 0.17); }
+
+/* Flow «prima / dopo» (slide 3, 17/09): riga «Oggi» spenta in grigio sopra la riga a brand «Con MCSec» */
+.flow.grid { display: grid; grid-template-columns: 8em minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; column-gap: clamp(0.4rem, 1vw, 0.9rem); width: min(100%, 760px); }
+.flow.grid .node, .flow.grid .arrow { display: flex; align-items: center; }
+.flow-tag { font-size: 0.72em; letter-spacing: 0.22em; color: var(--text-secondary); display: flex; align-items: center; }
+.flow.before .node { border-color: rgba(176, 184, 196, 0.3); color: var(--text-secondary); background: transparent; }
+.flow.before .arrow { color: var(--text-secondary); }
+.flow + .flow { margin-top: clamp(0.35rem, 1vh, 0.7rem); }
+
+/* slide 8: ecosistema */
+.pillars.eco .pillar-card.lead { border: 1px solid var(--gold); background: rgba(194, 150, 53, 0.11); box-shadow: 0 0 28px var(--gold-glow); }
+.pillars.eco .pillar-card:not(.lead) { border-color: rgba(176, 184, 196, 0.18); background: rgba(176, 184, 196, 0.04); }
+.eco-closing { margin-top: clamp(0.7rem, 2.2vh, 1.4rem); }
+
+#s9 .lede, #s8 .lede { max-width: min(92vw, 1300px); }
+.steps.vertical { flex-direction: column; gap: clamp(0.35rem, 1.2vh, 0.8rem); max-width: min(92vw, 1100px); }
+.steps.vertical .step { display: grid; grid-template-columns: auto minmax(180px, 230px) 1fr; column-gap: clamp(0.6rem, 1.4vw, 1.2rem); align-items: baseline; min-width: 0; }
+.steps.vertical .step .n { font-size: clamp(0.9rem, 2.2vh, 1.3rem); }
+.steps.vertical .step .t, .steps.vertical .step .d { margin-top: 0; }
+
+.eco-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.85rem, 2vh, 1.15rem); color: var(--text-primary); margin-top: var(--content-gap); max-width: min(92vw, 1000px); line-height: 1.35; }
+.pillars.eco { margin-top: clamp(0.6rem, 2vh, 1.2rem); max-width: min(92vw, 1100px); }
+.pillars.eco .pillar-card { border: 1px solid rgba(194, 150, 53, 0.28); border-radius: 12px; padding: clamp(0.7rem, 1.8vh, 1.2rem) clamp(0.8rem, 1.4vw, 1.3rem); background: rgba(194, 150, 53, 0.05); }
+.eco-logo { display: block; height: clamp(34px, 6vh, 56px); width: auto; max-width: 200px; object-fit: contain; margin-bottom: clamp(0.5rem, 1.4vh, 0.9rem); }
+.eco-logo.round { border-radius: 50%; }
+.eco-logo-row { display: flex; align-items: center; gap: clamp(0.5rem, 1vw, 0.9rem); margin-bottom: clamp(0.5rem, 1.4vh, 0.9rem); }
+.eco-logo-row .eco-logo { margin-bottom: 0; }
+.eco-wordmark { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.1rem, 3vh, 1.9rem); color: #fff; letter-spacing: 0.01em; }
+.eco-logo.wide { height: clamp(22px, 3.8vh, 36px); margin-top: clamp(0.3rem, 1vh, 0.7rem); margin-bottom: clamp(0.8rem, 2.2vh, 1.4rem); }
+.eco-role { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.55rem, 1vh, 0.72rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.2em; }
+
+/* slide 9: timeline del metodo */
+.timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(0.8rem, 2vw, 1.8rem); margin-top: clamp(1rem, 3vh, 1.8rem); position: relative; max-width: min(92vw, 1300px); }
+.timeline::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 0; border-top: 2px dashed rgba(194, 150, 53, 0.55); }
+.pre { position: relative; margin-top: clamp(1rem, 3.5vh, 2rem); max-width: min(92vw, 1300px); }
+.pre-line { position: relative; height: 3px; background: linear-gradient(90deg, var(--gold-light) 0%, var(--gold) 100%); box-shadow: 0 0 18px var(--gold-glow); border-radius: 2px; }
+.pre-dot { position: absolute; top: 50%; width: 15px; height: 15px; border-radius: 50%; background: var(--gold-light); border: 2px solid var(--gold-light); box-shadow: 0 0 16px var(--gold-glow); transform: translateY(-50%); }
+.pre-dot.l { left: 0; } .pre-dot.r { right: 0; }
+.pre-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: clamp(0.6rem, 1.4vw, 1.4rem); margin-top: clamp(0.5rem, 1.4vh, 0.9rem); }
+.pre-k { font-family: var(--font-display); font-weight: 700; font-size: clamp(0.55rem, 1vh, 0.72rem); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.pre-t { font-family: var(--font-display); font-weight: 800; font-size: clamp(1rem, 2.6vh, 1.5rem); color: var(--gold-light); }
+.pre-d { font-size: clamp(0.78rem, 1.7vh, 1.02rem); color: var(--text-secondary); flex: 1 1 100%; line-height: 1.4; max-width: 70ch; }
+.tl-step { position: relative; padding-top: clamp(1rem, 3vh, 1.8rem); }
+.tl-dot { position: absolute; top: 0; left: 0; width: 15px; height: 15px; border-radius: 50%; background: var(--navy, #0D1B2A); border: 2px solid var(--gold-light); box-shadow: 0 0 16px var(--gold-glow); }
+.tl-n { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.6rem, 5vh, 3rem); color: var(--gold-light); line-height: 1; }
+.tl-t { font-family: var(--font-display); font-weight: 700; font-size: clamp(1rem, 2.6vh, 1.5rem); margin-top: 0.25em; }
+.tl-d { font-size: clamp(0.78rem, 1.7vh, 1.02rem); color: var(--text-secondary); line-height: 1.45; margin-top: 0.5em; max-width: 30ch; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" aria-hidden="true"></div>
+<nav class="nav-dots" aria-label="Navigazione slide"></nav>
+
+<!-- ============ SLIDE 1 — COPERTINA (blocco B) ============ -->
+<section class="slide title-slide" id="s1">
+    <div class="watermark" aria-hidden="true">MCSec</div>
+    <div class="slide-content">
+        <div class="hero wide">
+            <div>
+                <div class="logo-row reveal">
+                    <img class="brand-logo" src="assets/logo-mcsec-oro.png" alt="MCSec">
+                    <span class="sep" aria-hidden="true"></span>
+                    <img class="partner-logo" src="assets/logo-alis-bianco.png" alt="ALIS, Associazione Logistica dell'Intermodalità Sostenibile">
+                </div>
+                <h1 class="reveal">Trasformiamo i dati in <span class="gold">valore</span></h1>
+                <p class="lede reveal">Controllo di gestione con <span class="gold">AI</span>, simulazione e formazione<br>per chi muove l'Italia, ogni giorno.</p>
+                <div class="trilogy reveal">Controlla <span class="sep">›</span> Simula <span class="sep">›</span> Proteggi</div>
+            </div>
+            <div class="portrait-wrap reveal">
+                <img class="portrait wide" src="assets/michele-foto-polo-169-v2.png" alt="Michele Cavallo, MCSec">
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 2 — TRE COSE CONCRETE (blocco F) ============ -->
+<section class="slide" id="s2">
+    <div class="slide-content">
+        <div class="narrow wide">
+            <div class="kicker reveal">Tre cose concrete</div>
+            <h2 class="reveal">Cosa portiamo ai <span class="gold">soci</span></h2>
+            <div class="pillars with-img reveal">
+                <div class="pillar-card">
+                    <img class="card-img" src="assets/img-servizio-01-formazione.png" alt="Formazione AI per chi dirige">
+                    <div class="pillar-icon">01</div>
+                    <div class="name">Formazione AI</div>
+                    <div class="descriptor">per chi dirige: titolari, dirigenti e controller delle imprese socie</div>
+                </div>
+                <div class="pillar-card">
+                    <img class="card-img" src="assets/img-servizio-02-performance.png" alt="Dalle fonti dati al cruscotto">
+                    <div class="pillar-icon">02</div>
+                    <div class="name">Performance Intelligence</div>
+                    <div class="descriptor">il controllo di gestione automatizzato, per ogni reparto che conta</div>
+                </div>
+                <div class="pillar-card">
+                    <img class="card-img" src="assets/img-servizio-03-digital-twin.png" alt="Il gemello digitale dello stabilimento">
+                    <div class="pillar-icon">03</div>
+                    <div class="name">Digital Twin</div>
+                    <div class="descriptor">la copia digitale economico-finanziaria del tuo terminal, magazzino o flotta</div>
+                </div>
+            </div>
+            <p class="tagline reveal">Cyber Shield resta nel portafoglio: la sicurezza informatica ALIS la presidia già in casa, con Polizia di Stato e DI.GI. Academy.</p>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 3 — IL PROBLEMA (blocco E) ============ -->
+<section class="slide" id="s3">
+    <div class="slide-content">
+        <div class="split">
+            <div>
+            <div class="kicker reveal">La soluzione per la logistica</div>
+            <div class="stat reveal">
+                <div class="num">68%</div>
+                <div class="label">dei dati aziendali oggi non viene usato: la materia prima c'è già<br><span class="src">Fonte: IDC/Seagate, «Rethink Data»</span></div>
+            </div>
+            <div class="flow grid before reveal">
+                <span class="flow-tag">Oggi</span>
+                <div class="node">Dati parziali<br>e tardivi</div><div class="arrow">›</div>
+                <div class="node">Decisioni<br>al buio</div><div class="arrow">›</div>
+                <div class="node">Margine<br>perso</div>
+            </div>
+            <div class="flow grid reveal">
+                <span class="flow-tag">Con MCSec</span>
+                <div class="node">Dati completi<br>ogni giorno</div><div class="arrow">›</div>
+                <div class="node">Decisioni<br>con i numeri</div><div class="arrow">›</div>
+                <div class="node">Margine<br>protetto</div>
+            </div>
+            <ul class="bullets reveal">
+                <li><b>Ogni giorno</b>: costo chilometrico per tratta, per cliente, per tipologia di trasporto, On-Time Delivery (OTD), saturazione mezzo, produttività banchina, efficienza del piazzale, Carbon Footprint per TEU, Damage Rate.</li>
+                <li>Un nuovo hub o un terminal <b>si simula prima</b> di investire o cambiare configurazione, per conoscere: colli di bottiglia, dimensionamento, gestione dei flussi, congestione.</li>
+            </ul>
+            </div>
+            <div class="figure-wrap reveal">
+                <img class="figure" src="assets/img-soluzione-sintesi.png" alt="Dati completi, decisioni con i numeri, margine protetto: cruscotto KPI e simulazione del terminal">
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 4 — I SOCI LETTI CON I NUMERI (blocco K) ============ -->
+<!-- ============ SLIDE 5 — 01 FORMAZIONE AI (blocco G) ============ -->
+<section class="slide" id="s5">
+    <div class="slide-content">
+        <div class="split">
+            <div>
+                <div class="kicker reveal">01</div>
+                <h2 class="reveal">Formazione <span class="gold">AI</span> per chi dirige</h2>
+                <p class="descriptor reveal">titolari, dirigenti e controller delle imprese socie</p>
+                <ul class="bullets reveal">
+                    <li>Casi presi dalla logistica ed esercitazioni sui <b>dati dell'azienda</b>.</li>
+                    <li>Spiegata <b>da manager che la usano</b>, non da tecnici, sui processi del vostro settore. Percorso progettato da MCSec; l'aula la tiene un <b>partner specializzato</b> in formazione AI.</li>
+                    <li>Formati: in sede ALIS, online, in azienda.</li>
+                </ul>
+                <p class="tagline reveal">L'AI si usa per fare meglio il proprio mestiere, non per farsi sostituire.</p>
+            </div>
+            <div class="figure-wrap reveal">
+                <img class="figure" src="assets/img-servizio-01-formazione.png" alt="Formazione AI per chi dirige">
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 6 — 02 PERFORMANCE INTELLIGENCE (blocco G) ============ -->
+<section class="slide" id="s6">
+    <div class="slide-content">
+        <div class="split">
+            <div>
+                <div class="kicker reveal">02</div>
+                <h2 class="reveal">Performance <span class="gold">Intelligence</span></h2>
+                <p class="descriptor reveal">il controllo di gestione automatizzato, per ogni reparto che conta</p>
+                <ul class="bullets reveal">
+                    <li>Margine per <b>tratta, cliente, mezzo e commessa</b>: ogni giorno, non a fine mese.</li>
+                    <li>Dati dai vostri sistemi (ERP, TMS e WMS) che diventano <b>dashboard automatiche</b> e alert automatici in tempo reale.</li>
+                    <li>Chi decide vede il numero e il perché, senza aspettare il report o la riunione.</li>
+                </ul>
+                <p class="tagline reveal">Demo: mcsec.it/performance-intelligence</p>
+            </div>
+            <div class="figure-wrap reveal">
+                <img class="figure" src="assets/img-servizio-02-performance.png" alt="Da TMS, WMS ed ERP al cruscotto con gli alert">
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 7 — 03 DIGITAL TWIN (blocco G, immagine in arrivo) ============ -->
+<section class="slide" id="s7">
+    <div class="slide-content">
+        <div class="split">
+            <div>
+                <div class="kicker reveal">03</div>
+                <h2 class="reveal">Digital <span class="gold">Twin</span></h2>
+                <p class="descriptor reveal">la copia digitale economico-finanziaria del tuo terminal, magazzino o flotta</p>
+                <ul class="bullets reveal">
+                    <li>Terminal, magazzino, flotta o nuovo hub: si <b>simulano prima</b> di investire.</li>
+                    <li>Scenari a confronto su <b>margini, payback e cash flow</b>, con i costi veri dell'azienda.</li>
+                    <li>Per i progetti grandi, la simulazione si fa con un partner di scala industriale.</li>
+                </ul>
+                <p class="tagline reveal">Testate ogni decisione prima di spendere un euro.</p>
+            </div>
+            <div class="figure-wrap reveal">
+                <img class="figure" src="assets/img-servizio-03-digital-twin.png" alt="Il gemello digitale dello stabilimento">
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 8 — COME LAVORIAMO (blocco H) ============ -->
+<section class="slide" id="s9">
+    <div class="slide-content">
+        <div class="narrow wide">
+            <div class="kicker reveal">ALIS × MCSec</div>
+            <h2 class="reveal">Un ecosistema di competenze integrate per <span class="gold">creare valore</span> ai soci</h2>
+            <p class="lede reveal">MCSec mette al servizio dei soci ALIS competenze complementari per migliorare la produttività quotidiana.<br>Per fare questo si avvale di <span class="gold">collaborazioni</span> con realtà altamente qualificate, in grado di produrre:</p>
+            <div class="steps vertical reveal">
+                <div class="step"><div class="n">01</div><div class="t">Impatto misurabile</div><div class="d">Monitorare i margini, individuare le inefficienze e simulare gli investimenti: ogni progetto parte da obiettivi economici e operativi verificabili.</div></div>
+                <div class="step"><div class="n">02</div><div class="t">Esperienza industriale</div><div class="d">Trent’anni di esperienza nel controllo di gestione, affiancati da competenze specialistiche nella simulazione e nell’applicazione dell’AI.</div></div>
+                <div class="step"><div class="n">03</div><div class="t">Competenze integrate</div><div class="d">In un mondo che si muove troppo veloce occorre lavorare insieme ai massimi esperti per tenere sotto controllo ogni specializzazione.</div></div>
+            </div>
+            <div class="pillars eco reveal">
+                <div class="pillar-card lead">
+                    <img class="eco-logo" src="assets/logo-mcsec-oro.png" alt="MCSec">
+                    <div class="name">MCSec</div>
+                    <div class="desc">Controllo di gestione con AI, regia dei progetti e relazione con i soci ALIS.</div>
+                </div>
+                <div class="pillar-card">
+                    <img class="eco-logo wide" src="assets/logo-engineering-bianco.svg" alt="Industries eXcellence">
+                    <div class="name">Industries eXcellence</div>
+                    <div class="desc">Simulazione e digital twin su scala industriale, per i progetti grandi.</div>
+                </div>
+                <div class="pillar-card">
+                    <div class="eco-logo-row"><img class="eco-logo round" src="assets/logo-martes-circolare.png" alt="Martes AI"><span class="eco-wordmark">Martes AI</span></div>
+                    <div class="name">Martes AI</div>
+                    <div class="desc">Formazione su AI, agenti, automazioni e Company Brain.</div>
+                </div>
+            </div>
+            <p class="eco-title eco-closing reveal">Tre specializzazioni complementari, un team di grande respiro, <span class="gold">una sola regia</span>.</p>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 9 — DOVE ENTRA MCSEC (blocco I) ============ -->
+<section class="slide" id="s8">
+    <div class="slide-content">
+        <div class="narrow wide">
+            <div class="kicker reveal">Metodo</div>
+            <h2 class="reveal">Come <span class="gold">lavoriamo</span></h2>
+            <p class="lede reveal">Prima la formazione, poi quattro passi, uno alla volta. Ogni passo si fa solo se il precedente ha dato i numeri.</p>
+            <div class="pre reveal">
+                <div class="pre-line"><span class="pre-dot l"></span><span class="pre-dot r"></span></div>
+                <div class="pre-row">
+                    <div class="pre-k">Prerequisito</div>
+                    <div class="pre-t">Formazione AI per chi dirige</div>
+                    <div class="pre-d">Prima di tutto si impara a ragionare con l'intelligenza artificiale: è la base su cui poggiano i quattro passi.</div>
+                </div>
+            </div>
+            <div class="timeline reveal">
+                <div class="tl-step">
+                    <div class="tl-dot"></div>
+                    <div class="tl-n">01</div>
+                    <div class="tl-t">Discovery</div>
+                    <div class="tl-d">Gratuita, senza impegno. Un incontro con voi per capire dove stanno i margini nascosti e quali dati avete già.</div>
+                </div>
+                <div class="tl-step">
+                    <div class="tl-dot"></div>
+                    <div class="tl-n">02</div>
+                    <div class="tl-t">Proposta</div>
+                    <div class="tl-d">Su misura per il socio: obiettivi economici e operativi scritti, perimetro chiaro, nessun pacchetto uguale per tutti.</div>
+                </div>
+                <div class="tl-step">
+                    <div class="tl-dot"></div>
+                    <div class="tl-n">03</div>
+                    <div class="tl-t">Pilota</div>
+                    <div class="tl-d">Un caso concreto, sui vostri dati veri: un reparto, una tratta, un investimento. Risultato verificabile in conto economico.</div>
+                </div>
+                <div class="tl-step">
+                    <div class="tl-dot"></div>
+                    <div class="tl-n">04</div>
+                    <div class="tl-t">Estensione</div>
+                    <div class="tl-d">Solo se il pilota funziona: si allarga ad altri reparti, sedi o società del gruppo, con lo stesso metodo.</div>
+                </div>
+            </div>
+            <p class="tagline reveal">Nessun impegno prima di aver visto i numeri.</p>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 10 — LA PROPOSTA (blocco L) ============ -->
+<!-- ============ SLIDE 11 — CHI SONO, DA OPERATORE (blocco C con ritratto) ============ -->
+<section class="slide" id="s11">
+    <div class="slide-content">
+        <div class="hero">
+            <div>
+                <div class="kicker reveal">Chi sono, da operatore</div>
+                <h2 class="reveal">Trent'anni tra numeri e <span class="gold">merci</span></h2>
+                <div class="acts two reveal">
+                    <div class="act"><div class="year">1998</div><div class="what">KPMG, Milano</div><div class="how">Manager World Class Finance: controllo di gestione per automotive, telecom, utility. Il libro Ipsoa sul controllo di gestione nasce qui.</div></div>
+                    <div class="act"><div class="year">2004</div><div class="what">STC, trasporti internazionali</div><div class="how">Controller di gruppo; amministratore delle filiali in Francia e Tunisia, trasporto intermodale.</div></div>
+                    <div class="act"><div class="year">2012</div><div class="what">Imprenditore in Polonia</div><div class="how">Due aziende create da zero: spedizioni e distribuzione alimentare Ho.Re.Ca.</div></div>
+                    <div class="act"><div class="year">2023</div><div class="what">STMicroelectronics, Catania</div><div class="how">Financial manager del campus SiC: quasi €3 mld tra investimenti privati e fondi pubblici, valutati e rendicontati; controllo di gestione avviato su 3 linee di produzione.</div></div>
+                    <div class="act"><div class="year">2026</div><div class="what">MCSec</div><div class="how">La mia società, a Catania: controllo di gestione con AI, simulazione e formazione per le imprese.</div></div>
+                </div>
+                <p class="tagline reveal">Parlo la lingua di chi muove le merci.</p>
+            </div>
+            <div class="portrait-wrap reveal">
+                <img class="portrait" src="assets/michele-foto-polo.jpg" alt="Michele Cavallo">
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+<!-- ============ SLIDE 12 — CHIUSURA (blocco M, unica centrata, senza pulsante: va in PDF) ============ -->
+<section class="slide slide-cta" id="s12">
+    <div class="slide-content">
+        <img class="brand-logo reveal" src="assets/logo-mcsec-oro.png" alt="MCSec" style="margin-bottom: var(--content-gap);">
+        <p class="big-quote reveal">Trasformiamo i dati in valore, insieme.</p>
+        <p class="contact reveal"><span class="gold">www.mcsec.it</span> &nbsp;·&nbsp; info@mcsec.it</p>
+    </div>
+    <div class="slide-footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</section>
+
+
+<script>
+/* ============================================================
+   CONTROLLER PRESENTAZIONE
+   Frecce / Spazio / PgUp-PgDn / Home-End, swipe, pallini, barra progresso.
+   ============================================================ */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.currentSlide = 0;
+        this.navDotsContainer = document.querySelector('.nav-dots');
+        this.progressBar = document.querySelector('.progress-bar');
+        this.setupIntersectionObserver();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupNavDots();
+        this.updateUI(0);
+    }
+    /* Aggiunge .visible quando la slide entra in vista: parte il reveal */
+    setupIntersectionObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    const idx = this.slides.indexOf(entry.target);
+                    if (idx >= 0) { this.currentSlide = idx; this.updateUI(idx); }
+                }
+            });
+        }, { threshold: 0.55 });
+        this.slides.forEach((s) => observer.observe(s));
+    }
+    goTo(index) {
+        const i = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides[i].scrollIntoView({ behavior: 'smooth' });
+    }
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (['ArrowDown', 'ArrowRight', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); this.goTo(this.currentSlide + 1); }
+            else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); this.goTo(this.currentSlide - 1); }
+            else if (e.key === 'Home') { e.preventDefault(); this.goTo(0); }
+            else if (e.key === 'End') { e.preventDefault(); this.goTo(this.slides.length - 1); }
+        });
+    }
+    setupTouchNav() {
+        let startY = null;
+        document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            if (startY === null) return;
+            const dy = startY - e.changedTouches[0].clientY;
+            if (Math.abs(dy) > 60) this.goTo(this.currentSlide + (dy > 0 ? 1 : -1));
+            startY = null;
+        }, { passive: true });
+    }
+    setupNavDots() {
+        this.navDotsContainer.innerHTML = '';  /* mai duplicare i pallini */
+        this.slides.forEach((_, i) => {
+            const b = document.createElement('button');
+            b.setAttribute('aria-label', 'Vai alla slide ' + (i + 1));
+            b.addEventListener('click', () => this.goTo(i));
+            this.navDotsContainer.appendChild(b);
+        });
+    }
+    updateUI(index) {
+        const dots = this.navDotsContainer.querySelectorAll('button');
+        dots.forEach((d, i) => d.classList.toggle('active', i === index));
+        this.progressBar.style.width = ((index + 1) / this.slides.length) * 100 + '%';
+    }
+}
+document.addEventListener('DOMContentLoaded', () => new SlidePresentation());
+window.addEventListener('load', () => { document.documentElement.style.scrollBehavior = ''; });
+</script>
+</body>
+</html>
