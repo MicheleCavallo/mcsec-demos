@@ -2,8 +2,8 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>MCSec per ALIS — Presentazione</title>
 <!-- Se il deck apre con un hash (#s3) evita lo scroll animato fino a metà pagina -->
 <script>if (location.hash) { document.documentElement.style.scrollBehavior = 'auto'; }</script>
@@ -309,15 +309,15 @@ h3 { font-family: var(--font-display); font-weight: 700; font-size: var(--h3-siz
 #s1 .logo-row .sep { height: clamp(40px, 7.5vh, 72px); }
 
 /* Copertina: filigrana MC centrata in basso (richiesta Michele 16/09) */
-#s1 .watermark { right: auto; left: 50%; transform: translateX(-50%); bottom: -9vh; }
+#s1 .watermark, #s12 .watermark { right: auto; left: 50%; transform: translateX(-50%); bottom: -9vh; }
 
 /* Copertina: sottotitolo piu' grande (richiesta Michele 16/09) */
-#s1 .lede { font-size: clamp(1rem, 1.95vw, 1.5rem); line-height: 1.45; max-width: 48ch; }
+#s1 .lede { font-size: 2.2rem; line-height: 1.4; max-width: none; }  /* 18/09: prima riga larga quanto il titolo (fino a «valore») */
 
-#s1 .watermark { font-size: clamp(7rem, 30vh, 18rem); letter-spacing: 0.01em; }
+#s1 .watermark, #s12 .watermark { font-size: clamp(7rem, 30vh, 18rem); letter-spacing: 0.01em; }
 
 /* Filigrana: piu' a destra; riempimento color fondo sopra il contorno per nascondere le linee interne della «e» */
-#s1 .watermark { left: 58%; color: #090E14; paint-order: stroke fill; -webkit-text-stroke: 2px rgba(194, 150, 53, 0.17); }
+#s1 .watermark, #s12 .watermark { left: 58%; color: #090E14; paint-order: stroke fill; -webkit-text-stroke: 2px rgba(194, 150, 53, 0.17); }
 
 /* Flow «prima / dopo» (slide 3, 17/09): riga «Oggi» spenta in grigio sopra la riga a brand «Con MCSec» */
 .flow.grid { display: grid; grid-template-columns: 8em minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; column-gap: clamp(0.4rem, 1vw, 0.9rem); width: min(100%, 760px); }
@@ -333,6 +333,10 @@ h3 { font-family: var(--font-display); font-weight: 700; font-size: var(--h3-siz
 .eco-closing { margin-top: clamp(0.7rem, 2.2vh, 1.4rem); }
 
 #s9 .lede, #s8 .lede { max-width: min(92vw, 1300px); }
+/* Slide bio (#s11): piu' spazio al testo a sinistra, ritratto spinto al bordo destro (richiesta Michele 18/09) */
+#s11 .hero { grid-template-columns: 1.6fr 0.7fr; max-width: min(94vw, 1560px); gap: clamp(1rem, 3vw, 3.5rem); }
+#s11 .portrait-wrap { justify-content: flex-end; }
+#s11 .acts.two { max-width: min(90vw, 1000px); }
 .steps.vertical { flex-direction: column; gap: clamp(0.35rem, 1.2vh, 0.8rem); max-width: min(92vw, 1100px); }
 .steps.vertical .step { display: grid; grid-template-columns: auto minmax(180px, 230px) 1fr; column-gap: clamp(0.6rem, 1.4vw, 1.2rem); align-items: baseline; min-width: 0; }
 .steps.vertical .step .n { font-size: clamp(0.9rem, 2.2vh, 1.3rem); }
@@ -391,10 +395,10 @@ h3 { font-family: var(--font-display); font-weight: 700; font-size: var(--h3-siz
                 </div>
                 <h1 class="reveal">Trasformiamo i dati in <span class="gold">valore</span></h1>
                 <p class="lede reveal">Controllo di gestione con <span class="gold">AI</span>, simulazione e formazione<br>per chi muove l'Italia, ogni giorno.</p>
-                <div class="trilogy reveal">Controlla <span class="sep">›</span> Simula <span class="sep">›</span> Proteggi</div>
+                <div class="trilogy reveal">Forma <span class="sep">›</span> Controlla <span class="sep">›</span> Simula <span class="sep">›</span> Proteggi</div>
             </div>
             <div class="portrait-wrap reveal">
-                <img class="portrait wide" src="assets/michele-foto-polo-169-v2.png" alt="Michele Cavallo, MCSec">
+                <img class="portrait wide" src="assets/img-copertina-alis.png" alt="Controllo di gestione con AI per la logistica">
             </div>
         </div>
     </div>
@@ -648,6 +652,7 @@ h3 { font-family: var(--font-display); font-weight: 700; font-size: var(--h3-siz
 
 <!-- ============ SLIDE 12 — CHIUSURA (blocco M, unica centrata, senza pulsante: va in PDF) ============ -->
 <section class="slide slide-cta" id="s12">
+    <div class="watermark" aria-hidden="true">MCSec</div>
     <div class="slide-content">
         <img class="brand-logo reveal" src="assets/logo-mcsec-oro.png" alt="MCSec" style="margin-bottom: var(--content-gap);">
         <p class="big-quote reveal">Trasformiamo i dati in valore, insieme.</p>
