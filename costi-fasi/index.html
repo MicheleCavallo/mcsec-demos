@@ -324,11 +324,11 @@ function renderRisultati(el) {
       h('p', { class: 'note' }, `Periodo M${cp.filtri.daMese} → M${cp.filtri.aMese} · ${fmt(cp.lavorati, 0)} pezzi lavorati, ${fmt(cp.buoni, 0)} buoni, ${fmt(cp.scrap, 0)} scrap · finiti ${fmt(cp.finitiPezzi, 0)} a ${fmt(cp.finitoCosto)} €/pz.`));
     // in evidenza, prima di tutto: prodotto finito uscito (al reale di scarico dell'ultima fase) contro previsto (stessi pezzi al totale prodotto standard di fine periodo)
     const kd = cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '';
-    const pu = h('table', { style: 'max-width:560px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, '€/pz'), h('th', {}, '€ totali'))));
-    pu.append(h('tr', {}, h('td', {}, 'Reale (uscito dalla fase finale, al costo di scarico)'), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', { class: 'big' }, fmt(cp.finitoCosto)), h('td', { class: 'big' }, fmt(cp.finitoReale))));
-    pu.append(h('tr', {}, h('td', {}, `Previsto (totale prodotto standard M${cp.filtri.aMese})`), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', { class: 'big' }, fmt(cp.finitoStandardPz)), h('td', { class: 'big' }, fmt(cp.finitoStandard))));
-    pu.append(h('tr', {}, h('td', {}, 'Delta reale − previsto'), h('td', {}, ''), h('td', { class: 'big', style: kd }, fmt(cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null)), h('td', { class: 'big', style: kd }, fmt(cp.finitoDelta))));
-    pu.querySelector('thead th:last-child').textContent = '€ sui pezzi finiti (pezzi × €/pz)';
+    // una riga sola (Michele 28/09): pezzi, reale e standard per pezzo affiancati, delta; i totali in euro stanno nella quadratura sotto
+    const dpz = cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null;
+    const pu = h('table', { style: 'max-width:640px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, 'Reale €/pz'), h('th', {}, 'Standard €/pz'), h('th', {}, 'Delta €/pz'), h('th', {}, 'Delta %'))));
+    pu.append(h('tr', {}, h('td', {}, `Uscito dalla fase finale M${cp.filtri.daMese} → M${cp.filtri.aMese}`), h('td', {}, fmt(cp.finitiPezzi, 0)),
+      h('td', { class: 'big' }, fmt(cp.finitoCosto)), h('td', { class: 'big' }, fmt(cp.finitoStandardPz)), h('td', { class: 'big', style: kd }, fmt(dpz)), h('td', { style: kd }, dpz === null || !cp.finitoStandardPz ? '–' : pct(dpz / cp.finitoStandardPz))));
     // quadratura del periodo: tutti i costi consuntivi contro standard, sul prodotto e fuori dal prodotto, fino al totale
     const Q = cp.quadratura;
     // una sola colonna standard (scelta di Michele 28/09): il budget a standard = fisso standard + variabile standard × lavorati (colonna V);
@@ -344,7 +344,7 @@ function renderRisultati(el) {
     qt.append(rigaQ('Non produzione (fasi ferme + posti vuoti)', Q.nonProduzione, 'a conto economico, non va sul prodotto; a standard vale la quota fissa dei posti rimasti vuoti'));
     qt.append(rigaQ('Totale costi del periodo', Q.totale, 'spesa reale contro budget a standard: il delta è l’inefficienza del periodo', { big: true, stile: 'border-top:2px solid var(--gold)' }));
     c.append(h('div', { class: 'evidenza' }, h('h3', {}, 'Prodotto finito e quadratura del periodo: reale contro standard'), h('div', { class: 'scroll' }, pu),
-      h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Reale: pezzi che hanno completato la fase finale nel periodo, al costo reale di scarico (tutto il ciclo). Previsto: gli stessi pezzi al totale prodotto standard (Parametri E7) del mese finale.'),
+      h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Reale: costo di scarico dei pezzi che hanno completato la fase finale nel periodo (tutto il ciclo). Standard: totale prodotto a listino (Parametri E7) del mese finale. In euro totali: riga «di cui prodotto finito uscito» qui sotto.'),
       h('div', { class: 'scroll' }, qt),
       h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale reale è la spesa del periodo (la stessa del grafico «dove sono finiti gli euro»). Il budget a standard è quanto era lecito spendere con questi volumi e questa linea: fisso standard di ogni fase attiva più variabile standard × pezzi lavorati; sui posti vuoti vale la quota fissa standard. Lo scostamento verso lo standard maturato (solo pezzi lavorati) è nella scheda Sintesi.')));
     const righe = [['Variabile €/pz lavorato', 'Var', 'listino Parametri'], ['Fisso €/pz lavorato', 'Fisso', 'canone di fase a budget ÷ lavorati'], ['Pieno €/pz lavorato', 'Pieno', 'budget di periodo ÷ lavorati'],
