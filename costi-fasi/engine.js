@@ -141,6 +141,47 @@
     return righe;
   }
 
+  // ---- Semilavorati: magazzino a costo medio ponderato per fase (colonne C..V della DEF_01).
+  function calcolaSemilavorati(registro, percorso, parametri) {
+    const righe = [];
+    const trovaR = (m, i) => registro.find(r => r.mese === m && r.idx === i) || null;
+    const trovaS = (m, i) => righe.find(r => r.mese === m && r.idx === i) || null;
+    for (const reg of registro) {
+      const { mese: m, idx: i, fase: fid } = reg;
+      const last = i === percorso.length - 1, first = i === 0;
+      const g = n(parametri[m - 1].fasi[fid].scrap);
+      const prevS = trovaS(m - 1, i), upPrevS = first ? null : trovaS(m - 1, i - 1);
+      const regNext = last ? null : trovaR(m, i + 1);
+      const s = { mese: m, fase: fid, idx: i };
+      s.C = prevS ? n(prevS.L) : 0;                                   // rimanenza iniziale pezzi
+      s.D = prevS ? n(prevS.M) : 0;                                   // rimanenza iniziale €
+      s.E = (first || !upPrevS) ? 0 : n(upPrevS.N);                   // costo medio in ingresso dalla fase a monte, fine mese prima
+      s.F = n(reg.J) - n(reg.K);                                      // buoni
+      s.R = s.F <= 0 ? 0 : Math.min(n(reg.K), s.F * g / (1 - g));      // scrap normale assorbito
+      s.S = n(reg.K) - s.R;                                           // scrap anomalo
+      s.G = n(reg.J) === 0 ? null : n(reg.Z) + s.E;                   // costo unitario di carico
+      s.H = s.F <= 0 ? 0 : (s.F + s.R) * n(s.G);                      // carico €
+      s.I = last ? n(reg.O) : n(regNext.J);                           // scarico pezzi: lavorati a valle / OUT
+      s.J = s.I === 0 ? null : (last ? ((s.C + s.F) === 0 ? 0 : (s.D + s.H) / (s.C + s.F)) : (s.C === 0 ? 0 : s.D / s.C));
+      s.K = s.I === 0 ? 0 : s.I * n(s.J);                             // scarico €
+      s.L = s.C + s.F - s.I;                                          // rimanenza finale pezzi
+      s.M = s.D + s.H - s.K;                                          // rimanenza finale €
+      s.N = s.L === 0 ? null : s.M / s.L;                             // costo medio finale
+      const attesoL = last ? n(reg.P) : n(reg.P) + n(reg.AO) + n(regNext.L);
+      s.O = s.L < 0 ? 'negativo' : (Math.abs(s.L - attesoL) > 1e-9 ? 'KO stati' : ((s.F > 0 && s.E === 0 && !first) ? 'ingresso da magazzino vuoto' : 'OK'));
+      s.P = last ? (s.I === 0 ? null : s.J) : null;                   // prodotto finito €/pz
+      s.Q = s.S === 0 ? 0 : s.S * n(s.G);                             // scrap anomalo a perdita €
+      s.T = (n(reg.J) === 0 || s.F <= 0) ? 0 : n(reg.AB) * (s.F + s.R) / n(reg.J);
+      s.U = n(reg.J) === 0 ? 0 : n(reg.AB) * s.S / n(reg.J);
+      s.V = (n(reg.J) === 0 || s.F <= 0) ? 0 : n(reg.AC) / n(reg.J) * s.F / (1 - g);
+      righe.push(s);
+      reg.AR = n(reg.J) === 0 ? null : s.G;                          // semilavorato cumulato reale €/pz
+      reg.AT = reg.AR === null ? null : reg.AR - n(reg.AS);
+      reg.AU = n(reg.O) === 0 ? null : s.J;                          // prodotto finito reale €/pz
+    }
+    return righe;
+  }
+
   function calcola(sc) {
     const errori = validaScenario(sc);
     if (errori.length) return { errori };
@@ -150,7 +191,8 @@
     const parametri = risolviParametri(sc, percorso);
     const ris = { errori: [], mesi: sc.mesi || MESI_DEFAULT, prodotto: prodotto.id, percorso, fasi, parametri };
     ris.registro = calcolaRegistro(sc, percorso, parametri, prodotto.id);
-    // Task 4-7 aggiungono: semilavorati, sintesi, costoProdotto, grafico2, controlli
+    ris.semilavorati = calcolaSemilavorati(ris.registro, percorso, parametri);
+    // Task 5-7 aggiungono: sintesi, costoProdotto, grafico2, controlli
     return ris;
   }
 
