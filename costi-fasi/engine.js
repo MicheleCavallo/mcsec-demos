@@ -298,6 +298,9 @@
     const cp = { filtri: { daMese: da, aMese: a, fase: f.fase }, lavorati, buoni, scrap: somma(R, 'K'),
       finitiPezzi: somma(R.filter(r => r.idx === last), 'O'),
       finitoCosto: div(somma(S.filter(r => r.idx === last), 'K'), somma(S.filter(r => r.idx === last), 'I')),
+      // prodotto uscito (finiti al reale di scarico dell'ultima fase) contro prodotto maturato (stessi pezzi al totale prodotto standard E7 di fine periodo)
+      finitoReale: somma(S.filter(r => r.idx === last), 'K'),
+      finitoStandardPz: n(parA.E7),
       realeVar: div(somma(R, 'Q'), lavorati), realeFisso: div(somma(R, 'S'), lavorati), realePieno: div(somma(R, 'U'), lavorati),
       realeSulProdotto: div(somma(S, 'T'), buoni), realeNonProd: div(somma(R, 'AD'), lavorati),
       realeSommaMedie: perFase.some(x => x.F !== null) ? perFase.reduce((s, x) => s + n(x.F), 0) : null,
@@ -305,6 +308,8 @@
       attesoSulProdotto: div(somma(S, 'V'), buoni), attesoNonProd: div(somma(attive, 'AE'), lavorati),
       attesoSommaMedie: perFase.length ? perFase.reduce((s, x) => s + n(x.D), 0) : null,
       scrapAnomaloPerPezzoBuono: div(somma(S, 'U'), buoni), scrapAnomaloTotale: somma(S, 'U'), perFase };
+    cp.finitoStandard = cp.finitiPezzi * cp.finitoStandardPz;
+    cp.finitoDelta = cp.finitoReale - cp.finitoStandard;
     for (const k of ['Var', 'Fisso', 'Pieno', 'SulProdotto', 'NonProd', 'SommaMedie']) {
       cp['delta' + k] = (cp['reale' + k] === null || cp['atteso' + k] === null) ? null : cp['reale' + k] - cp['atteso' + k];
     }

@@ -321,7 +321,15 @@ function renderRisultati(el) {
     const pf = h('table', {}, h('thead', {}, h('tr', {}, ...['Fase', 'Lavorati', 'Atteso listino €/pz buono', 'Atteso maturato', 'Reale sul prodotto', 'Delta €/pz', 'Delta %', 'Reale pieno', 'Non produzione', 'Scrap pz', 'Buoni', 'di cui anomalo', 'Anomalo €/pz buono'].map(x => h('th', {}, x)))));
     for (const f of cp.perFase) pf.append(h('tr', {}, h('td', {}, f.nome), h('td', {}, fmt(f.C, 0)), h('td', {}, fmt(f.D)), h('td', {}, fmt(f.E)), h('td', {}, fmt(f.F)), h('td', { style: f.G > 0.005 ? 'color:var(--ko)' : '' }, fmt(f.G)), h('td', {}, pct(f.H)), h('td', {}, fmt(f.I)), h('td', {}, fmt(f.J)), h('td', {}, fmt(f.K, 0)), h('td', {}, fmt(f.L, 0)), h('td', {}, fmt(f.M, 3)), h('td', {}, fmt(f.N))));
     c.append(h('h3', {}, 'Dettaglio per fase'), h('div', { class: 'scroll' }, pf));
-    c.append(h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp));
+    // a fianco del grafico: prodotto uscito (finiti al reale) contro prodotto maturato (finiti al totale prodotto standard di fine periodo)
+    const pu = h('table', { style: 'min-width:300px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, '€/pz'), h('th', {}, '€ totali'))));
+    pu.append(h('tr', {}, h('td', {}, 'Uscito (reale di scarico)'), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', {}, fmt(cp.finitoCosto)), h('td', {}, fmt(cp.finitoReale))));
+    pu.append(h('tr', {}, h('td', {}, `Maturato (standard M${cp.filtri.aMese})`), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', {}, fmt(cp.finitoStandardPz)), h('td', {}, fmt(cp.finitoStandard))));
+    pu.append(h('tr', {}, h('td', {}, 'Delta'), h('td', {}, ''), h('td', { style: cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '' }, fmt(cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null)), h('td', { style: cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '' }, fmt(cp.finitoDelta))));
+    const lato = h('div', { style: 'flex:0 1 340px;min-width:0' }, h('div', { class: 'scroll' }, pu),
+      h('p', { class: 'note', style: 'margin-top:6px' }, 'Uscito: pezzi finiti usciti dalla fase finale nel periodo, al costo reale di scarico. Maturato: gli stessi pezzi al totale prodotto standard (Parametri E7) del mese finale. Il delta è lo scostamento sul prodotto finito; gli euro delle fasi ferme e dei posti vuoti restano fuori, a conto economico.'));
+    c.append(h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'),
+      h('div', { style: 'display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap' }, h('div', { style: 'flex:1 1 480px;min-width:0' }, renderGrafico1(cp)), lato));
     c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
     el.append(c);
   }

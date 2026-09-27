@@ -83,3 +83,18 @@ test('codaPrecedente = coda della stessa fase a fine mese prima (i pezzi in coda
   assert.equal(riga(2, 'F1').codaPrecedente, 0, 'F1 senza coda');
   assert.equal(riga(3, 'F2').I, riga(3, 'F2').H + riga(3, 'F2').codaPrecedente, 'disponibili = entrati + coda precedente');
 });
+
+test('prodotto uscito e maturato: finiti al reale di scarico contro finiti al totale prodotto standard di fine periodo', () => {
+  const r = calcola(esempio);
+  const cp = r.costoProdotto;
+  assert.equal(cp.finitiPezzi, 3);
+  assert.ok(Math.abs(cp.finitoReale - 3 * 33.306) < 0.02, 'uscito € = finiti × reale €/pz');
+  assert.ok(Math.abs(cp.finitoReale - cp.grafico2.finiti) < 0.005, 'con rimanenza zero di finiti coincide con la fetta «Finiti» del grafico 2');
+  assert.equal(cp.finitoStandardPz, r.parametri[cp.filtri.aMese - 1].E7, 'standard €/pz = E7 del mese finale del periodo');
+  assert.ok(Math.abs(cp.finitoStandard - 3 * cp.finitoStandardPz) < 0.005);
+  assert.ok(Math.abs(cp.finitoDelta - (cp.finitoReale - cp.finitoStandard)) < 0.005);
+  const sc = structuredClone(esempio); sc.filtri = { daMese: 1, aMese: 2, fase: 'tutte' };
+  const cp2 = CostiFasiCosto(sc, { daMese: 1, aMese: 2, fase: 'tutte' });
+  assert.equal(cp2.finitiPezzi, 0); assert.equal(cp2.finitoReale, 0); assert.equal(cp2.finitoStandard, 0); assert.equal(cp2.finitoCosto, null);
+});
+function CostiFasiCosto(sc, filtri) { const { costoProdotto } = require('../engine.js'); return costoProdotto(calcola(sc), filtri); }
