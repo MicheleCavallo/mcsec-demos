@@ -214,7 +214,7 @@ function renderConsuntivo(el) {
   const mesi = sc.mesi || 12;
   const pronto = r && !r.errori.length;
   const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 02 · Consuntivo: il reale, mese per mese'),
-    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti, reale variabile, reale fisso. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento sotto la cella entrati è il transito disponibile). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
+    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti, reale variabile, reale fisso. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento sotto la cella entrati è il transito disponibile). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (la riga sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
   const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
   for (let m = 1; m <= mesi; m++) {
     const koMese = pronto ? r.ko.filter(c => c.mese === m).length : 0;
@@ -234,7 +234,11 @@ function renderConsuntivo(el) {
     const set = (k, v) => { const c = cella(); if (v === null) delete c[k]; else c[k] = v; if (!Object.keys(c).length) { delete reg[String(m)][fid]; if (!Object.keys(reg[String(m)]).length) delete reg[String(m)]; } ricalcola(); render(); };
     const cur = (reg[String(m)] || {})[fid] || {};
     const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
-    const sugg = riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined ? h('div', { style: 'color:var(--muted);font-size:10px' }, `transito disponibile a monte: ${fmt(riga.suggeritiEntrati, 0)}`) : null;
+    // sotto la cella entrati: transito disponibile a monte (finché non dichiari) e pezzi già in coda dal mese prima (sempre: non vanno ridichiarati)
+    const hint = [];
+    if (riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined) hint.push(`transito disponibile a monte: ${fmt(riga.suggeritiEntrati, 0)}`);
+    if (riga && riga.codaPrecedente > 0) hint.push(`già in coda dal mese prima: ${fmt(riga.codaPrecedente, 0)} (non ridichiararli)`);
+    const sugg = hint.length ? h('div', { style: 'color:var(--muted);font-size:10px' }, hint.join(' · ')) : null;
     const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
       h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
       h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),

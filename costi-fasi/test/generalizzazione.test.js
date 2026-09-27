@@ -73,3 +73,13 @@ test('4 fasi con parametri cambiati in M3: quadrature OK', () => {
   assert.equal(r.parametri[1].fasi.F2.fisso, 150);
   assert.equal(r.registro.find(x => x.mese === 4 && x.fase === 'F4').O, 3);
 });
+
+test('codaPrecedente = coda della stessa fase a fine mese prima (i pezzi in coda non si ridichiarano entrati)', () => {
+  const r = calcola(esempio);
+  const riga = (m, f) => r.registro.find(x => x.mese === m && x.fase === f);
+  assert.equal(riga(2, 'F2').L, 2, 'M2 F2: 10 entrati, 8 lavorati, 2 in coda');
+  assert.equal(riga(3, 'F2').codaPrecedente, 2, 'M3 F2 eredita i 2 in coda da M2');
+  assert.equal(riga(1, 'F2').codaPrecedente, 0, 'mese 1: nessun mese prima');
+  assert.equal(riga(2, 'F1').codaPrecedente, 0, 'F1 senza coda');
+  assert.equal(riga(3, 'F2').I, riga(3, 'F2').H + riga(3, 'F2').codaPrecedente, 'disponibili = entrati + coda precedente');
+});

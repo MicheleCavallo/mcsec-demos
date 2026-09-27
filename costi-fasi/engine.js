@@ -119,7 +119,8 @@
         r.F = p.fisso + p.var * J;                                    // budget flessibile
         r.G = prev ? n(prev.N) : 0;                                   // WIP iniziale
         r.H = n(r.input.entrati);                                     // entrati dichiarati dall'utente
-        r.I = r.H + (prev ? n(prev.L) : 0);                           // disponibili
+        r.codaPrecedente = prev ? n(prev.L) : 0;                     // coda della stessa fase a fine mese prima (non si ridichiara come entrati)
+        r.I = r.H + r.codaPrecedente;                                 // disponibili
         r.J = J; r.K = K;
         r.L = r.I - J;                                                // coda
         r.M = M;
