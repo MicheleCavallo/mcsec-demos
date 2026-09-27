@@ -432,23 +432,35 @@ function renderGrafico3(cp) {   // barre impilate: buoni (blu) + scrap (arancio)
   return svg;
 }
 function renderGrafico2(cp) {
-  const g = cp.grafico2, W = 760, H = 128, GAP = 2;
+  const g = cp.grafico2, W = 1200, H = 142, GAP = 2;   // viewBox largo: a tutta larghezza i testi restano a misura normale
   const parti = [['Fasi ferme', g.fasiFerme], ['Posti vuoti', g.postiVuoti], ['Scarto anomalo', g.scartoAnomalo], ['Semilavorati', g.semilavorati], ['Finiti', g.finiti]].map((p, i) => [...p, COL.parti[i]]);
   const tot = parti.reduce((s, p) => s + Math.max(p[1], 0), 0);
   const box = h('div', {});
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Ripartizione della spesa del periodo', style: 'max-width:760px;display:block' });
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Ripartizione della spesa del periodo', style: 'display:block' });   // tutta larghezza (Michele 28/09)
   if (tot <= 0) { svg.append(svgEl('text', { x: W / 2, y: 40, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun costo nel periodo')); box.append(svg); return box; }
-  let xx = 0;
+  // barra da y=22 a 66; font ridotti (11/9); le fette troppo strette per il testo (verde, rosa) hanno l'etichetta SOPRA la barra,
+  // sfalsata su due righe (y 8 / 18) quando due fette strette sono vicine (Michele 28/09)
+  const Y0 = 22, HB = 44, FV = 11, FN = 9;
+  let xx = 0, sopraN = 0, ultimoSopraX = -1e9;
   for (const [nome, v, col] of parti) { const w = W * Math.max(v, 0) / tot; if (w <= 0) continue;
-    const r = svgEl('rect', { x: xx + (xx > 0 ? GAP : 0), y: 8, width: Math.max(w - (xx > 0 ? GAP : 0), 0), height: 44, rx: 3, fill: col });
+    const r = svgEl('rect', { x: xx + (xx > 0 ? GAP : 0), y: Y0, width: Math.max(w - (xx > 0 ? GAP : 0), 0), height: HB, rx: 3, fill: col });
     r.append(svgEl('title', {}, `${nome}: ${fmt(v)} € (${pct(v / tot)})`)); svg.append(r);
-    if (w > 64) svg.append(svgEl('text', { x: xx + w / 2, y: 27, fill: '#0D1B2A', 'font-size': 12, 'font-weight': 700, 'text-anchor': 'middle' }, fmt(v, 0)), svgEl('text', { x: xx + w / 2, y: 43, fill: '#0D1B2A', 'font-size': 10, 'text-anchor': 'middle' }, nome));
+    const cx = xx + w / 2, larghezzaTesto = Math.max(fmt(v, 0).length * FV * 0.62, nome.length * FN * 0.55) + 10;
+    if (w >= larghezzaTesto) {
+      svg.append(svgEl('text', { x: cx, y: Y0 + 19, fill: '#0D1B2A', 'font-size': FV, 'font-weight': 700, 'text-anchor': 'middle' }, fmt(v, 0)), svgEl('text', { x: cx, y: Y0 + 34, fill: '#0D1B2A', 'font-size': FN, 'text-anchor': 'middle' }, nome));
+    } else {   // etichetta sopra la barra, colore della fetta; se la precedente «sopra» è vicina, sale di una riga
+      const vicina = cx - ultimoSopraX < 120; const yy = vicina && sopraN % 2 === 0 ? 8 : 18; sopraN = vicina ? sopraN + 1 : 0; ultimoSopraX = cx;
+      const anchor = cx > W - 80 ? 'end' : (cx < 80 ? 'start' : 'middle');
+      svg.append(svgEl('line', { x1: cx, x2: cx, y1: yy + 2, y2: Y0, stroke: col, 'stroke-width': 1 }),
+        svgEl('text', { x: cx, y: yy, fill: col, 'font-size': FN, 'font-weight': 700, 'text-anchor': anchor }, `${nome} ${fmt(v, 0)}`));
+    }
     xx += w; }
+  const YL = Y0 + HB + 12, YT = YL + 17;
   const wce = W * g.aContoEconomico / tot;
-  svg.append(svgEl('line', { x1: 0, x2: Math.max(wce - GAP, 0), y1: 64, y2: 64, stroke: 'var(--ko)', 'stroke-width': 2 }), svgEl('text', { x: wce / 2, y: 82, fill: 'var(--ko)', 'font-size': 12, 'text-anchor': 'middle' }, `${fmt(g.aContoEconomico)} € a conto economico del periodo`));
-  svg.append(svgEl('line', { x1: wce + GAP, x2: W, y1: 64, y2: 64, stroke: 'var(--ok)', 'stroke-width': 2 }), svgEl('text', { x: W, y: 82, fill: 'var(--ok)', 'font-size': 12, 'text-anchor': 'end' }, `${fmt(g.aMagazzino)} € a magazzino`));
+  svg.append(svgEl('line', { x1: 0, x2: Math.max(wce - GAP, 0), y1: YL, y2: YL, stroke: 'var(--ko)', 'stroke-width': 2 }), svgEl('text', { x: wce / 2, y: YT, fill: 'var(--ko)', 'font-size': 11, 'text-anchor': 'middle' }, `${fmt(g.aContoEconomico)} € a conto economico del periodo`));
+  svg.append(svgEl('line', { x1: wce + GAP, x2: W, y1: YL, y2: YL, stroke: 'var(--ok)', 'stroke-width': 2 }), svgEl('text', { x: W, y: YT, fill: 'var(--ok)', 'font-size': 11, 'text-anchor': 'end' }, `${fmt(g.aMagazzino)} € a magazzino`));
   let lx = 0;   // legenda (5 parti)
-  for (const [nome, , col] of parti) { svg.append(svgEl('rect', { x: lx, y: 104, width: 10, height: 10, rx: 2, fill: col }), svgEl('text', { x: lx + 14, y: 113, fill: COL.testo, 'font-size': 11 }, nome)); lx += 14 + nome.length * 6.4 + 18; }
+  for (const [nome, , col] of parti) { svg.append(svgEl('rect', { x: lx, y: YT + 20, width: 10, height: 10, rx: 2, fill: col }), svgEl('text', { x: lx + 14, y: YT + 29, fill: COL.testo, 'font-size': 10, 'font-weight': 700 }, nome)); lx += 14 + nome.length * 6 + 18; }
   box.append(svg);
   const nota = Math.abs(tot - g.totale) > 0.005 ? `Le cinque parti (${fmt(tot)} €) non tornano sulla spesa del periodo (${fmt(g.totale)} €): il periodo non parte da un magazzino vuoto. Prova da M1.` : `Totale ${fmt(g.totale)} € = spesa reale del periodo: fasi ferme + posti vuoti + scarto anomalo + semilavorati + finiti.`;
   box.append(h('p', { class: 'note' }, nota));
