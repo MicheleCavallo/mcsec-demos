@@ -98,3 +98,22 @@ test('prodotto uscito e maturato: finiti al reale di scarico contro finiti al to
   assert.equal(cp2.finitiPezzi, 0); assert.equal(cp2.finitoReale, 0); assert.equal(cp2.finitoStandard, 0); assert.equal(cp2.finitoCosto, null);
 });
 function CostiFasiCosto(sc, filtri) { const { costoProdotto } = require('../engine.js'); return costoProdotto(calcola(sc), filtri); }
+
+test('quadratura del periodo: reale = maturato + scostamento (Sintesi D = N + O) e reale = budget flessibile + delta spesa (W + X)', () => {
+  const r = calcola(esempio);
+  const cp = r.costoProdotto, Q = cp.quadratura, tol = 0.005;
+  const vicino = (a, b, msg) => assert.ok(Math.abs(a - b) < tol, `${msg}: ${a} vs ${b}`);
+  vicino(Q.totale.reale, cp.grafico2.totale, 'totale reale = spesa del periodo del grafico 2');
+  vicino(Q.totale.reale, 1106, 'esempio: 1.106 euro nel trimestre');
+  for (const k of ['reale', 'maturato', 'scostamento', 'budget', 'deltaSpesa']) {
+    vicino(Q.totale[k], Q.prodotto[k] + Q.nonProduzione[k], `totale = prodotto + non produzione (${k})`);
+    vicino(Q.prodotto[k], Q.finito[k] + Q.restoProdotto[k], `prodotto = finito + resto (${k})`);
+  }
+  const y = r.sintesi.filter(x => x.mese >= cp.filtri.daMese && x.mese <= cp.filtri.aMese);
+  const S = k => y.reduce((s, x) => s + x[k], 0);
+  vicino(Q.totale.reale, S('B'), 'costo reale Sintesi'); vicino(Q.totale.maturato, S('C'), 'standard maturato Sintesi');
+  vicino(Q.totale.scostamento, S('D'), 'scostamento totale Sintesi'); vicino(Q.prodotto.scostamento, S('N'), 'delta sui lavorati Sintesi');
+  vicino(Q.nonProduzione.scostamento, S('O'), 'non produzione Sintesi'); vicino(Q.nonProduzione.maturato, 0, 'sui posti vuoti non matura nulla');
+  vicino(Q.totale.deltaSpesa, S('Q') + S('R'), 'delta spesa = delta variabile + delta fisso della Sintesi');
+  vicino(Q.totale.budget, Q.totale.maturato + Q.nonProduzione.budget, 'budget flessibile = maturato + posti vuoti a standard');
+});

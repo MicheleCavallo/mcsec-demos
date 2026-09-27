@@ -310,6 +310,17 @@
       scrapAnomaloPerPezzoBuono: div(somma(S, 'U'), buoni), scrapAnomaloTotale: somma(S, 'U'), perFase };
     cp.finitoStandard = cp.finitiPezzi * cp.finitoStandardPz;
     cp.finitoDelta = cp.finitoReale - cp.finitoStandard;
+    // Quadratura del periodo, solo colonne del Registro (identità validate riga per riga con l'Excel):
+    // reale U = maturato AC + delta lavorati AF + non produzione AD (Sintesi: D = N + O, scostamento totale = reale − maturato);
+    // budget flessibile V = AC + AE (quota fissa standard dei posti vuoti), delta spesa Y = U − V = AF + AG (quadratura natura AJ).
+    const q = (reale, maturato, budget) => ({ reale, maturato, scostamento: reale - maturato, budget, deltaSpesa: reale - budget });
+    const AC = somma(R, 'AC'), AE = somma(attive, 'AE');
+    cp.quadratura = {
+      prodotto: q(somma(R, 'AB'), AC, AC),
+      finito: q(cp.finitoReale, cp.finitoStandard, cp.finitoStandard),
+      nonProduzione: q(somma(R, 'AD'), 0, AE),
+      totale: q(somma(R, 'U'), AC, somma(attive, 'V')) };
+    cp.quadratura.restoProdotto = q(cp.quadratura.prodotto.reale - cp.finitoReale, AC - cp.finitoStandard, AC - cp.finitoStandard);
     for (const k of ['Var', 'Fisso', 'Pieno', 'SulProdotto', 'NonProd', 'SommaMedie']) {
       cp['delta' + k] = (cp['reale' + k] === null || cp['atteso' + k] === null) ? null : cp['reale' + k] - cp['atteso' + k];
     }
