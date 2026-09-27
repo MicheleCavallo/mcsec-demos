@@ -100,7 +100,8 @@ const stato = { scenario: null, risultato: null, passo: 1, meseCorrente: 1, sche
 // ---- formato it-IT
 function fmt(x, dec = 2) {
   if (x === null || x === undefined || x === '' || Number.isNaN(Number(x))) return '–';
-  return Number(x).toLocaleString('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  // en-US poi scambio dei separatori: il locale it-IT del browser non raggruppa le migliaia sotto i 10.000 (1106 → «1106»)
+  return Number(x).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/,/g, '§').replace('.', ',').replace(/§/g, '.');
 }
 function pct(x) { return x === null || x === undefined ? '–' : fmt(x * 100, 1) + ' %'; }
 
@@ -311,8 +312,66 @@ function renderRisultati(el) {
     el.append(c);
   }
 }
-function renderGrafico1(cp) { return h('p', { class: 'note' }, 'grafico in arrivo'); }
-function renderGrafico2(cp) { return h('p', { class: 'note' }, 'grafico in arrivo'); }
+// ---- Grafici SVG (skill dataviz: palette validata sulla superficie #12233C, marks sottili, legenda + etichette dirette, tooltip)
+const NS = 'http://www.w3.org/2000/svg';
+const COL = { reale: '#B08A32', atteso: '#5588C0', griglia: '#23395A', testo: '#B0B8C4', muto: '#6B7686',
+  parti: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'] };
+function svgEl(tag, attrs, testo) { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); if (testo !== undefined) e.textContent = testo; return e; }
+function renderGrafico1(cp) {
+  const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };
+  const serie = cp.serie.filter(s => s.mese >= cp.filtri.daMese && s.mese <= cp.filtri.aMese);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Serie mensile del costo per pezzo buono, atteso e reale', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const vals = serie.flatMap(s => [s.reale, s.atteso]).filter(v => v !== null);
+  if (!vals.length) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo buono nel periodo')); return svg; }
+  const yMax = Math.max(...vals) * 1.15, bMax = Math.max(...serie.map(s => s.buoni || 0), 1);
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / serie.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  serie.forEach((s, i) => {   // barre dei pezzi buoni (magnitudine, recessive) con etichetta
+    const hb = (H - m.t - m.b) * 0.22 * (s.buoni || 0) / bMax;
+    if (hb > 0) svg.append(svgEl('rect', { x: x(i) - 9, y: H - m.b - hb, width: 18, height: hb, rx: 2, fill: COL.griglia }));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
+    if (s.buoni) svg.append(svgEl('text', { x: x(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, `${s.buoni} buoni`));
+  });
+  const linea = (k, col) => { let d = '', pen = false; serie.forEach((s, i) => { if (s[k] === null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i) + ' ' + y(s[k]) + ' '; pen = true; }); svg.append(svgEl('path', { d, fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-linejoin': 'round' })); };
+  linea('atteso', COL.atteso); linea('reale', COL.reale);
+  serie.forEach((s, i) => { for (const [k, col, nome] of [['atteso', COL.atteso, 'atteso'], ['reale', COL.reale, 'reale']]) if (s[k] !== null) {
+    const g = svgEl('g', {});
+    g.append(svgEl('circle', { cx: x(i), cy: y(s[k]), r: 4.5, fill: col, stroke: '#0F1E33', 'stroke-width': 2 }));
+    const hit = svgEl('circle', { cx: x(i), cy: y(s[k]), r: 12, fill: 'transparent' });
+    hit.append(svgEl('title', {}, `M${s.mese} · ${nome}: ${fmt(s[k])} €/pz buono` + (s.delta !== null ? ` · delta ${fmt(s.delta)}` : '') + ` · ${s.buoni} buoni`));
+    g.append(hit); svg.append(g);
+    if (i === serie.length - 1 || serie[i + 1][k] === null) svg.append(svgEl('text', { x: x(i) + 8, y: y(s[k]) + 4, fill: COL.testo, 'font-size': 10 }, fmt(s[k])));   // etichetta diretta sull'ultimo punto
+  } });
+  const leg = svgEl('g', {});   // legenda (2 serie)
+  leg.append(svgEl('circle', { cx: W - m.r - 150, cy: 12, r: 4, fill: COL.atteso }), svgEl('text', { x: W - m.r - 142, y: 16, fill: COL.testo, 'font-size': 11 }, 'atteso (standard)'),
+    svgEl('circle', { cx: W - m.r - 50, cy: 12, r: 4, fill: COL.reale }), svgEl('text', { x: W - m.r - 42, y: 16, fill: COL.testo, 'font-size': 11 }, 'reale'));
+  svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, '€ per pezzo buono'));
+  return svg;
+}
+function renderGrafico2(cp) {
+  const g = cp.grafico2, W = 760, H = 128, GAP = 2;
+  const parti = [['Fasi ferme', g.fasiFerme], ['Posti vuoti', g.postiVuoti], ['Scarto anomalo', g.scartoAnomalo], ['Semilavorati', g.semilavorati], ['Finiti', g.finiti]].map((p, i) => [...p, COL.parti[i]]);
+  const tot = parti.reduce((s, p) => s + Math.max(p[1], 0), 0);
+  const box = h('div', {});
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Ripartizione della spesa del periodo', style: 'max-width:760px;display:block' });
+  if (tot <= 0) { svg.append(svgEl('text', { x: W / 2, y: 40, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun costo nel periodo')); box.append(svg); return box; }
+  let xx = 0;
+  for (const [nome, v, col] of parti) { const w = W * Math.max(v, 0) / tot; if (w <= 0) continue;
+    const r = svgEl('rect', { x: xx + (xx > 0 ? GAP : 0), y: 8, width: Math.max(w - (xx > 0 ? GAP : 0), 0), height: 44, rx: 3, fill: col });
+    r.append(svgEl('title', {}, `${nome}: ${fmt(v)} € (${pct(v / tot)})`)); svg.append(r);
+    if (w > 64) svg.append(svgEl('text', { x: xx + w / 2, y: 27, fill: '#0D1B2A', 'font-size': 12, 'font-weight': 700, 'text-anchor': 'middle' }, fmt(v, 0)), svgEl('text', { x: xx + w / 2, y: 43, fill: '#0D1B2A', 'font-size': 10, 'text-anchor': 'middle' }, nome));
+    xx += w; }
+  const wce = W * g.aContoEconomico / tot;
+  svg.append(svgEl('line', { x1: 0, x2: Math.max(wce - GAP, 0), y1: 64, y2: 64, stroke: 'var(--ko)', 'stroke-width': 2 }), svgEl('text', { x: wce / 2, y: 82, fill: 'var(--ko)', 'font-size': 12, 'text-anchor': 'middle' }, `${fmt(g.aContoEconomico)} € a conto economico del periodo`));
+  svg.append(svgEl('line', { x1: wce + GAP, x2: W, y1: 64, y2: 64, stroke: 'var(--ok)', 'stroke-width': 2 }), svgEl('text', { x: W, y: 82, fill: 'var(--ok)', 'font-size': 12, 'text-anchor': 'end' }, `${fmt(g.aMagazzino)} € a magazzino`));
+  let lx = 0;   // legenda (5 parti)
+  for (const [nome, , col] of parti) { svg.append(svgEl('rect', { x: lx, y: 104, width: 10, height: 10, rx: 2, fill: col }), svgEl('text', { x: lx + 14, y: 113, fill: COL.testo, 'font-size': 11 }, nome)); lx += 14 + nome.length * 6.4 + 18; }
+  box.append(svg);
+  const nota = Math.abs(tot - g.totale) > 0.005 ? `Le cinque parti (${fmt(tot)} €) non tornano sulla spesa del periodo (${fmt(g.totale)} €): il periodo non parte da un magazzino vuoto. Prova da M1.` : `Totale ${fmt(g.totale)} € = spesa reale del periodo: fasi ferme + posti vuoti + scarto anomalo + semilavorati + finiti.`;
+  box.append(h('p', { class: 'note' }, nota));
+  if (cp.finitoCosto && g.fasiFerme > 0 && cp.finitiPezzi > 0) box.append(h('p', { class: 'note' }, `Se caricassi le fasi ferme sul pezzo: ${fmt(cp.finitoCosto)} → ${fmt(cp.finitoCosto + g.fasiFerme / cp.finitiPezzi)} €/pz, un numero che dipende dai volumi, non dall'efficienza.`));
+  return box;
+}
 
 // ---- render generale
 function render() {
