@@ -43,3 +43,11 @@ test('lavorare senza dichiarare entrati accende AM «oltre ciclo», non O (a mon
   assert.ok(r.ko.some(c => c.codice === 'AM' && c.mese === 1 && c.fase === 'F2'), JSON.stringify(r.ko));
   assert.ok(!r.ko.some(c => c.codice === 'O' && c.mese === 1 && c.fase === 'F2'));
 });
+
+test('variabile reale senza lavorati accende VAR0 (imputazione sospetta), non un fisso senza lavorati', () => {
+  const sc = structuredClone(esempio); sc.registro.P1['4'] = { F1: { varReale: 111, fissoReale: 150 }, F2: { fissoReale: 180 } };
+  const r = calcola(sc);
+  assert.ok(r.ko.some(c => c.codice === 'VAR0' && c.mese === 4 && c.fase === 'F1' && /variabile.*senza.*lavorat/i.test(c.messaggio)), JSON.stringify(r.ko));
+  assert.ok(!r.ko.some(c => c.codice === 'VAR0' && c.fase === 'F2'), 'fase ferma con solo fisso: nessun VAR0');
+  assert.ok(!calcola(esempio).ko.length, 'esempio pulito');
+});

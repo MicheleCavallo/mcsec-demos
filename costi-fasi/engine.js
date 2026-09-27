@@ -256,6 +256,11 @@
         messaggio: r.AM ? `M${r.mese} ${nome(r.fase)}: oltre ciclo, lavorati (${r.J}) più del disponibile (entrati ${r.H} + coda ${r.I - r.H}).` : '' });
       out.push({ ...base, codice: 'AN', esito: r.AN ? 'KO' : 'tace',
         messaggio: r.AN ? `M${r.mese} ${nome(r.fase)}: usciti cumulati superiori ai lavorati netti cumulati (fase saltata o usciti sulla riga sbagliata).` : '' });
+      // VAR0 (Michele 28/09): variabile reale senza pezzi lavorati. L'Excel lo tollera mandandolo in non produzione (AD, «tutto Q se J = 0»),
+      // ma quasi sempre è un'imputazione sbagliata: il variabile nasce solo lavorando. Il calcolo resta quello dell'Excel, la riga va in KO.
+      const var0 = r.J === 0 && n(r.Q) > 0;
+      out.push({ ...base, codice: 'VAR0', esito: var0 ? 'KO' : 'tace',
+        messaggio: var0 ? `M${r.mese} ${nome(r.fase)}: costo variabile reale (${r.Q}) senza pezzi lavorati: il variabile nasce solo lavorando; se è un fermo con soli fissi, spostalo nel fisso o azzeralo (intanto va in non produzione).` : '' });
     }
     const testiO = { 'negativo': 'rimanenza negativa: scaricati più pezzi di quelli in magazzino', 'KO stati': 'la rimanenza in pezzi non coincide con pronti + transito + coda a valle',
       'ingresso da magazzino vuoto': 'la fase ha lavorato pezzi senza nulla in ingresso dal magazzino a monte (lotto oltre il ciclo o dati incoerenti)' };
