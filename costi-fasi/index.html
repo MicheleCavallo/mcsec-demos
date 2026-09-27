@@ -253,7 +253,66 @@ function renderConsuntivo(el) {
   }
   el.append(card);
 }
-function renderRisultati(el) { el.append(h('div', { class: 'card' }, 'Passo 03 in arrivo.')); }
+// ---- Passo 3 · Risultati
+const BLOCCHI_REG = [['Quantità', ['G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']], ['Per natura', ['Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']],
+  ['Per destinazione', ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH']], ['Controlli e indici', ['AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU']]];
+const DEC = { J: 0, K: 0, M: 0, G: 0, H: 0, I: 0, L: 0, N: 0, O: 0, P: 0, C: 0, D: 0, AO: 0, AL: 'pct', AP: 'pct' };
+function val(col, v, dec) { if (v === null || v === undefined || v === '') return '–'; if (typeof v === 'string') return v; const d = dec !== undefined ? dec : DEC[col]; if (d === 'pct') return pct(v); return fmt(v, d === undefined ? 2 : d); }
+function tabellaLettere(righe, lettere, nomi, extra, decPezzi) {
+  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Mese'), h('th', {}, 'Fase'), ...lettere.map(L => h('th', { title: nomi[L] || '' }, L, h('br'), h('small', { style: 'font-weight:400' }, nomi[L] || ''))))));
+  // decPezzi: per le tabelle diverse dal Registro, elenco delle colonne a pezzi (0 decimali); tutto il resto a 2. Senza decPezzi vale la mappa DEC del Registro.
+  for (const r of righe) t.append(h('tr', {}, h('td', {}, 'M' + r.mese), h('td', {}, extra(r)), ...lettere.map(L => h('td', { style: typeof r[L] === 'string' && r[L] !== 'OK' && r[L] !== '' ? 'color:var(--ko)' : '' }, val(L, r[L], decPezzi ? (decPezzi.includes(L) ? 0 : 2) : undefined)))));
+  return h('div', { class: 'scroll' }, t);
+}
+function renderRisultati(el) {
+  const r = stato.risultato; if (!r || r.errori.length) return;
+  const nome = fid => (r.fasi.find(f => f.id === fid) || {}).nome || fid;
+  const q = h('div', { class: 'card ' + (r.ko.length ? 'ko-box' : '') }, h('h2', {}, 'Passo 03 · Risultati'));
+  if (!r.ko.length) q.append(h('p', {}, h('span', { class: 'semaforo ok' }), 'Tutti i controlli dicono OK: quadrature riga e natura, scrap, ciclo, uscite, stati dei semilavorati, quadrature di sintesi.'));
+  else q.append(h('p', {}, h('span', { class: 'semaforo ko' }), `${r.ko.length} controlli KO. Un KO si spiega, non si riscrive:`), h('ul', { style: 'margin:4px 0 8px 18px' }, ...r.ko.slice(0, 20).map(c => h('li', {}, `${c.codice} · ${c.messaggio}`))));
+  const schede = [['costo', 'Costo prodotto e grafici'], ['registro', 'Registro'], ['semilavorati', 'Semilavorati'], ['sintesi', 'Sintesi']];
+  q.append(h('div', { class: 'passi', style: 'margin:6px 0' }, ...schede.map(([k, t]) => h('button', { class: k === stato.scheda ? 'attivo' : '', style: 'min-width:0;padding:7px 12px', onclick: () => { stato.scheda = k; render(); } }, t))));
+  el.append(q);
+  const ultimoAttivo = Math.max(1, ...r.registro.filter(y => y.attiva).map(y => y.mese));
+  const attive = r.registro.filter(x => x.mese <= ultimoAttivo);
+  if (stato.scheda === 'registro') {
+    const c = h('div', { class: 'card' }, h('h2', {}, 'Registro'), h('p', { class: 'note' }, `Lettere = colonne dell'Excel. Mesi mostrati fino all'ultimo con attività (M${ultimoAttivo}).`));
+    for (const [titolo, lettere] of BLOCCHI_REG) c.append(h('h3', {}, titolo), tabellaLettere(attive, lettere, CostiFasi.NOMI.registro, x => nome(x.fase)));
+    el.append(c);
+  } else if (stato.scheda === 'semilavorati') {
+    const righe = r.semilavorati.filter(s => s.mese <= ultimoAttivo);
+    el.append(h('div', { class: 'card' }, h('h2', {}, 'Semilavorati: magazzino a costo medio per fase'), h('p', { class: 'note' }, 'Ogni fase tiene un conto di magazzino dei semilavorati in uscita: rimanenza iniziale, carico dei buoni (più lo scarto normale), scarico verso la fase a valle al costo medio, rimanenza finale. Lo scarto anomalo va a perdita con tutto il costo accumulato.'),
+      tabellaLettere(righe, 'CDEFGHIJKLMNOPQRSTUV'.split(''), CostiFasi.NOMI.semilavorati, x => nome(x.fase), ['C', 'F', 'I', 'L'])));
+  } else if (stato.scheda === 'sintesi') {
+    const lettere = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'];
+    const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Mese'), ...lettere.map(L => h('th', {}, L, h('br'), h('small', { style: 'font-weight:400' }, CostiFasi.NOMI.sintesi[L]))), ...r.fasi.map(f => h('th', {}, 'Scost. cum.', h('br'), h('small', { style: 'font-weight:400' }, f.nome))))));
+    for (const y of r.sintesi) t.append(h('tr', {}, h('td', {}, 'M' + y.mese), ...lettere.map(L => h('td', { style: typeof y[L] === 'string' && y[L] !== 'OK' ? 'color:var(--ko)' : '' }, val(L, y[L], ['F', 'G'].includes(L) ? 0 : 2))), ...r.fasi.map(f => h('td', {}, fmt(y.scostCumFase[f.id])))));
+    el.append(h('div', { class: 'card' }, h('h2', {}, 'Sintesi per mese'), h('p', { class: 'note' }, 'Quadratura stati: maturato cumulato (al listino del mese) = magazzino a standard per stati + scrap a standard. Quadratura mese: scostamento totale = delta sui lavorati + non produzione.'), h('div', { class: 'scroll' }, t)));
+  } else {
+    stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: 12, fase: 'tutte' }, stato.scenario.filtri || {});
+    if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';
+    const cp = CostiFasi.costoProdotto(r, stato.filtri);
+    const sel = (k, opzioni) => { const s = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: e => { stato.filtri[k] = k === 'fase' ? e.target.value : Number(e.target.value); stato.scenario.filtri = Object.assign({}, stato.filtri); salva(); render(); } }); for (const [v, t] of opzioni) s.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, t)); return s; };
+    const mesiOpz = Array.from({ length: r.mesi }, (_, i) => [i + 1, 'M' + (i + 1)]);
+    const c = h('div', { class: 'card' }, h('h2', {}, 'Costo del prodotto: atteso (standard) contro reale'),
+      h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Da mese ', sel('daMese', mesiOpz), ' a mese ', sel('aMese', mesiOpz), ' fase ', sel('fase', [['tutte', 'Tutte'], ...r.fasi.map(f => [f.id, f.nome])])),
+      h('p', { class: 'note' }, `Periodo M${cp.filtri.daMese} → M${cp.filtri.aMese} · ${fmt(cp.lavorati, 0)} pezzi lavorati, ${fmt(cp.buoni, 0)} buoni, ${fmt(cp.scrap, 0)} scrap · finiti ${fmt(cp.finitiPezzi, 0)} a ${fmt(cp.finitoCosto)} €/pz.`));
+    const righe = [['Variabile €/pz lavorato', 'Var', 'listino Parametri'], ['Fisso €/pz lavorato', 'Fisso', 'canone di fase a budget ÷ lavorati'], ['Pieno €/pz lavorato', 'Pieno', 'budget di periodo ÷ lavorati'],
+      ['Sul prodotto €/pz buono', 'SulProdotto', 'incluso lo scarto normale: è il numero da guardare'], ['Non produzione €/pz lavorato', 'NonProd', 'posti vuoti: non va sul prodotto'], ['Somma medie di fase €/pz', 'SommaMedie', 'reale − listino sull\'intero ciclo; non è il costo del finito']];
+    const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Voce'), h('th', {}, 'Reale'), h('th', {}, 'Atteso'), h('th', {}, 'Delta'), h('th', { style: 'text-align:left' }, 'Lettura'))));
+    for (const [v, k, l] of righe) t.append(h('tr', {}, h('td', {}, v), h('td', {}, fmt(cp['reale' + k])), h('td', {}, fmt(cp['atteso' + k])), h('td', { style: cp['delta' + k] > 0.005 ? 'color:var(--ko)' : '' }, fmt(cp['delta' + k])), h('td', { style: 'text-align:left;color:var(--muted)' }, l)));
+    t.append(h('tr', {}, h('td', {}, 'Scrap anomalo a perdita €/pz buono'), h('td', {}, fmt(cp.scrapAnomaloPerPezzoBuono)), h('td', {}, '–'), h('td', {}, fmt(cp.scrapAnomaloTotale) + ' € tot.'), h('td', { style: 'text-align:left;color:var(--muted)' }, 'a conto economico del periodo')));
+    c.append(h('div', { class: 'scroll' }, t));
+    const pf = h('table', {}, h('thead', {}, h('tr', {}, ...['Fase', 'Lavorati', 'Atteso listino €/pz buono', 'Atteso maturato', 'Reale sul prodotto', 'Delta €/pz', 'Delta %', 'Reale pieno', 'Non produzione', 'Scrap pz', 'Buoni', 'di cui anomalo', 'Anomalo €/pz buono'].map(x => h('th', {}, x)))));
+    for (const f of cp.perFase) pf.append(h('tr', {}, h('td', {}, f.nome), h('td', {}, fmt(f.C, 0)), h('td', {}, fmt(f.D)), h('td', {}, fmt(f.E)), h('td', {}, fmt(f.F)), h('td', { style: f.G > 0.005 ? 'color:var(--ko)' : '' }, fmt(f.G)), h('td', {}, pct(f.H)), h('td', {}, fmt(f.I)), h('td', {}, fmt(f.J)), h('td', {}, fmt(f.K, 0)), h('td', {}, fmt(f.L, 0)), h('td', {}, fmt(f.M, 3)), h('td', {}, fmt(f.N))));
+    c.append(h('h3', {}, 'Dettaglio per fase'), h('div', { class: 'scroll' }, pf));
+    c.append(h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp));
+    c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
+    el.append(c);
+  }
+}
+function renderGrafico1(cp) { return h('p', { class: 'note' }, 'grafico in arrivo'); }
+function renderGrafico2(cp) { return h('p', { class: 'note' }, 'grafico in arrivo'); }
 
 // ---- render generale
 function render() {
