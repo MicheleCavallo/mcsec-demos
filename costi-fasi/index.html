@@ -45,7 +45,8 @@ td:first-child, th:first-child { text-align:left; }
 input.cella { width:74px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; text-align:right; }
 input.cella.ereditato { color:var(--ered); font-style:italic; }
 input.cella.scritto { border-color:var(--gold); }
-.hint { color:var(--muted); font-size:10px; line-height:12px; height:12px; white-space:nowrap; }  /* sempre presente sotto «entrati»: righe di uguale altezza */
+table.consuntivo td { height:52px; position:relative; }  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
+.hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
 input.nome { width:140px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; }
 .semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
@@ -215,7 +216,7 @@ function renderConsuntivo(el) {
   const mesi = sc.mesi || 12;
   const pronto = r && !r.errori.length;
   const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 02 · Consuntivo: il reale, mese per mese'),
-    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti (i pezzi), poi a destra dei derivati reale variabile e reale fisso (gli euro). Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento sotto la cella entrati è il transito disponibile). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (la riga sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
+    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti (i pezzi), poi a destra dei derivati reale variabile e reale fisso (gli euro). Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento «in transito» sotto la cella entrati). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (il suggerimento «già in coda» sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
   const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
   for (let m = 1; m <= mesi; m++) {
     const koMese = pronto ? r.ko.filter(c => c.mese === m).length : 0;
@@ -227,7 +228,7 @@ function renderConsuntivo(el) {
   const m = stato.meseCorrente;
   sc.registro[prod.id] = sc.registro[prod.id] || {};
   const reg = sc.registro[prod.id];
-  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
+  const t = h('table', { class: 'consuntivo' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
     h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'),
     h('th', {}, 'Reale var. €'), h('th', {}, 'Reale fisso €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
   prod.percorso.forEach((fid, i) => {
@@ -238,9 +239,9 @@ function renderConsuntivo(el) {
     const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
     // sotto la cella entrati: transito disponibile a monte (finché non dichiari) e pezzi già in coda dal mese prima (sempre: non vanno ridichiarati)
     const hint = [];
-    if (riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined) hint.push(`transito disponibile a monte: ${fmt(riga.suggeritiEntrati, 0)}`);
-    if (riga && riga.codaPrecedente > 0) hint.push(`già in coda dal mese prima: ${fmt(riga.codaPrecedente, 0)} (non ridichiararli)`);
-    const sugg = h('div', { class: 'hint' }, hint.join(' · '));   // vuoto ma presente: tutte le righe hanno la stessa altezza
+    if (riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined) hint.push(`in transito: ${fmt(riga.suggeritiEntrati, 0)}`);
+    if (riga && riga.codaPrecedente > 0) hint.push(`già in coda: ${fmt(riga.codaPrecedente, 0)}`);
+    const sugg = hint.length ? h('div', { class: 'hint' }, hint.join(' · ')) : null;
     const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
       h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
       h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
