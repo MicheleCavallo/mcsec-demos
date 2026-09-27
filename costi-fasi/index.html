@@ -360,7 +360,10 @@ function renderRisultati(el) {
     const pf = h('table', {}, h('thead', {}, h('tr', {}, ...['Fase', 'Lavorati', 'Atteso listino €/pz buono', 'Atteso maturato', 'Reale sul prodotto', 'Delta €/pz', 'Delta %', 'Reale pieno', 'Non produzione', 'Scrap pz', 'Buoni', 'di cui anomalo', 'Anomalo €/pz buono'].map(x => h('th', {}, x)))));
     for (const f of cp.perFase) pf.append(h('tr', {}, h('td', {}, f.nome), h('td', {}, fmt(f.C, 0)), h('td', {}, fmt(f.D)), h('td', {}, fmt(f.E)), h('td', {}, fmt(f.F)), h('td', { style: f.G > 0.005 ? 'color:var(--ko)' : '' }, fmt(f.G)), h('td', {}, pct(f.H)), h('td', {}, fmt(f.I)), h('td', {}, fmt(f.J)), h('td', {}, fmt(f.K, 0)), h('td', {}, fmt(f.L, 0)), h('td', {}, fmt(f.M, 3)), h('td', {}, fmt(f.N))));
     c.append(h('h3', {}, 'Dettaglio per fase'), h('div', { class: 'scroll' }, pf));
-    c.append(h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp));
+    // grafico 1 (€/pz buono) e, a fianco, grafico 3 (pezzi lavorati per mese: buoni + scrap), stessi filtri
+    c.append(h('div', { style: 'display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap' },
+      h('div', { style: 'flex:1 1 480px;min-width:0' }, h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp)),
+      h('div', { style: 'flex:1 1 360px;min-width:0' }, h('h3', {}, 'Pezzi lavorati per mese: buoni + scrap'), renderGrafico3(cp))));
     c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
     el.append(c);
   }
@@ -402,6 +405,29 @@ function renderGrafico1(cp) {
   leg.append(svgEl('circle', { cx: W - m.r - 150, cy: 12, r: 4, fill: COL.atteso }), svgEl('text', { x: W - m.r - 142, y: 16, fill: COL.testo, 'font-size': 11 }, 'atteso (standard)'),
     svgEl('circle', { cx: W - m.r - 50, cy: 12, r: 4, fill: COL.reale }), svgEl('text', { x: W - m.r - 42, y: 16, fill: COL.testo, 'font-size': 11 }, 'reale'));
   svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, '€ per pezzo buono'));
+  return svg;
+}
+function renderGrafico3(cp) {   // barre impilate: buoni (blu) + scrap (arancio) = lavorati, etichetta del totale sopra la barra
+  const W = 560, H = 270, m = { l: 44, r: 16, t: 26, b: 46 };
+  const serie = cp.serie.filter(s => s.mese >= cp.filtri.daMese && s.mese <= cp.filtri.aMese);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Pezzi lavorati per mese, buoni e scrap', style: 'max-width:560px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const lavMax = Math.max(...serie.map(s => s.lavorati || 0));
+  if (lavMax <= 0) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo lavorato nel periodo')); return svg; }
+  const yMax = Math.ceil(lavMax * 1.15), bw = Math.min(34, (W - m.l - m.r) / serie.length * 0.5);
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / serie.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  serie.forEach((s, i) => {
+    const lav = s.lavorati || 0, buoni = s.buoni || 0, scrap = lav - buoni;
+    if (buoni > 0) { const r = svgEl('rect', { x: x(i) - bw / 2, y: y(buoni), width: bw, height: y(0) - y(buoni), fill: COL.parti[0] }); r.append(svgEl('title', {}, `M${s.mese} · buoni: ${buoni}`)); svg.append(r); }
+    if (scrap > 0) { const r = svgEl('rect', { x: x(i) - bw / 2, y: y(lav), width: bw, height: y(buoni) - y(lav), fill: COL.parti[1] }); r.append(svgEl('title', {}, `M${s.mese} · scrap: ${scrap}`)); svg.append(r); }
+    if (lav > 0) svg.append(svgEl('text', { x: x(i), y: y(lav) - 5, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, fmt(lav, 0)));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, lav > 0 ? `${buoni} buoni · ${scrap} scrap` : (s.lavorati === null ? '' : 'fermo')));
+  });
+  const leg = svgEl('g', {});
+  leg.append(svgEl('rect', { x: W - m.r - 118, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[0] }), svgEl('text', { x: W - m.r - 104, y: 16, fill: COL.testo, 'font-size': 11 }, 'buoni'),
+    svgEl('rect', { x: W - m.r - 58, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[1] }), svgEl('text', { x: W - m.r - 44, y: 16, fill: COL.testo, 'font-size': 11 }, 'scrap'));
+  svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, 'pezzi lavorati'));
   return svg;
 }
 function renderGrafico2(cp) {
