@@ -92,16 +92,21 @@
       for (let i = 0; i < percorso.length; i++) {
         const fid = percorso[i], p = par.fasi[fid];
         const inp = ((reg[String(m)] || {})[fid]) || {};
-        const prev = trova(m - 1, i), upPrev = i > 0 ? trova(m - 1, i - 1) : null;   // ciclo di 1 mese: entra ciò che è uscito a monte il mese prima
+        const prev = trova(m - 1, i);
         const first = i === 0, last = i === percorso.length - 1;
+        // entrati: input dell'utente per OGNI fase (decisione Michele 27/09): è l'operatore a dichiarare cosa entra e quando;
+        // ciò che è uscito a monte e non è ancora dichiarato entrato resta «in transito» (AO). Suggerimento per l'interfaccia:
+        // gli usciti a monte del mese prima (Excel H6 = M2).
         const r = { mese: m, fase: fid, idx: i, input: {
-          entrati: first ? num(inp.entrati) : null, lavorati: num(inp.lavorati), scrap: num(inp.scrap),
+          entrati: num(inp.entrati), lavorati: num(inp.lavorati), scrap: num(inp.scrap),
           usciti: num(inp.usciti), varReale: num(inp.varReale), fissoReale: num(inp.fissoReale) } };
+        const upPrev = i > 0 ? trova(m - 1, i - 1) : null;
+        r.suggeritiEntrati = first ? null : (upPrev ? n(upPrev.M) : 0);
         const J = n(r.input.lavorati), K = n(r.input.scrap), M = n(r.input.usciti), Q = n(r.input.varReale), S = r.input.fissoReale;
         r.C = p.capacita; r.D = par.OLC; r.E = p.E;
         r.F = p.fisso + p.var * J;                                    // budget flessibile
         r.G = prev ? n(prev.N) : 0;                                   // WIP iniziale
-        r.H = first ? n(r.input.entrati) : (upPrev ? n(upPrev.M) : 0);   // entrati: input sulla prima fase; altrove = usciti a monte nel mese prima (Excel H6 = M2)
+        r.H = n(r.input.entrati);                                     // entrati dichiarati dall'utente
         r.I = r.H + (prev ? n(prev.L) : 0);                           // disponibili
         r.J = J; r.K = K;
         r.L = r.I - J;                                                // coda
@@ -129,9 +134,10 @@
         // cumulati della stessa fase fino a m (le righe precedenti sono già in `righe`, questa no)
         const cumPrima = (col, ii) => righe.filter(x => x.idx === ii && x.mese < m).reduce((s, x) => s + n(x[col]), 0);
         r.AN = cumPrima('M', i) + M > cumPrima('J', i) + J - cumPrima('K', i) - K ? 'usciti > lavorati netti' : '';
-        // AO = Σ usciti fase ≤ m − Σ entrati fase a valle ≤ m (Excel AO6); la fase a valle nel mese m non è ancora calcolata,
-        // ma i suoi entrati sono per costruzione i nostri usciti del mese prima (H a valle = M a monte in m−1)
-        r.AO = last ? 0 : (cumPrima('M', i) + M) - (cumPrima('H', i + 1) + (prev ? n(prev.M) : 0));
+        // AO (in transito a valle) = Σ usciti fase ≤ m − Σ entrati DICHIARATI nella fase a valle ≤ m (Excel AO6);
+        // la riga a valle del mese m non è ancora calcolata: i suoi entrati si leggono dall'input
+        const entratiValleM = last ? 0 : n((((reg[String(m)] || {})[percorso[i + 1]]) || {}).entrati);
+        r.AO = last ? 0 : (cumPrima('M', i) + M) - (cumPrima('H', i + 1) + entratiValleM);
         r.AP = r.D === 0 ? null : J / r.D;
         r.AQ = r.D === 0 ? null : r.V * J / r.D;
         r.AR = null; r.AS = J === 0 ? null : p.Fcum; r.AT = null; r.AU = null;   // AR/AT/AU dal Task 4 (Semilavorati)

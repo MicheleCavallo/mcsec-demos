@@ -27,7 +27,7 @@ test('2 fasi (F1 → F3): stesso esempio senza la fase 2', () => {
   const sc = structuredClone(esempio);
   sc.prodotti[0].percorso = ['F1', 'F3'];
   sc.registro.P1 = { '1': { F1: { entrati: 10, lavorati: 10, scrap: 0, usciti: 10, varReale: 11, fissoReale: 200 } },
-                     '2': { F1: { fissoReale: 150 }, F3: { lavorati: 10, scrap: 2, usciti: 8, varReale: 30, fissoReale: 100 } } };
+                     '2': { F1: { fissoReale: 150 }, F3: { entrati: 10, lavorati: 10, scrap: 2, usciti: 8, varReale: 30, fissoReale: 100 } } };
   tuttoOk(calcola(sc));
 });
 
@@ -38,7 +38,7 @@ test('4 fasi con parametri cambiati in M3: quadrature OK', () => {
   sc.parametri.F2.fisso['3'] = 180;
   sc.prodotti[0].percorso = ['F1', 'F2', 'F3', 'F4'];
   sc.registro.P1['4'] = { F1: { fissoReale: 150 }, F2: { fissoReale: 180 }, F3: { fissoReale: 100 },
-                          F4: { lavorati: 3, scrap: 0, usciti: 3, varReale: 10, fissoReale: 125 } };
+                          F4: { entrati: 3, lavorati: 3, scrap: 0, usciti: 3, varReale: 10, fissoReale: 125 } };
   const r = calcola(sc);
   tuttoOk(r);
   assert.equal(r.parametri[2].fasi.F2.fisso, 180);

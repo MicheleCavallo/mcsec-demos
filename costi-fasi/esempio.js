@@ -106,6 +106,7 @@ const ESEMPIO_10_PEZZI = {
      "fissoReale": 150
     },
     "F2": {
+     "entrati": 10,
      "lavorati": 8,
      "scrap": 0,
      "usciti": 8,
@@ -136,6 +137,7 @@ const ESEMPIO_10_PEZZI = {
      "fissoReale": 180
     },
     "F3": {
+     "entrati": 8,
      "lavorati": 8,
      "scrap": 5,
      "usciti": 3,
