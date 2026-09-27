@@ -333,11 +333,15 @@ function renderRisultati(el) {
     const Q = cp.quadratura;
     // una sola colonna standard (scelta di Michele 28/09): il budget a standard = fisso standard + variabile standard × lavorati (colonna V);
     // lo scostamento verso lo standard maturato resta nella scheda Sintesi, come nell'Excel
-    const rigaQ = (voce, x, lettura, opts) => { const o = opts || {}; const cl = o.big ? 'big' : '';
+    // colonne in euro del periodo e, a destra, le stesse voci per pezzo finito uscito (÷ pezzi usciti): quanto peserebbe ogni voce sul pezzo out
+    const nOut = cp.finitiPezzi, u = v => nOut ? fmt(v / nOut) : '–';
+    const rigaQ = (voce, x, lettura, opts) => { const o = opts || {}; const cl = o.big ? 'big' : ''; const ko = x.deltaSpesa > 0.005 ? 'color:var(--ko)' : '';
       return h('tr', { style: o.stile || '' }, h('td', { style: o.indent ? 'padding-left:22px;color:var(--muted)' : '' }, voce),
-        h('td', { class: cl }, fmt(x.reale)), h('td', { class: cl }, fmt(x.budget)), h('td', { class: cl, style: x.deltaSpesa > 0.005 ? 'color:var(--ko)' : '' }, fmt(x.deltaSpesa)),
-        h('td', { style: 'text-align:left;color:var(--muted);white-space:normal;min-width:240px' }, lettura)); };
-    const qt = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Quadratura del periodo'), h('th', {}, 'Reale €'), h('th', {}, 'Budget a standard €'), h('th', {}, 'Delta €'), h('th', { style: 'text-align:left' }, 'Lettura'))));
+        h('td', { class: cl }, fmt(x.reale)), h('td', { class: cl }, fmt(x.budget)), h('td', { class: cl, style: ko }, fmt(x.deltaSpesa)),
+        h('td', { class: cl, style: 'border-left:2px solid var(--border)' }, u(x.reale)), h('td', { class: cl }, u(x.budget)), h('td', { class: cl, style: ko }, u(x.deltaSpesa)),
+        h('td', { style: 'text-align:left;color:var(--muted);white-space:normal;min-width:200px' }, lettura)); };
+    const qt = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Quadratura del periodo'), h('th', {}, 'Reale €'), h('th', {}, 'Budget a standard €'), h('th', {}, 'Delta €'),
+      h('th', { style: 'border-left:2px solid var(--border)' }, `Reale €/pz out`), h('th', {}, 'Standard €/pz out'), h('th', {}, 'Delta €/pz out'), h('th', { style: 'text-align:left' }, 'Lettura'))));
     qt.append(rigaQ('Sul prodotto (pezzi lavorati, scarto normale incluso)', Q.prodotto, 'standard dei pezzi lavorati; il delta è l’efficienza sui pezzi'));
     qt.append(rigaQ('di cui prodotto finito uscito', Q.finito, 'la tabella sopra', { indent: true }));
     qt.append(rigaQ('di cui semilavorati a magazzino, scarto anomalo, variazione rimanenze', Q.restoProdotto, 'per differenza', { indent: true }));
@@ -346,7 +350,7 @@ function renderRisultati(el) {
     c.append(h('div', { class: 'evidenza' }, h('h3', {}, 'Prodotto finito e quadratura del periodo: reale contro standard'), h('div', { class: 'scroll' }, pu),
       h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Reale: costo di scarico dei pezzi che hanno completato la fase finale nel periodo (tutto il ciclo). Standard: totale prodotto a listino (Parametri E7) del mese finale. In euro totali: riga «di cui prodotto finito uscito» qui sotto.'),
       h('div', { class: 'scroll' }, qt),
-      h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale reale è la spesa del periodo (la stessa del grafico «dove sono finiti gli euro»). Il budget a standard è quanto era lecito spendere con questi volumi e questa linea: fisso standard di ogni fase attiva più variabile standard × pezzi lavorati; sui posti vuoti vale la quota fissa standard. Lo scostamento verso lo standard maturato (solo pezzi lavorati) è nella scheda Sintesi.')));
+      h('p', { class: 'note', style: 'margin:6px 0 0' }, `Il totale reale è la spesa del periodo (la stessa del grafico «dove sono finiti gli euro»). Le colonne «per pezzo out» dividono ogni voce per i ${fmt(nOut, 0)} pezzi usciti: sul prodotto finito torna il ${fmt(cp.finitoCosto)} contro ${fmt(cp.finitoStandardPz)} della tabella sopra; il totale dice quanto costerebbe il pezzo se gli caricassi anche ciò che non è suo. Il budget a standard è quanto era lecito spendere con questi volumi e questa linea: fisso standard di ogni fase attiva più variabile standard × pezzi lavorati; sui posti vuoti vale la quota fissa standard. Lo scostamento verso lo standard maturato (solo pezzi lavorati) è nella scheda Sintesi.`)));
     const righe = [['Variabile €/pz lavorato', 'Var', 'listino Parametri'], ['Fisso €/pz lavorato', 'Fisso', 'canone di fase a budget ÷ lavorati'], ['Pieno €/pz lavorato', 'Pieno', 'budget di periodo ÷ lavorati'],
       ['Sul prodotto €/pz buono', 'SulProdotto', 'incluso lo scarto normale: è il numero da guardare'], ['Non produzione €/pz lavorato', 'NonProd', 'posti vuoti: non va sul prodotto'], ['Somma medie di fase €/pz', 'SommaMedie', 'reale − listino sull\'intero ciclo; non è il costo del finito']];
     const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Voce'), h('th', {}, 'Reale'), h('th', {}, 'Atteso'), h('th', {}, 'Delta'), h('th', { style: 'text-align:left' }, 'Lettura'))));
