@@ -18,3 +18,8 @@ test('Semilavorati: ogni cella C..V coincide con l\'Excel', () => {
   const errs = confrontaRighe(golden.semilavorati, ris.semilavorati, perMeseFase);
   assert.deepEqual(errs, [], `${errs.length} scostamenti su ${conta(golden.semilavorati)} celle:\n${errs.slice(0, 40).join('\n')}`);
 });
+
+test('Sintesi: ogni cella B..S dei 12 mesi coincide con l\'Excel', () => {
+  const errs = confrontaRighe(golden.sintesi, ris.sintesi, r => `M${r.mese}`);
+  assert.deepEqual(errs, [], `${errs.length} scostamenti su ${conta(golden.sintesi)} celle:\n${errs.slice(0, 40).join('\n')}`);
+});

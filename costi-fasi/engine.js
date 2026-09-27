@@ -192,8 +192,49 @@
     const ris = { errori: [], mesi: sc.mesi || MESI_DEFAULT, prodotto: prodotto.id, percorso, fasi, parametri };
     ris.registro = calcolaRegistro(sc, percorso, parametri, prodotto.id);
     ris.semilavorati = calcolaSemilavorati(ris.registro, percorso, parametri);
-    // Task 5-7 aggiungono: sintesi, costoProdotto, grafico2, controlli
+    ris.sintesi = calcolaSintesi(ris.registro, percorso, parametri, ris.mesi);
+    // Task 6-7 aggiungono: costoProdotto, grafico2, controlli
     return ris;
+  }
+
+  // ---- Sintesi per mese (colonne B..S). Magazzino a standard per stati valutato ai cumulati del mese (decisione M4).
+  function calcolaSintesi(registro, percorso, parametri, mesi) {
+    const out = [];
+    const last = percorso.length - 1;
+    const somma = (righe, col) => righe.reduce((s, r) => s + n(r[col]), 0);
+    let cumC = 0, cumF = 0;
+    for (let m = 1; m <= mesi; m++) {
+      const par = parametri[m - 1];
+      const Fcum = i => n(par.fasi[percorso[i]].Fcum);
+      const mese = registro.filter(r => r.mese === m);
+      const fino = registro.filter(r => r.mese <= m);
+      const diFase = (righe, i) => righe.filter(r => r.idx === i);
+      const y = { mese: m };
+      y.B = somma(mese, 'U'); y.C = somma(mese, 'AC'); y.D = y.B - y.C;
+      cumC += y.C; y.E = cumC;
+      y.F = somma(diFase(mese, last), 'M'); cumF += y.F; y.G = cumF;
+      let H = 0;
+      for (let i = 0; i < percorso.length; i++) {
+        if (i > 0) H += somma(diFase(mese, i), 'L') * Fcum(i - 1);                 // code: valgono il cumulato della fase a monte
+        H += somma(diFase(mese, i), 'P') * Fcum(i);                                // pronti: cumulato della propria fase
+        if (i < last) H += (somma(diFase(fino, i), 'M') - somma(diFase(fino, i + 1), 'H')) * Fcum(i);   // in transito
+      }
+      H += y.G * n(par.E7);                                                        // finiti cumulati al totale prodotto
+      y.H = H;
+      y.S = percorso.reduce((s, fid, i) => s + somma(diFase(fino, i), 'K') * Fcum(i), 0);   // scrap cumulato a standard
+      y.I = r2(y.E - y.H - y.S) === 0 ? 'OK' : 'KO';
+      y.scostCumFase = {};
+      percorso.forEach((fid, i) => { y.scostCumFase[fid] = somma(diFase(fino, i), 'AF') + somma(diFase(fino, i), 'AD'); });
+      y.J = percorso[0] ? y.scostCumFase[percorso[0]] : null;
+      y.K = percorso[1] ? y.scostCumFase[percorso[1]] : null;
+      y.L = percorso[2] ? y.scostCumFase[percorso[2]] : null;
+      y.M = Object.values(y.scostCumFase).reduce((s, v) => s + v, 0);
+      y.N = somma(mese, 'AF'); y.O = somma(mese, 'AD');
+      y.P = r2(y.D - y.N - y.O) === 0 ? 'OK' : 'KO';
+      y.Q = somma(mese, 'W'); y.R = somma(mese, 'X');
+      out.push(y);
+    }
+    return out;
   }
 
   return { calcola, eredita, n, r2, validaScenario, risolviParametri };
