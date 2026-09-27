@@ -237,9 +237,11 @@ function renderConsuntivo(el) {
     const set = (k, v) => { const c = cella(); if (v === null) delete c[k]; else c[k] = v; if (!Object.keys(c).length) { delete reg[String(m)][fid]; if (!Object.keys(reg[String(m)]).length) delete reg[String(m)]; } ricalcola(); render(); };
     const cur = (reg[String(m)] || {})[fid] || {};
     const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
-    // sotto la cella entrati: transito disponibile a monte (finché non dichiari) e pezzi già in coda dal mese prima (sempre: non vanno ridichiarati)
+    // sotto la cella entrati: pezzi in transito a monte non ancora dichiarati entrati (transito disponibile − entrati dichiarati, anche se hai scritto 0)
+    // e pezzi già in coda dal mese prima (non vanno ridichiarati)
     const hint = [];
-    if (riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined) hint.push(`in transito: ${fmt(riga.suggeritiEntrati, 0)}`);
+    const residuo = riga && riga.suggeritiEntrati !== null ? riga.suggeritiEntrati - riga.H : 0;
+    if (residuo > 0) hint.push(`in transito: ${fmt(residuo, 0)}`);
     if (riga && riga.codaPrecedente > 0) hint.push(`già in coda: ${fmt(riga.codaPrecedente, 0)}`);
     const sugg = hint.length ? h('div', { class: 'hint' }, hint.join(' · ')) : null;
     const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
