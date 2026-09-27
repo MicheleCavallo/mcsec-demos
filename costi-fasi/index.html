@@ -159,7 +159,7 @@ function renderStandard(el) {
       h('td', { style: 'text-align:center' }, h('input', { type: 'checkbox', ...(inUso ? { checked: '' } : {}), onchange: e => { if (e.target.checked) prod.percorso.push(f.id); else prod.percorso = prod.percorso.filter(x => x !== f.id); ricalcola(); render(); } })),
       h('td', {}, h('button', { disabled: inUso ? '' : null, title: inUso ? 'Togli prima la fase dal percorso' : 'Elimina dal catalogo', onclick: () => { sc.fasi = sc.fasi.filter(x => x.id !== f.id); delete sc.parametri[f.id]; ricalcola(); render(); } }, '✕'))));
   }
-  cat.append(tb, h('button', { style: 'margin-top:6px', onclick: () => { let k = sc.fasi.length + 1; while (sc.fasi.some(x => x.id === 'F' + k)) k++; const id = 'F' + k; sc.fasi.push({ id, nome: 'Fase ' + k }); sc.parametri[id] = { capacita: {}, var: {}, fisso: {}, scrap: {} }; render(); } }, '+ Aggiungi fase'));
+  cat.append(tb, h('button', { style: 'margin-top:6px', onclick: () => { let k = sc.fasi.length + 1; while (sc.fasi.some(x => x.id === 'F' + k)) k++; const id = 'F' + k; sc.fasi.push({ id, nome: 'Fase ' + k }); sc.parametri[id] = { capacita: {}, var: {}, fisso: {}, scrap: {} }; ricalcola(); render(); } }, '+ Aggiungi fase'));
   // percorso
   const per = h('div', {}, h('h3', {}, `Percorso di ${prod.nome}`), h('p', { class: 'note' }, 'Ordine in cui il pezzo attraversa le fasi. Frecce per riordinare; la spunta nel catalogo aggiunge o toglie una fase.'));
   prod.percorso.forEach((fid, i) => {
