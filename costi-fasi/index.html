@@ -215,7 +215,7 @@ function renderConsuntivo(el) {
   const mesi = sc.mesi || 12;
   const pronto = r && !r.errori.length;
   const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 02 · Consuntivo: il reale, mese per mese'),
-    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti, reale variabile, reale fisso. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento sotto la cella entrati è il transito disponibile). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (la riga sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
+    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti (i pezzi), poi a destra dei derivati reale variabile e reale fisso (gli euro). Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento sotto la cella entrati è il transito disponibile). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (la riga sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
   const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
   for (let m = 1; m <= mesi; m++) {
     const koMese = pronto ? r.ko.filter(c => c.mese === m).length : 0;
@@ -227,8 +227,9 @@ function renderConsuntivo(el) {
   const m = stato.meseCorrente;
   sc.registro[prod.id] = sc.registro[prod.id] || {};
   const reg = sc.registro[prod.id];
-  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'), h('th', {}, 'Reale var. €'), h('th', {}, 'Reale fisso €'),
-    h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'), h('th', { style: 'text-align:left' }, 'Controlli'))));
+  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
+    h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'),
+    h('th', {}, 'Reale var. €'), h('th', {}, 'Reale fisso €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
   prod.percorso.forEach((fid, i) => {
     const riga = pronto ? r.registro.find(x => x.mese === m && x.fase === fid) : null;
     const cella = () => (reg[String(m)] = reg[String(m)] || {}, reg[String(m)][fid] = reg[String(m)][fid] || {});
@@ -243,9 +244,9 @@ function renderConsuntivo(el) {
     const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
       h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
       h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
-      h('td', {}, inp('varReale', {})), h('td', {}, inp('fissoReale', {})),
       h('td', {}, riga ? fmt(riga.I, 0) : '–'), h('td', {}, riga ? fmt(riga.L, 0) : '–'), h('td', {}, riga ? fmt(riga.N, 0) : '–'), h('td', {}, riga ? fmt(riga.P, 0) : '–'),
-      h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'));
+      h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'),
+      h('td', {}, inp('varReale', {})), h('td', {}, inp('fissoReale', {})));
     const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:260px;max-width:380px' });
     if (riga) {
       const miei = r.controlli.filter(c => c.mese === m && c.fase === fid);
