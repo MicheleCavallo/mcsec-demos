@@ -194,8 +194,60 @@
     ris.semilavorati = calcolaSemilavorati(ris.registro, percorso, parametri);
     ris.sintesi = calcolaSintesi(ris.registro, percorso, parametri, ris.mesi);
     ris.costoProdotto = costoProdotto(ris, sc.filtri);
-    // Task 7 aggiunge: controlli
+    ris.controlli = calcolaControlli(ris);
+    ris.ko = ris.controlli.filter(c => c.esito === 'KO');
     return ris;
+  }
+
+  // ---- Nomi parlanti delle colonne (lettera Excel -> nome), per l'interfaccia
+  const NOMI = {
+    registro: { C: 'Capacità', D: 'OLC linea', E: 'Standard per pezzo', F: 'Budget flessibile', G: 'WIP iniziale', H: 'Entrati', I: 'Disponibili',
+      J: 'Lavorati', K: 'Scrap', L: 'Coda', M: 'Usciti', N: 'WIP fine', O: 'OUT finiti', P: 'Pronti non trasferiti', Q: 'Reale variabile',
+      R: 'Std variabile', S: 'Reale fisso', T: 'Std fisso', U: 'Reale totale', V: 'Std totale', W: 'Scost. variabile', X: 'Scost. fisso',
+      Y: 'Delta spesa', Z: 'Reale per pezzo lavorato', AA: 'Quota fissa per posto', AB: 'Reale sul prodotto', AC: 'Standard maturato',
+      AD: 'Non produzione', AE: 'Scost. volume', AF: 'Delta sui lavorati', AG: 'Delta sui non lavorati', AH: 'Delta spiegazione',
+      AI: 'Quadratura riga', AJ: 'Quadratura natura', AK: 'Controllo scrap', AL: '% scrap', AM: 'Flag ritardo', AN: 'Check uscite',
+      AO: 'In transito a valle', AP: '% assorbimento OLC', AQ: 'Budget assorbito', AR: 'Semilavorato reale €/pz', AS: 'Cumulato std €/pz',
+      AT: 'Delta cumulato', AU: 'Prodotto finito reale €/pz' },
+    semilavorati: { C: 'Rimanenza iniziale pz', D: 'Rimanenza iniziale €', E: 'Costo medio in ingresso', F: 'Buoni', G: 'Costo unitario di carico',
+      H: 'Carico €', I: 'Scarico pz', J: 'Costo medio di scarico', K: 'Scarico €', L: 'Rimanenza finale pz', M: 'Rimanenza finale €',
+      N: 'Costo medio finale', O: 'Controllo stati', P: 'Prodotto finito €/pz', Q: 'Scrap anomalo a perdita €', R: 'Scrap normale pz',
+      S: 'Scrap anomalo pz', T: 'Trasformazione assorbita €', U: 'Trasformazione su scrap anomalo €', V: 'Standard lordo sui buoni €' },
+    sintesi: { B: 'Costo reale', C: 'Standard maturato', D: 'Scostamento totale', E: 'Maturato cumulato', F: 'Finiti nel mese', G: 'Finiti cumulati',
+      H: 'Magazzino a standard', I: 'Quadratura stati', M: 'Scost. cumulato totale', N: 'Delta sui lavorati', O: 'Non produzione',
+      P: 'Quadratura mese', Q: 'Scost. variabile', R: 'Scost. fisso', S: 'Scrap cumulato a standard' },
+  };
+
+  // ---- Controlli in parole: uno per riga (AI AJ AK AM AN, O dei Semilavorati) e per mese (SI, SP)
+  function calcolaControlli(ris) {
+    const out = [];
+    const nome = fid => (ris.fasi.find(f => f.id === fid) || {}).nome || fid;
+    for (const r of ris.registro) {
+      const base = { mese: r.mese, fase: r.fase };
+      out.push({ ...base, codice: 'AI', esito: r.AI === null ? 'tace' : (r.AI === 'OK' ? 'OK' : 'KO'),
+        messaggio: r.AI === 'KO' ? `M${r.mese} ${nome(r.fase)}: maturato + delta lavorati + non produzione non torna sul costo reale (formula spostata o cella sovrascritta).` : 'Quadratura riga: maturato + delta lavorati + non produzione = costo reale.' });
+      out.push({ ...base, codice: 'AJ', esito: r.AJ === null ? 'tace' : (r.AJ === 'OK' ? 'OK' : 'KO'),
+        messaggio: r.AJ === 'KO' ? `M${r.mese} ${nome(r.fase)}: le due viste del delta (natura e destinazione) non danno la stessa torta.` : 'Quadratura natura: scost. variabile + fisso = delta lavorati + delta non lavorati.' });
+      out.push({ ...base, codice: 'AK', esito: r.AK === 'OK' ? 'OK' : 'KO',
+        messaggio: r.AK === 'KO' ? `M${r.mese} ${nome(r.fase)}: scrap (${r.K}) maggiore dei lavorati (${r.J}).` : 'Scrap entro i lavorati.' });
+      out.push({ ...base, codice: 'AM', esito: r.AM ? 'KO' : 'tace',
+        messaggio: r.AM ? `M${r.mese} ${nome(r.fase)}: oltre ciclo, lavorati (${r.J}) più del disponibile (entrati ${r.H} + coda ${r.I - r.H}).` : '' });
+      out.push({ ...base, codice: 'AN', esito: r.AN ? 'KO' : 'tace',
+        messaggio: r.AN ? `M${r.mese} ${nome(r.fase)}: usciti cumulati superiori ai lavorati netti cumulati (fase saltata o usciti sulla riga sbagliata).` : '' });
+    }
+    const testiO = { 'negativo': 'rimanenza negativa: scaricati più pezzi di quelli in magazzino', 'KO stati': 'la rimanenza in pezzi non coincide con pronti + transito + coda a valle',
+      'ingresso da magazzino vuoto': 'la fase ha lavorato pezzi senza nulla in ingresso dal magazzino a monte (lotto oltre il ciclo o dati incoerenti)' };
+    for (const s of ris.semilavorati) {
+      out.push({ mese: s.mese, fase: s.fase, codice: 'O', esito: s.O === 'OK' ? 'OK' : 'KO',
+        messaggio: s.O === 'OK' ? 'Controllo stati OK.' : `M${s.mese} ${nome(s.fase)}: ${testiO[s.O] || s.O}.` });
+    }
+    for (const y of ris.sintesi) {
+      out.push({ mese: y.mese, fase: null, codice: 'SI', esito: y.I === 'OK' ? 'OK' : 'KO',
+        messaggio: y.I === 'OK' ? 'Quadratura stati OK.' : `M${y.mese}: maturato cumulato ≠ magazzino a standard + scrap a standard (pezzo perso, doppia maturazione o fase saltata).` });
+      out.push({ mese: y.mese, fase: null, codice: 'SP', esito: y.P === 'OK' ? 'OK' : 'KO',
+        messaggio: y.P === 'OK' ? 'Quadratura mese OK.' : `M${y.mese}: scostamento totale ≠ delta sui lavorati + non produzione.` });
+    }
+    return out;
   }
 
   // ---- Costo prodotto sul periodo [daMese, aMese] e fase ('tutte' o id), come il foglio Costo_Prodotto.
@@ -279,7 +331,11 @@
       H += y.G * n(par.E7);                                                        // finiti cumulati al totale prodotto
       y.H = H;
       y.S = percorso.reduce((s, fid, i) => s + somma(diFase(fino, i), 'K') * Fcum(i), 0);   // scrap cumulato a standard
-      y.I = r2(y.E - y.H - y.S) === 0 ? 'OK' : 'KO';
+      // Quadratura stati allo standard CORRENTE (decisione M4): il maturato cumulato viene rivalutato al listino del mese
+      // (Σ lavorati cumulati per fase × E del mese), così confronta lo stesso listino del magazzino H e dello scrap S.
+      // Con parametri costanti Eriv = E (Σ AC) e la quadratura coincide con l'Excel.
+      y.Eriv = percorso.reduce((s, fid, i) => s + somma(diFase(fino, i), 'J') * n(par.fasi[fid].E), 0);
+      y.I = r2(y.Eriv - y.H - y.S) === 0 ? 'OK' : 'KO';
       y.scostCumFase = {};
       percorso.forEach((fid, i) => { y.scostCumFase[fid] = somma(diFase(fino, i), 'AF') + somma(diFase(fino, i), 'AD'); });
       y.J = percorso[0] ? y.scostCumFase[percorso[0]] : null;
@@ -294,5 +350,5 @@
     return out;
   }
 
-  return { calcola, costoProdotto, eredita, n, r2, validaScenario, risolviParametri };
+  return { calcola, costoProdotto, eredita, n, r2, validaScenario, risolviParametri, NOMI };
 });
