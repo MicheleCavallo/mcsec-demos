@@ -47,3 +47,16 @@ test('errori di scenario bloccano il calcolo con messaggi in parole', () => {
   const d = structuredClone(esempio); d.parametri.F2.scrap['1'] = 1;
   assert.match(calcola(d).errori.join(' '), /scrap.*Fase 2.*99/i);
 });
+
+test('valori non numerici o mesi non validi danno errori in parole, non eccezioni', () => {
+  const a = structuredClone(esempio); a.parametri.F1.capacita['1'] = 'abc';
+  const ra = calcola(a);
+  assert.ok(ra.errori.length, 'capacità «abc» deve essere un errore');
+  assert.match(ra.errori.join(' '), /Fase 1.*capacit/i);
+  const b = structuredClone(esempio); b.mesi = -3;
+  assert.match(calcola(b).errori.join(' '), /mesi/i);
+  const c = structuredClone(esempio); c.mesi = 2.5;
+  assert.match(calcola(c).errori.join(' '), /mesi/i);
+  const d = structuredClone(esempio); d.registro.P1['1'].F1.lavorati = 'dieci';
+  assert.match(calcola(d).errori.join(' '), /M1.*Fase 1.*lavorati/i);
+});

@@ -90,6 +90,7 @@ textarea.json { width:100%; height:140px; background:var(--input); color:var(--t
 </div>
 
 <script src="engine.js"></script>
+<script src="ui.js"></script>
 <script src="esempio.js"></script>
 <script>
 'use strict';
@@ -97,32 +98,37 @@ const CHIAVE = 'mcsec.costiFasi.v1';
 const VOCI = [['capacita', 'Capacità (pezzi al mese)', 0], ['var', 'Variabile € per pezzo', 2], ['fisso', 'Fisso di fase € al mese', 2], ['scrap', 'Scrap normale %', 1]];
 const stato = { scenario: null, risultato: null, passo: 1, meseCorrente: 1, scheda: 'costo', filtri: null };
 
-// ---- formato it-IT
-function fmt(x, dec = 2) {
-  if (x === null || x === undefined || x === '' || Number.isNaN(Number(x))) return '–';
-  // en-US poi scambio dei separatori: il locale it-IT del browser non raggruppa le migliaia sotto i 10.000 (1106 → «1106»)
-  return Number(x).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/,/g, '§').replace('.', ',').replace(/§/g, '.');
-}
+// ---- formato it-IT (funzioni pure in ui.js, testate in Node)
+const { fmt, leggiNumero, analizzaScenario } = CostiFasiUI;
 function pct(x) { return x === null || x === undefined ? '–' : fmt(x * 100, 1) + ' %'; }
 
 // ---- stato, salvataggio, import/export
 function ricalcola() { stato.risultato = CostiFasi.calcola(stato.scenario); salva(); }
-function salva() { try { localStorage.setItem(CHIAVE, JSON.stringify(stato.scenario)); } catch (e) { avviso('Il browser non permette di salvare: alla chiusura si perde tutto (finestra privata?).', 'err'); } }
+function salva() {
+  if (stato.nonSalvare) return;   // modalità esempio da URL: non sovrascrive il lavoro salvato
+  try { localStorage.setItem(CHIAVE, JSON.stringify(stato.scenario)); } catch (e) { avviso('Il browser non permette di salvare: alla chiusura si perde tutto (finestra privata?).', 'err'); }
+}
 function carica() {
-  try { const t = localStorage.getItem(CHIAVE); if (t) { const r = importaScenario(t, true); if (r.ok) return; } } catch (e) { /* localStorage assente */ }
+  // Qualunque scenario di versione 1 si ricarica com'è, anche se il motore non parte: gli errori si vedono in pagina e si correggono.
+  // Un testo salvato illeggibile viene messo da parte (chiave .backup) prima di caricare l'esempio, mai cancellato.
+  let t = null;
+  try { t = localStorage.getItem(CHIAVE); } catch (e) { /* localStorage assente */ }
+  if (t) {
+    const r = analizzaScenario(t);
+    if (r.ok) { stato.scenario = r.scenario; return; }
+    try { localStorage.setItem(CHIAVE + '.backup', t); } catch (e) { /* niente */ }
+    avviso('Lo scenario salvato nel browser non è leggibile (' + r.errore + ') ed è stato messo da parte. Caricato l\'esempio.', 'err');
+  }
   stato.scenario = structuredClone(ESEMPIO_10_PEZZI);
 }
-function importaScenario(testo, silenzioso) {
-  let sc;
-  try { sc = JSON.parse(testo); } catch (e) { return { ok: false, errore: 'Il testo incollato non è un JSON valido.' }; }
-  if (!sc || sc.versione !== 1) return { ok: false, errore: `Versione dello scenario non riconosciuta (${sc && sc.versione}): questa app legge la versione 1.` };
-  const err = CostiFasi.validaScenario(sc);
-  if (err.length) return { ok: false, errore: 'Scenario incoerente: ' + err.join(' ') };
-  stato.scenario = sc; if (!silenzioso) { ricalcola(); render(); }
+function importaScenario(testo) {
+  const r = analizzaScenario(testo);
+  if (!r.ok) return r;
+  stato.scenario = r.scenario; stato.filtri = null; stato.nonSalvare = false; ricalcola(); render();
   return { ok: true };
 }
 function esportaScenario() { return JSON.stringify(stato.scenario, null, 1); }
-function avviso(testo, tipo) { const el = document.getElementById('avviso'); el.innerHTML = testo ? `<div class="msg ${tipo || 'ok'}">${testo}</div>` : ''; }
+function avviso(testo, tipo) { const el = document.getElementById('avviso'); el.replaceChildren(); if (testo) el.append(h('div', { class: 'msg ' + (tipo || 'ok') }, testo)); }
 
 // ---- helpers DOM
 function h(tag, attrs, ...figli) {
@@ -134,9 +140,8 @@ function h(tag, attrs, ...figli) {
 function cellaInput(valore, opts) {   // opts: {classe, onchange, min, max, intero, regola, placeholder, title}
   const inp = h('input', { class: 'cella ' + (opts.classe || ''), type: 'text', inputmode: 'decimal', value: valore === null || valore === undefined ? '' : String(valore).replace('.', ','), placeholder: opts.placeholder || '', title: opts.title || '' });
   inp.addEventListener('change', () => {
-    const t = inp.value.trim().replace(/\./g, '').replace(',', '.');
-    if (t === '') { opts.onchange(null); return; }
-    const v = Number(t);
+    const v = leggiNumero(inp.value);
+    if (v === null) { opts.onchange(null); return; }
     if (Number.isNaN(v) || (opts.min !== undefined && v < opts.min) || (opts.intero && !Number.isInteger(v)) || (opts.max !== undefined && v > opts.max)) { inp.classList.add('errore'); inp.title = opts.regola || 'Valore non ammesso'; return; }
     inp.classList.remove('errore'); opts.onchange(v);
   });
@@ -382,10 +387,10 @@ function render() {
   if (stato.passo === 1) renderStandard(main); else if (stato.passo === 2) renderConsuntivo(main); else renderRisultati(main);
 }
 document.querySelectorAll('.passi button').forEach(b => b.addEventListener('click', () => { stato.passo = Number(b.dataset.passo); render(); }));
-document.getElementById('btnEsempio').addEventListener('click', () => { stato.scenario = structuredClone(ESEMPIO_10_PEZZI); stato.filtri = null; ricalcola(); avviso('Esempio dei 10 pezzi ricaricato.'); render(); });
+document.getElementById('btnEsempio').addEventListener('click', () => { stato.scenario = structuredClone(ESEMPIO_10_PEZZI); stato.filtri = null; stato.nonSalvare = false; ricalcola(); avviso('Esempio dei 10 pezzi ricaricato.'); render(); });
 document.getElementById('btnAzzera').addEventListener('click', () => { if (!confirm('Azzero tutto lo scenario? Fasi, parametri e consuntivo.')) return;
   stato.scenario = { versione: 1, nome: 'Nuovo scenario', mesi: 12, fasi: [{ id: 'F1', nome: 'Fase 1' }], parametri: { F1: { capacita: {}, var: {}, fisso: {}, scrap: {} } }, prodotti: [{ id: 'P1', nome: 'Prodotto 1', percorso: ['F1'] }], registro: { P1: {} }, filtri: { daMese: 1, aMese: 12, fase: 'tutte' } };
-  stato.passo = 1; stato.filtri = null; ricalcola(); avviso(''); render(); });
+  stato.passo = 1; stato.filtri = null; stato.nonSalvare = false; ricalcola(); avviso(''); render(); });
 document.getElementById('btnCopia').addEventListener('click', async () => { const t = esportaScenario(); try { await navigator.clipboard.writeText(t); avviso('Scenario copiato negli appunti.'); } catch (e) { mostraJson(t); } });
 document.getElementById('btnIncolla').addEventListener('click', () => mostraJson(''));
 function mostraJson(testo) {
@@ -397,7 +402,7 @@ function mostraJson(testo) {
 }
 // ?passo=1|2|3 &mese=1..12 &scheda=costo|registro|semilavorati|sintesi &esempio=1 (ignora il salvataggio): per link diretti e screenshot
 const qs = new URLSearchParams(location.search);
-if (qs.get('esempio') === '1') stato.scenario = structuredClone(ESEMPIO_10_PEZZI); else carica();
+if (qs.get('esempio') === '1') { stato.scenario = structuredClone(ESEMPIO_10_PEZZI); stato.nonSalvare = true; } else carica();
 if (qs.get('passo')) stato.passo = Math.min(3, Math.max(1, Number(qs.get('passo')) || 1));
 if (qs.get('mese')) stato.meseCorrente = Math.min(12, Math.max(1, Number(qs.get('mese')) || 1));
 if (qs.get('scheda')) stato.scheda = qs.get('scheda');

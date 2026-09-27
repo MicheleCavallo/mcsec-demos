@@ -37,16 +37,27 @@
     if (!Array.isArray(sc.fasi) || sc.fasi.length === 0) err.push('Il catalogo delle fasi è vuoto.');
     const prod = (sc.prodotti || [])[0];
     if (!prod) { err.push('Nessun prodotto definito.'); return err; }
-    const percorso = prod.percorso || [];
+    const mesi = sc.mesi === undefined ? MESI_DEFAULT : sc.mesi;
+    if (!Number.isInteger(mesi) || mesi < 1 || mesi > 60) { err.push(`Numero di mesi non valido (${String(mesi).slice(0, 12)}): serve un intero tra 1 e 60.`); return err; }
+    const percorso = Array.isArray(prod.percorso) ? prod.percorso : [];
     if (percorso.length === 0) err.push(`Il percorso del prodotto «${prod.nome || prod.id}» è vuoto: aggiungi almeno una fase.`);
     const ids = new Set((sc.fasi || []).map(f => f.id));
+    const finito = x => x === null || x === undefined || x === '' || (typeof x === 'number' && Number.isFinite(x)) || (typeof x === 'string' && x.trim() !== '' && Number.isFinite(Number(x)));
     for (const fid of percorso) {
       if (!ids.has(fid)) { err.push(`La fase «${fid}» del percorso non è nel catalogo.`); continue; }
       const p = (sc.parametri || {})[fid] || {};
       for (const [voce, nome] of [['capacita', 'capacità'], ['var', 'variabile per pezzo'], ['fisso', 'fisso di fase'], ['scrap', 'scrap %']]) {
-        if (eredita(p[voce], 1) === null) err.push(`${nomeFase(sc, fid)}: manca ${nome} nel mese 1.`);
+        const mappa = p[voce] || {};
+        const nonNum = Object.entries(mappa).find(([k, v]) => !finito(v));
+        if (nonNum) { err.push(`${nomeFase(sc, fid)}: ${nome} nel mese ${nonNum[0]} non è un numero («${String(nonNum[1]).slice(0, 12)}»).`); continue; }
+        if (eredita(mappa, 1) === null) err.push(`${nomeFase(sc, fid)}: manca ${nome} nel mese 1.`);
       }
-      for (let m = 1; m <= (sc.mesi || MESI_DEFAULT); m++) {
+      const regP = ((sc.registro || {})[prod.id]) || {};
+      for (const [m, celle] of Object.entries(regP)) {
+        const c = (celle || {})[fid] || {};
+        for (const [k, v] of Object.entries(c)) if (!finito(v)) { err.push(`M${m} ${nomeFase(sc, fid)}: ${k} non è un numero («${String(v).slice(0, 12)}»).`); break; }
+      }
+      for (let m = 1; m <= mesi; m++) {
         const g = eredita(p.scrap, m);
         if (g !== null && (g < 0 || g >= 0.99 + 1e-12)) { err.push(`Scrap % di ${nomeFase(sc, fid)} nel mese ${m} deve stare tra 0 e 99 %.`); break; }
         const cap = eredita(p.capacita, m);
