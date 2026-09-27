@@ -202,7 +202,57 @@ function renderStandard(el) {
   el.append(card);
 }
 
-function renderConsuntivo(el) { el.append(h('div', { class: 'card' }, 'Passo 02 in arrivo.')); }
+// ---- Passo 2 · Consuntivo per mese
+function renderConsuntivo(el) {
+  const sc = stato.scenario, prod = sc.prodotti[0], r = stato.risultato;
+  const mesi = sc.mesi || 12;
+  const pronto = r && !r.errori.length;
+  const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 02 · Consuntivo: il reale, mese per mese'),
+    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti, reale variabile, reale fisso. Entrati e usciti li dichiari tu, fase per fase: ciò che è uscito a monte e non hai ancora dichiarato entrato a valle resta «in transito». Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
+  const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
+  for (let m = 1; m <= mesi; m++) {
+    const koMese = pronto ? r.ko.filter(c => c.mese === m).length : 0;
+    const compilato = Object.keys(((sc.registro[prod.id] || {})[String(m)]) || {}).length > 0;
+    nav.append(h('button', { class: m === stato.meseCorrente ? 'attivo' : '', style: 'min-width:0;flex:0 0 auto;padding:6px 10px', onclick: () => { stato.meseCorrente = m; render(); } },
+      `M${m}`, koMese ? h('span', { class: 'semaforo ko', style: 'margin-left:6px;margin-right:0' }) : (compilato ? h('span', { class: 'semaforo ok', style: 'margin-left:6px;margin-right:0' }) : null)));
+  }
+  card.append(nav);
+  const m = stato.meseCorrente;
+  sc.registro[prod.id] = sc.registro[prod.id] || {};
+  const reg = sc.registro[prod.id];
+  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'), h('th', {}, 'Reale var. €'), h('th', {}, 'Reale fisso €'),
+    h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'), h('th', { style: 'text-align:left' }, 'Controlli'))));
+  prod.percorso.forEach((fid, i) => {
+    const riga = pronto ? r.registro.find(x => x.mese === m && x.fase === fid) : null;
+    const cella = () => (reg[String(m)] = reg[String(m)] || {}, reg[String(m)][fid] = reg[String(m)][fid] || {});
+    const set = (k, v) => { const c = cella(); if (v === null) delete c[k]; else c[k] = v; if (!Object.keys(c).length) { delete reg[String(m)][fid]; if (!Object.keys(reg[String(m)]).length) delete reg[String(m)]; } ricalcola(); render(); };
+    const cur = (reg[String(m)] || {})[fid] || {};
+    const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
+    const sugg = riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined ? h('div', { style: 'color:var(--muted);font-size:10px' }, `usciti a monte il mese prima: ${fmt(riga.suggeritiEntrati, 0)}`) : null;
+    const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
+      h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
+      h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
+      h('td', {}, inp('varReale', {})), h('td', {}, inp('fissoReale', {})),
+      h('td', {}, riga ? fmt(riga.I, 0) : '–'), h('td', {}, riga ? fmt(riga.L, 0) : '–'), h('td', {}, riga ? fmt(riga.N, 0) : '–'), h('td', {}, riga ? fmt(riga.P, 0) : '–'),
+      h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'));
+    const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:260px;max-width:380px' });
+    if (riga) {
+      const miei = r.controlli.filter(c => c.mese === m && c.fase === fid);
+      const ko = miei.filter(c => c.esito === 'KO');
+      if (!riga.attiva && !ko.length) ctr.append(h('span', { class: 'semaforo tace' }), 'riga senza attività: fase ferma');
+      else if (!ko.length) ctr.append(h('span', { class: 'semaforo ok' }), 'OK: quadrature riga e natura, scrap, ciclo, uscite, stati');
+      else for (const c of ko) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `${c.codice} · ${c.messaggio}`));
+      if (riga.AO < 0) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `transito negativo: dichiarati entrati a valle più di quanto uscito da ${nomeFase(fid)}.`));
+    }
+    tr.append(ctr); t.append(tr);
+  });
+  card.append(h('div', { class: 'scroll' }, t));
+  if (pronto) {
+    const y = r.sintesi[m - 1];
+    card.append(h('p', { class: 'note' }, `Mese ${m}: costo reale ${fmt(y.B)} €, standard maturato ${fmt(y.C)} €, delta sui lavorati ${fmt(y.N)} €, non produzione ${fmt(y.O)} €. Quadratura stati ${y.I}, quadratura mese ${y.P}.`));
+  }
+  el.append(card);
+}
 function renderRisultati(el) { el.append(h('div', { class: 'card' }, 'Passo 03 in arrivo.')); }
 
 // ---- render generale
@@ -227,7 +277,13 @@ function mostraJson(testo) {
     h('div', { style: 'margin-top:6px;display:flex;gap:6px' }, h('button', { class: 'primary', onclick: () => { const r = importaScenario(ta.value); if (!r.ok) avviso(r.errore, 'err'); else { avviso('Scenario importato.'); box.remove(); } } }, 'Importa'), h('button', { onclick: () => box.remove() }, 'Chiudi')));
   document.getElementById('main').prepend(box);
 }
-carica(); ricalcola(); render();
+// ?passo=1|2|3 &mese=1..12 &scheda=costo|registro|semilavorati|sintesi &esempio=1 (ignora il salvataggio): per link diretti e screenshot
+const qs = new URLSearchParams(location.search);
+if (qs.get('esempio') === '1') stato.scenario = structuredClone(ESEMPIO_10_PEZZI); else carica();
+if (qs.get('passo')) stato.passo = Math.min(3, Math.max(1, Number(qs.get('passo')) || 1));
+if (qs.get('mese')) stato.meseCorrente = Math.min(12, Math.max(1, Number(qs.get('mese')) || 1));
+if (qs.get('scheda')) stato.scheda = qs.get('scheda');
+ricalcola(); render();
 </script>
 </body>
 </html>
