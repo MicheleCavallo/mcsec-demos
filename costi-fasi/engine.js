@@ -193,8 +193,65 @@
     ris.registro = calcolaRegistro(sc, percorso, parametri, prodotto.id);
     ris.semilavorati = calcolaSemilavorati(ris.registro, percorso, parametri);
     ris.sintesi = calcolaSintesi(ris.registro, percorso, parametri, ris.mesi);
-    // Task 6-7 aggiungono: costoProdotto, grafico2, controlli
+    ris.costoProdotto = costoProdotto(ris, sc.filtri);
+    // Task 7 aggiunge: controlli
     return ris;
+  }
+
+  // ---- Costo prodotto sul periodo [daMese, aMese] e fase ('tutte' o id), come il foglio Costo_Prodotto.
+  // Listino (atteso per fase) = E e scrap % del mese aMese (standard corrente, decisione M4).
+  function costoProdotto(ris, filtri) {
+    const f = Object.assign({ daMese: 1, aMese: ris.mesi, fase: 'tutte' }, filtri || {});
+    const da = Math.max(1, n(f.daMese)), a = Math.min(ris.mesi, Math.max(da, n(f.aMese)));
+    const inFase = r => f.fase === 'tutte' || r.fase === f.fase;
+    const inPer = r => r.mese >= da && r.mese <= a && inFase(r);
+    const R = ris.registro.filter(inPer), S = ris.semilavorati.filter(inPer);
+    const somma = (righe, col) => righe.reduce((s, r) => s + n(r[col]), 0);
+    const div = (num, den) => den ? num / den : null;
+    const attive = R.filter(r => r.attiva);
+    const last = ris.percorso.length - 1;
+    const parA = ris.parametri[a - 1];
+    const perFase = ris.percorso.map((fid, i) => {
+      if (f.fase !== 'tutte' && f.fase !== fid) return null;
+      const Ri = R.filter(r => r.idx === i), Si = S.filter(r => r.idx === i), p = parA.fasi[fid];
+      const C = somma(Ri, 'J'), L = somma(Si, 'F');
+      const D = n(p.E) / (1 - n(p.scrap)), E = div(somma(Si, 'V'), L), F = div(somma(Si, 'T'), L);
+      const G = (E === null || F === null) ? null : F - E;
+      return { fase: fid, nome: ris.fasi[i].nome, C, D, E, F, G, H: (E ? G / E : null), I: div(somma(Ri, 'U'), C), J: div(somma(Ri, 'AD'), C),
+        K: somma(Ri, 'K'), L, M: somma(Si, 'S'), N: div(somma(Si, 'U'), L) };
+    }).filter(Boolean);
+    const lavorati = somma(R, 'J'), buoni = somma(S, 'F');
+    const cp = { filtri: { daMese: da, aMese: a, fase: f.fase }, lavorati, buoni, scrap: somma(R, 'K'),
+      finitiPezzi: somma(R.filter(r => r.idx === last), 'O'),
+      finitoCosto: div(somma(S.filter(r => r.idx === last), 'K'), somma(S.filter(r => r.idx === last), 'I')),
+      realeVar: div(somma(R, 'Q'), lavorati), realeFisso: div(somma(R, 'S'), lavorati), realePieno: div(somma(R, 'U'), lavorati),
+      realeSulProdotto: div(somma(S, 'T'), buoni), realeNonProd: div(somma(R, 'AD'), lavorati),
+      realeSommaMedie: perFase.some(x => x.F !== null) ? perFase.reduce((s, x) => s + n(x.F), 0) : null,
+      attesoVar: div(somma(attive, 'R'), lavorati), attesoFisso: div(somma(attive, 'T'), lavorati), attesoPieno: div(somma(attive, 'V'), lavorati),
+      attesoSulProdotto: div(somma(S, 'V'), buoni), attesoNonProd: div(somma(attive, 'AE'), lavorati),
+      attesoSommaMedie: perFase.length ? perFase.reduce((s, x) => s + n(x.D), 0) : null,
+      scrapAnomaloPerPezzoBuono: div(somma(S, 'U'), buoni), scrapAnomaloTotale: somma(S, 'U'), perFase };
+    for (const k of ['Var', 'Fisso', 'Pieno', 'SulProdotto', 'NonProd', 'SommaMedie']) {
+      cp['delta' + k] = (cp['reale' + k] === null || cp['atteso' + k] === null) ? null : cp['reale' + k] - cp['atteso' + k];
+    }
+    cp.serie = [];
+    for (let m = 1; m <= ris.mesi; m++) {
+      const inRange = m >= da && m <= a;
+      const Rm = ris.registro.filter(r => r.mese === m && inFase(r)), Sm = ris.semilavorati.filter(r => r.mese === m && inFase(r));
+      const lav = inRange ? somma(Rm, 'J') : null, b = inRange ? somma(Sm, 'F') : null;
+      const reale = b ? somma(Sm, 'T') / b : null, atteso = b ? somma(Sm, 'V') / b : null;
+      cp.serie.push({ mese: m, reale, atteso, delta: (reale === null || atteso === null) ? null : reale - atteso,
+        lavorati: lav, realePieno: lav ? somma(Rm, 'U') / lav : null, buoni: b });
+    }
+    // grafico 2: dove sono finiti gli euro del periodo (sketchnote)
+    const Sa = ris.semilavorati.filter(r => r.mese === a && inFase(r));
+    const g2 = { fasiFerme: somma(R.filter(r => n(r.J) === 0), 'AD'), postiVuoti: somma(R.filter(r => n(r.J) > 0), 'AD'),
+      scartoAnomalo: somma(S, 'Q'), semilavorati: somma(Sa.filter(r => r.idx !== last), 'M'),
+      finiti: somma(Sa.filter(r => r.idx === last), 'M') + somma(S.filter(r => r.idx === last), 'K'), totale: somma(R, 'U') };
+    g2.aContoEconomico = g2.fasiFerme + g2.postiVuoti + g2.scartoAnomalo;
+    g2.aMagazzino = g2.semilavorati + g2.finiti;
+    cp.grafico2 = g2;
+    return cp;
   }
 
   // ---- Sintesi per mese (colonne B..S). Magazzino a standard per stati valutato ai cumulati del mese (decisione M4).
@@ -237,5 +294,5 @@
     return out;
   }
 
-  return { calcola, eredita, n, r2, validaScenario, risolviParametri };
+  return { calcola, costoProdotto, eredita, n, r2, validaScenario, risolviParametri };
 });
