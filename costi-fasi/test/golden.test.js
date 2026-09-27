@@ -15,7 +15,10 @@ test('Registro: ogni cella calcolata (C..AU, 36 righe) coincide con l\'Excel', (
 });
 
 test('Semilavorati: ogni cella C..V coincide con l\'Excel', () => {
-  const errs = confrontaRighe(golden.semilavorati, ris.semilavorati, perMeseFase);
+  // Eccezione documentata (decisione b, 27/09): E = costo medio DISPONIBILE a monte nel mese; l'Excel usa la rimanenza a fine mese prima.
+  // Le due coincidono quando la riga carica pezzi (F > 0); quando la fase è ferma E è solo informativo e l'Excel mostra 0. Si salta solo in quel caso.
+  const salta = (a, k) => k === 'E' && !(a.F > 0);
+  const errs = confrontaRighe(golden.semilavorati, ris.semilavorati, perMeseFase, salta);
   assert.deepEqual(errs, [], `${errs.length} scostamenti su ${conta(golden.semilavorati)} celle:\n${errs.slice(0, 40).join('\n')}`);
 });
 

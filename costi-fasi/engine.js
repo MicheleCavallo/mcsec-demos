@@ -111,8 +111,9 @@
         const r = { mese: m, fase: fid, idx: i, input: {
           entrati: num(inp.entrati), lavorati: num(inp.lavorati), scrap: num(inp.scrap),
           usciti: num(inp.usciti), varReale: num(inp.varReale), fissoReale: num(inp.fissoReale) } };
-        const upPrev = i > 0 ? trova(m - 1, i - 1) : null;
-        r.suggeritiEntrati = first ? null : (upPrev ? n(upPrev.M) : 0);
+        // suggerimento entrati = transito disponibile a monte: usciti a monte nel mese + transito a monte a fine mese prima (decisione b)
+        const upNow = i > 0 ? trova(m, i - 1) : null, upPrev = i > 0 ? trova(m - 1, i - 1) : null;
+        r.suggeritiEntrati = first ? null : (upNow ? n(upNow.M) : 0) + (upPrev ? n(upPrev.AO) : 0);
         const J = n(r.input.lavorati), K = n(r.input.scrap), M = n(r.input.usciti), Q = n(r.input.varReale), S = r.input.fissoReale;
         r.C = p.capacita; r.D = par.OLC; r.E = p.E;
         r.F = p.fisso + p.var * J;                                    // budget flessibile
@@ -167,19 +168,22 @@
       const { mese: m, idx: i, fase: fid } = reg;
       const last = i === percorso.length - 1, first = i === 0;
       const g = n(parametri[m - 1].fasi[fid].scrap);
-      const prevS = trovaS(m - 1, i), upPrevS = first ? null : trovaS(m - 1, i - 1);
+      const prevS = trovaS(m - 1, i), upS = first ? null : trovaS(m, i - 1);   // fase a monte nello STESSO mese (già calcolata: ordine mese → fase)
       const regNext = last ? null : trovaR(m, i + 1);
       const s = { mese: m, fase: fid, idx: i };
       s.C = prevS ? n(prevS.L) : 0;                                   // rimanenza iniziale pezzi
       s.D = prevS ? n(prevS.M) : 0;                                   // rimanenza iniziale €
-      s.E = (first || !upPrevS) ? 0 : n(upPrevS.N);                   // costo medio in ingresso dalla fase a monte, fine mese prima
+      // Decisione (b) di Michele 27/09: il magazzino a monte si scarica anche nel mese stesso. Il costo medio in ingresso è il costo
+      // medio DISPONIBILE a monte nel mese (rimanenza iniziale + carico del mese); con il ciclo di un mese coincide con l'Excel (N del mese prima).
+      s.E = (first || !upS) ? 0 : n(upS.disponibile);
       s.F = n(reg.J) - n(reg.K);                                      // buoni
       s.R = s.F <= 0 ? 0 : Math.min(n(reg.K), s.F * g / (1 - g));      // scrap normale assorbito
       s.S = n(reg.K) - s.R;                                           // scrap anomalo
       s.G = n(reg.J) === 0 ? null : n(reg.Z) + s.E;                   // costo unitario di carico
       s.H = s.F <= 0 ? 0 : (s.F + s.R) * n(s.G);                      // carico €
+      s.disponibile = (s.C + s.F) === 0 ? 0 : (s.D + s.H) / (s.C + s.F);   // costo medio del magazzino dopo il carico del mese
       s.I = last ? n(reg.O) : n(regNext.J);                           // scarico pezzi: lavorati a valle / OUT
-      s.J = s.I === 0 ? null : (last ? ((s.C + s.F) === 0 ? 0 : (s.D + s.H) / (s.C + s.F)) : (s.C === 0 ? 0 : s.D / s.C));
+      s.J = s.I === 0 ? null : s.disponibile;                         // costo medio di scarico (media dopo il carico, per tutte le fasi)
       s.K = s.I === 0 ? 0 : s.I * n(s.J);                             // scarico €
       s.L = s.C + s.F - s.I;                                          // rimanenza finale pezzi
       s.M = s.D + s.H - s.K;                                          // rimanenza finale €

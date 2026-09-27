@@ -23,6 +23,34 @@ test('1 fase: prima e ultima coincidono, prodotto finito subito', () => {
   assert.ok(r.costoProdotto.finitoCosto > 0);
 });
 
+test('decisione (b): entrati e lavorati a valle nello stesso mese degli usciti a monte, il costo viaggia (tutto in M1)', () => {
+  const sc = structuredClone(esempio);
+  sc.registro.P1 = { '1': {
+    F1: { entrati: 10, lavorati: 10, scrap: 0, usciti: 10, varReale: 11, fissoReale: 200 },
+    F2: { entrati: 10, lavorati: 8, scrap: 0, usciti: 8, varReale: 55, fissoReale: 180 },
+    F3: { entrati: 8, lavorati: 8, scrap: 5, usciti: 3, varReale: 80, fissoReale: 100 } } };
+  const r = calcola(sc);
+  tuttoOk(r);
+  const s = f => r.semilavorati.find(x => x.mese === 1 && x.fase === f);
+  assert.ok(Math.abs(s('F2').E - 6.1) < 0.005, 'F2 riceve il costo medio disponibile in F1 nel mese stesso');
+  assert.ok(Math.abs(s('F2').G - 17.475) < 0.005);
+  assert.ok(Math.abs(s('F3').E - 17.475) < 0.005);
+  assert.ok(Math.abs(s('F1').K - 48.8) < 0.005, 'F1 scarica 8 pezzi a 6,10 nel mese stesso');
+  assert.equal(s('F1').L, 2);
+  assert.ok(Math.abs(r.costoProdotto.finitoCosto - 33.306) < 0.005, 'prodotto finito come nell\'esempio a tre mesi');
+  assert.ok(Math.abs(r.costoProdotto.grafico2.totale - 626) < 0.005);
+});
+
+test('suggerimento entrati = transito disponibile: usciti a monte nel mese + transito a monte a fine mese prima', () => {
+  const r = calcola(esempio);
+  assert.equal(r.registro.find(x => x.mese === 2 && x.fase === 'F2').suggeritiEntrati, 10);
+  const sc = structuredClone(esempio);
+  sc.registro.P1 = { '1': sc.registro.P1['1'], '3': sc.registro.P1['2'], '4': sc.registro.P1['3'] };
+  const r2 = calcola(sc);
+  assert.equal(r2.registro.find(x => x.mese === 3 && x.fase === 'F2').suggeritiEntrati, 10, 'dopo un mese fermo il transito resta disponibile');
+  assert.equal(r2.registro.find(x => x.mese === 1 && x.fase === 'F2').suggeritiEntrati, 10, 'nel mese stesso degli usciti a monte');
+});
+
 test('2 fasi (F1 → F3): stesso esempio senza la fase 2', () => {
   const sc = structuredClone(esempio);
   sc.prodotti[0].percorso = ['F1', 'F3'];
