@@ -45,6 +45,9 @@ td:first-child, th:first-child { text-align:left; }
 input.cella { width:74px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; text-align:right; }
 input.cella.ereditato { color:var(--ered); font-style:italic; }
 input.cella.scritto { border-color:var(--gold); }
+.evidenza { border:1px solid var(--gold); border-radius:6px; padding:8px 12px 10px; margin:10px 0; background:var(--panel2); }  /* prodotto finito: il numero in evidenza nei Risultati */
+.evidenza h3 { margin:2px 0 8px; }
+.evidenza td.big { font-size:16px; font-weight:700; }
 table.consuntivo td { height:52px; position:relative; }  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
 .hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
@@ -285,6 +288,13 @@ function renderRisultati(el) {
   const q = h('div', { class: 'card ' + (r.ko.length ? 'ko-box' : '') }, h('h2', {}, 'Passo 03 · Risultati'));
   if (!r.ko.length) q.append(h('p', {}, h('span', { class: 'semaforo ok' }), 'Tutti i controlli dicono OK: quadrature riga e natura, scrap, ciclo, uscite, stati dei semilavorati, quadrature di sintesi.'));
   else q.append(h('p', {}, h('span', { class: 'semaforo ko' }), `${r.ko.length} controlli KO. Un KO si spiega, non si riscrive:`), h('ul', { style: 'margin:4px 0 8px 18px' }, ...r.ko.slice(0, 20).map(c => h('li', {}, `${c.codice} · ${c.messaggio}`))));
+  // in testa: il prodotto finito (usciti dalla fase finale) al reale contro il previsto, con gli stessi filtri della scheda Costo prodotto
+  stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: 12, fase: 'tutte' }, stato.scenario.filtri || {});
+  if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';
+  const cpH = CostiFasi.costoProdotto(r, stato.filtri), per = `M${cpH.filtri.daMese} → M${cpH.filtri.aMese}`;
+  q.append(h('p', { style: 'margin:6px 0' }, h('b', {}, `Prodotto finito ${per}: `), cpH.finitiPezzi
+    ? [`${fmt(cpH.finitiPezzi, 0)} pz usciti da ${nome(r.percorso[r.percorso.length - 1])} a `, h('b', { style: 'color:var(--gold-light)' }, `${fmt(cpH.finitoCosto)} €/pz reale`), ` contro ${fmt(cpH.finitoStandardPz)} €/pz previsto: `, h('b', { style: cpH.finitoDelta > 0.005 ? 'color:var(--ko)' : 'color:var(--ok)' }, `${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta / cpH.finitiPezzi)} €/pz, ${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta)} € in totale`), '.']
+    : 'nessun pezzo ha completato la fase finale nel periodo.'));
   const schede = [['costo', 'Costo prodotto e grafici'], ['registro', 'Registro'], ['semilavorati', 'Semilavorati'], ['sintesi', 'Sintesi']];
   q.append(h('div', { class: 'passi', style: 'margin:6px 0' }, ...schede.map(([k, t]) => h('button', { class: k === stato.scheda ? 'attivo' : '', style: 'min-width:0;padding:7px 12px', onclick: () => { stato.scheda = k; render(); } }, t))));
   el.append(q);
@@ -304,14 +314,20 @@ function renderRisultati(el) {
     for (const y of r.sintesi) t.append(h('tr', {}, h('td', {}, 'M' + y.mese), ...lettere.map(L => h('td', { style: typeof y[L] === 'string' && y[L] !== 'OK' ? 'color:var(--ko)' : '' }, val(L, y[L], ['F', 'G'].includes(L) ? 0 : 2))), ...r.fasi.map(f => h('td', {}, fmt(y.scostCumFase[f.id])))));
     el.append(h('div', { class: 'card' }, h('h2', {}, 'Sintesi per mese'), h('p', { class: 'note' }, 'Quadratura stati: maturato cumulato (al listino del mese) = magazzino a standard per stati + scrap a standard. Quadratura mese: scostamento totale = delta sui lavorati + non produzione.'), h('div', { class: 'scroll' }, t)));
   } else {
-    stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: 12, fase: 'tutte' }, stato.scenario.filtri || {});
-    if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';
-    const cp = CostiFasi.costoProdotto(r, stato.filtri);
+    const cp = cpH;
     const sel = (k, opzioni) => { const s = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: e => { stato.filtri[k] = k === 'fase' ? e.target.value : Number(e.target.value); stato.scenario.filtri = Object.assign({}, stato.filtri); salva(); render(); } }); for (const [v, t] of opzioni) s.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, t)); return s; };
     const mesiOpz = Array.from({ length: r.mesi }, (_, i) => [i + 1, 'M' + (i + 1)]);
     const c = h('div', { class: 'card' }, h('h2', {}, 'Costo del prodotto: atteso (standard) contro reale'),
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Da mese ', sel('daMese', mesiOpz), ' a mese ', sel('aMese', mesiOpz), ' fase ', sel('fase', [['tutte', 'Tutte'], ...r.fasi.map(f => [f.id, f.nome])])),
       h('p', { class: 'note' }, `Periodo M${cp.filtri.daMese} → M${cp.filtri.aMese} · ${fmt(cp.lavorati, 0)} pezzi lavorati, ${fmt(cp.buoni, 0)} buoni, ${fmt(cp.scrap, 0)} scrap · finiti ${fmt(cp.finitiPezzi, 0)} a ${fmt(cp.finitoCosto)} €/pz.`));
+    // in evidenza, prima di tutto: prodotto finito uscito (al reale di scarico dell'ultima fase) contro previsto (stessi pezzi al totale prodotto standard di fine periodo)
+    const kd = cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '';
+    const pu = h('table', { style: 'max-width:560px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, '€/pz'), h('th', {}, '€ totali'))));
+    pu.append(h('tr', {}, h('td', {}, 'Reale (uscito dalla fase finale, al costo di scarico)'), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', { class: 'big' }, fmt(cp.finitoCosto)), h('td', { class: 'big' }, fmt(cp.finitoReale))));
+    pu.append(h('tr', {}, h('td', {}, `Previsto (totale prodotto standard M${cp.filtri.aMese})`), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', { class: 'big' }, fmt(cp.finitoStandardPz)), h('td', { class: 'big' }, fmt(cp.finitoStandard))));
+    pu.append(h('tr', {}, h('td', {}, 'Delta reale − previsto'), h('td', {}, ''), h('td', { class: 'big', style: kd }, fmt(cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null)), h('td', { class: 'big', style: kd }, fmt(cp.finitoDelta))));
+    c.append(h('div', { class: 'evidenza' }, h('h3', {}, 'Prodotto finito: costo reale contro previsto'), h('div', { class: 'scroll' }, pu),
+      h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Reale: pezzi che hanno completato la fase finale nel periodo, al costo reale di scarico (tutto il ciclo). Previsto: gli stessi pezzi al totale prodotto standard (Parametri E7) del mese finale. Il delta è lo scostamento sul prodotto finito; fasi ferme e posti vuoti restano fuori, a conto economico.')));
     const righe = [['Variabile €/pz lavorato', 'Var', 'listino Parametri'], ['Fisso €/pz lavorato', 'Fisso', 'canone di fase a budget ÷ lavorati'], ['Pieno €/pz lavorato', 'Pieno', 'budget di periodo ÷ lavorati'],
       ['Sul prodotto €/pz buono', 'SulProdotto', 'incluso lo scarto normale: è il numero da guardare'], ['Non produzione €/pz lavorato', 'NonProd', 'posti vuoti: non va sul prodotto'], ['Somma medie di fase €/pz', 'SommaMedie', 'reale − listino sull\'intero ciclo; non è il costo del finito']];
     const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Voce'), h('th', {}, 'Reale'), h('th', {}, 'Atteso'), h('th', {}, 'Delta'), h('th', { style: 'text-align:left' }, 'Lettura'))));
@@ -321,15 +337,7 @@ function renderRisultati(el) {
     const pf = h('table', {}, h('thead', {}, h('tr', {}, ...['Fase', 'Lavorati', 'Atteso listino €/pz buono', 'Atteso maturato', 'Reale sul prodotto', 'Delta €/pz', 'Delta %', 'Reale pieno', 'Non produzione', 'Scrap pz', 'Buoni', 'di cui anomalo', 'Anomalo €/pz buono'].map(x => h('th', {}, x)))));
     for (const f of cp.perFase) pf.append(h('tr', {}, h('td', {}, f.nome), h('td', {}, fmt(f.C, 0)), h('td', {}, fmt(f.D)), h('td', {}, fmt(f.E)), h('td', {}, fmt(f.F)), h('td', { style: f.G > 0.005 ? 'color:var(--ko)' : '' }, fmt(f.G)), h('td', {}, pct(f.H)), h('td', {}, fmt(f.I)), h('td', {}, fmt(f.J)), h('td', {}, fmt(f.K, 0)), h('td', {}, fmt(f.L, 0)), h('td', {}, fmt(f.M, 3)), h('td', {}, fmt(f.N))));
     c.append(h('h3', {}, 'Dettaglio per fase'), h('div', { class: 'scroll' }, pf));
-    // a fianco del grafico: prodotto uscito (finiti al reale) contro prodotto maturato (finiti al totale prodotto standard di fine periodo)
-    const pu = h('table', { style: 'min-width:300px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, '€/pz'), h('th', {}, '€ totali'))));
-    pu.append(h('tr', {}, h('td', {}, 'Uscito (reale di scarico)'), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', {}, fmt(cp.finitoCosto)), h('td', {}, fmt(cp.finitoReale))));
-    pu.append(h('tr', {}, h('td', {}, `Maturato (standard M${cp.filtri.aMese})`), h('td', {}, fmt(cp.finitiPezzi, 0)), h('td', {}, fmt(cp.finitoStandardPz)), h('td', {}, fmt(cp.finitoStandard))));
-    pu.append(h('tr', {}, h('td', {}, 'Delta'), h('td', {}, ''), h('td', { style: cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '' }, fmt(cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null)), h('td', { style: cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '' }, fmt(cp.finitoDelta))));
-    const lato = h('div', { style: 'flex:0 1 340px;min-width:0' }, h('div', { class: 'scroll' }, pu),
-      h('p', { class: 'note', style: 'margin-top:6px' }, 'Uscito: pezzi finiti usciti dalla fase finale nel periodo, al costo reale di scarico. Maturato: gli stessi pezzi al totale prodotto standard (Parametri E7) del mese finale. Il delta è lo scostamento sul prodotto finito; gli euro delle fasi ferme e dei posti vuoti restano fuori, a conto economico.'));
-    c.append(h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'),
-      h('div', { style: 'display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap' }, h('div', { style: 'flex:1 1 480px;min-width:0' }, renderGrafico1(cp)), lato));
+    c.append(h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp));
     c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
     el.append(c);
   }
