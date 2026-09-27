@@ -329,20 +329,22 @@ function renderRisultati(el) {
     pu.querySelector('thead th:last-child').textContent = '€ sui pezzi finiti (pezzi × €/pz)';
     // quadratura del periodo: tutti i costi consuntivi contro standard, sul prodotto e fuori dal prodotto, fino al totale
     const Q = cp.quadratura;
-    const rigaQ = (voce, x, lettura, opts) => { const o = opts || {}; const cl = o.big ? 'big' : ''; const ko = v => v > 0.005 ? 'color:var(--ko)' : '';
+    // una sola colonna standard (scelta di Michele 28/09): il budget a standard = fisso standard + variabile standard × lavorati (colonna V);
+    // lo scostamento verso lo standard maturato resta nella scheda Sintesi, come nell'Excel
+    const rigaQ = (voce, x, lettura, opts) => { const o = opts || {}; const cl = o.big ? 'big' : '';
       return h('tr', { style: o.stile || '' }, h('td', { style: o.indent ? 'padding-left:22px;color:var(--muted)' : '' }, voce),
-        h('td', { class: cl }, fmt(x.reale)), h('td', { class: cl }, fmt(x.maturato)), h('td', { class: cl, style: ko(x.scostamento) }, fmt(x.scostamento)),
-        h('td', { class: cl, style: 'border-left:2px solid var(--border)' }, fmt(x.budget)), h('td', { class: cl, style: ko(x.deltaSpesa) }, fmt(x.deltaSpesa)), h('td', { style: 'text-align:left;color:var(--muted);white-space:normal;min-width:240px' }, lettura)); };
-    const qt = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Quadratura del periodo'), h('th', {}, 'Reale €'), h('th', {}, 'Standard maturato €'), h('th', {}, 'Scostamento €'), h('th', { style: 'border-left:2px solid var(--border)' }, 'Budget a standard €'), h('th', {}, 'Delta spesa €'), h('th', { style: 'text-align:left' }, 'Lettura'))));
-    qt.append(rigaQ('Sul prodotto (pezzi lavorati, scarto normale incluso)', Q.prodotto, 'lo standard matura solo sui pezzi lavorati; lo scostamento è l’efficienza sui pezzi'));
+        h('td', { class: cl }, fmt(x.reale)), h('td', { class: cl }, fmt(x.budget)), h('td', { class: cl, style: x.deltaSpesa > 0.005 ? 'color:var(--ko)' : '' }, fmt(x.deltaSpesa)),
+        h('td', { style: 'text-align:left;color:var(--muted);white-space:normal;min-width:240px' }, lettura)); };
+    const qt = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Quadratura del periodo'), h('th', {}, 'Reale €'), h('th', {}, 'Budget a standard €'), h('th', {}, 'Delta €'), h('th', { style: 'text-align:left' }, 'Lettura'))));
+    qt.append(rigaQ('Sul prodotto (pezzi lavorati, scarto normale incluso)', Q.prodotto, 'standard dei pezzi lavorati; il delta è l’efficienza sui pezzi'));
     qt.append(rigaQ('di cui prodotto finito uscito', Q.finito, 'la tabella sopra', { indent: true }));
     qt.append(rigaQ('di cui semilavorati a magazzino, scarto anomalo, variazione rimanenze', Q.restoProdotto, 'per differenza', { indent: true }));
-    qt.append(rigaQ('Non produzione (fasi ferme + posti vuoti)', Q.nonProduzione, 'non matura nulla: è tutto scostamento, a conto economico; nel budget vale la quota fissa standard dei posti vuoti'));
-    qt.append(rigaQ('Totale costi del periodo', Q.totale, 'reale = maturato + scostamento (Sintesi); reale = budget a standard + delta spesa', { big: true, stile: 'border-top:2px solid var(--gold)' }));
+    qt.append(rigaQ('Non produzione (fasi ferme + posti vuoti)', Q.nonProduzione, 'a conto economico, non va sul prodotto; a standard vale la quota fissa dei posti rimasti vuoti'));
+    qt.append(rigaQ('Totale costi del periodo', Q.totale, 'spesa reale contro budget a standard: il delta è l’inefficienza del periodo', { big: true, stile: 'border-top:2px solid var(--gold)' }));
     c.append(h('div', { class: 'evidenza' }, h('h3', {}, 'Prodotto finito e quadratura del periodo: reale contro standard'), h('div', { class: 'scroll' }, pu),
       h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Reale: pezzi che hanno completato la fase finale nel periodo, al costo reale di scarico (tutto il ciclo). Previsto: gli stessi pezzi al totale prodotto standard (Parametri E7) del mese finale.'),
       h('div', { class: 'scroll' }, qt),
-      h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale reale è la spesa del periodo (la stessa del grafico «dove sono finiti gli euro»). Due letture dello standard, entrambe nell’Excel: lo standard maturato è il valore dei pezzi lavorati a listino (reale − maturato = scostamento totale della Sintesi, che include tutta la non produzione); il budget a standard (fisso standard + variabile standard × pezzi lavorati) aggiunge la quota fissa standard dei posti rimasti vuoti (reale − budget = delta spesa, cioè delta variabile + delta fisso).')));
+      h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale reale è la spesa del periodo (la stessa del grafico «dove sono finiti gli euro»). Il budget a standard è quanto era lecito spendere con questi volumi e questa linea: fisso standard di ogni fase attiva più variabile standard × pezzi lavorati; sui posti vuoti vale la quota fissa standard. Lo scostamento verso lo standard maturato (solo pezzi lavorati) è nella scheda Sintesi.')));
     const righe = [['Variabile €/pz lavorato', 'Var', 'listino Parametri'], ['Fisso €/pz lavorato', 'Fisso', 'canone di fase a budget ÷ lavorati'], ['Pieno €/pz lavorato', 'Pieno', 'budget di periodo ÷ lavorati'],
       ['Sul prodotto €/pz buono', 'SulProdotto', 'incluso lo scarto normale: è il numero da guardare'], ['Non produzione €/pz lavorato', 'NonProd', 'posti vuoti: non va sul prodotto'], ['Somma medie di fase €/pz', 'SommaMedie', 'reale − listino sull\'intero ciclo; non è il costo del finito']];
     const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Voce'), h('th', {}, 'Reale'), h('th', {}, 'Atteso'), h('th', {}, 'Delta'), h('th', { style: 'text-align:left' }, 'Lettura'))));
