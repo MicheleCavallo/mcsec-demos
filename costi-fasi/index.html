@@ -45,6 +45,7 @@ td:first-child, th:first-child { text-align:left; }
 input.cella { width:74px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; text-align:right; }
 input.cella.ereditato { color:var(--ered); font-style:italic; }
 input.cella.scritto { border-color:var(--gold); }
+.hint { color:var(--muted); font-size:10px; line-height:12px; height:12px; white-space:nowrap; }  /* sempre presente sotto «entrati»: righe di uguale altezza */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
 input.nome { width:140px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; }
 .semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
@@ -238,7 +239,7 @@ function renderConsuntivo(el) {
     const hint = [];
     if (riga && riga.suggeritiEntrati !== null && riga.suggeritiEntrati > 0 && cur.entrati === undefined) hint.push(`transito disponibile a monte: ${fmt(riga.suggeritiEntrati, 0)}`);
     if (riga && riga.codaPrecedente > 0) hint.push(`già in coda dal mese prima: ${fmt(riga.codaPrecedente, 0)} (non ridichiararli)`);
-    const sugg = hint.length ? h('div', { style: 'color:var(--muted);font-size:10px' }, hint.join(' · ')) : null;
+    const sugg = h('div', { class: 'hint' }, hint.join(' · '));   // vuoto ma presente: tutte le righe hanno la stessa altezza
     const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
       h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
       h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
