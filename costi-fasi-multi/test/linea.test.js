@@ -61,8 +61,8 @@ test('revisione 1: con il solo errore Σ pesi > 100 % calcolaLinea restituisce c
   assert.ok(res.errori.length > 0); assert.deepEqual(res.strati, {});
   assert.equal(res.pesi.length, 12, 'pesi calcolati anche se lo scenario non passa');
   assert.ok(res.pesi[4].fasi.F1.somma > 1, 'M5 F1 oltre il 100 %');
-  const s2 = dueProdotti(); delete s2.prodotti[0].parametri.F1.quota['1'];
-  assert.deepEqual(L.calcolaLinea(s2).pesi, [], 'con errori strutturali (quota mancante) niente pesi');
+  const s2 = dueProdotti(); delete s2.prodotti[0].parametri.F1.capacita['1'];
+  assert.deepEqual(L.calcolaLinea(s2).pesi, [], 'con errori strutturali (capacità mancante) niente pesi');
 });
 
 test('revisione 2: il budget dello strato Linea conta il residuo standard solo nei mesi in cui la fase è attiva per la linea (come il budget v1, solo righe attive)', () => {

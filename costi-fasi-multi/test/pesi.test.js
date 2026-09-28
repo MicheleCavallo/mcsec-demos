@@ -33,3 +33,23 @@ test('ripartisciFisso: Σ quote dei prodotti + residuo linea = fisso di fase, st
   assert.equal(rip.fasi.F2.fissoReale, 0); vicino(rip.fasi.F2.perProdotto.P1.reale, 0, 'F2 attiva con fisso zero'); vicino(rip.fasi.F2.linea.reale, 0, 'linea F2');
   assert.equal(rip.fasi.F3.fissoReale, null); assert.equal(rip.fasi.F3.perProdotto.P2.reale, null); assert.equal(rip.fasi.F3.linea.reale, null);
 });
+
+// ---- regola del 28/09 (Michele): quota vuota = capacità piena (il prodotto solo sulla fase non scrive nulla; resta modificabile)
+test('quota vuota = capacità piena: peso 1, nessun errore di validazione, strato con capacità = capacità piena', () => {
+  const s = dueProdotti();
+  s.prodotti[0].parametri.F2.quota = {};            // F2 è solo di P1: nessuna quota scritta
+  s.prodotti[1].parametri.F3.quota = {};            // F3 è solo di P2
+  assert.deepEqual(L.validaLinea(s), [], 'la quota non è più obbligatoria');
+  const p = L.calcolaPesi(s)[0];
+  vicino(p.fasi.F2.pesi.P1, 1, 'P1 prende tutta F2'); vicino(p.fasi.F2.residuo, 0, 'niente Linea su F2');
+  vicino(p.fasi.F3.pesi.P2, 1, 'P2 prende tutta F3');
+  const rip = L.ripartisciFisso(s, L.calcolaPesi(s));
+  const v1 = L.scenarioStrato(s, 'P1', rip);
+  assert.equal(v1.parametri.F2.capacita['1'], 40, 'capacità dello strato = capacità piena quando la quota è vuota');
+  assert.equal(v1.parametri.F2.capacita['12'], 40);
+});
+
+test('quota vuota su una fase condivisa da due prodotti → Σ pesi 200 %: errore di scenario come prima', () => {
+  const s = dueProdotti(); s.prodotti[0].parametri.F1.quota = {}; s.prodotti[1].parametri.F1.quota = {};
+  assert.ok(L.validaLinea(s).some(e => /M1.*Fase 1.*200/.test(e)), JSON.stringify(L.validaLinea(s)));
+});

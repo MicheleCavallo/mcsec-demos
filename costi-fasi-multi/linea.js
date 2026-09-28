@@ -13,6 +13,9 @@
   function finito(x) { return x === null || x === undefined || x === '' || (typeof x === 'number' && Number.isFinite(x)) || (typeof x === 'string' && x.trim() !== '' && Number.isFinite(Number(x))); }
   function mappa(x) { return (x && typeof x === 'object' && !Array.isArray(x)) ? Object.assign({}, x) : {}; }
   function nomeFase(sc, fid) { const f = (sc.fasi || []).find(x => x.id === fid); return f ? f.nome : fid; }
+  // Quota effettiva del prodotto sulla fase nel mese: quota scritta (con eredità) oppure, se vuota, la capacità piena (regola di Michele 28/09:
+  // il prodotto solo sulla fase non scrive nulla e prende tutta la capacità; resta modificabile).
+  function quotaDi(par, m) { const q = eredita((par || {}).quota, m); return q === null ? eredita((par || {}).capacita, m) : q; }
 
   // ---- Scenario v2: {versione:2, nome, mesi, fasi, linea:{fid:{fisso}}, prodotti:[{id,nome,percorso,parametri:{fid:{capacita,quota,var,scrap}}}],
   //      consuntivo:{linea:{m:{fid:{fissoReale}}}, pid:{m:{fid:{entrati,lavorati,scrap,usciti,varReale}}}}, filtri}
@@ -95,10 +98,10 @@
           const mp = par[voce] || {};
           const nonNum = Object.entries(mp).find(([k, v]) => !finito(v));
           if (nonNum) { err.push(`${nomeP}, ${nomeFase(sc, fid)}: ${nome} nel mese ${nonNum[0]} non è un numero («${String(nonNum[1]).slice(0, 12)}»).`); continue; }
-          if (eredita(mp, 1) === null) err.push(`${nomeP}, ${nomeFase(sc, fid)}: manca ${nome} nel mese 1.`);
+          if (voce !== 'quota' && eredita(mp, 1) === null) err.push(`${nomeP}, ${nomeFase(sc, fid)}: manca ${nome} nel mese 1.`);   // la quota vuota vale la capacità piena
         }
         for (let m = 1; m <= mesi; m++) {
-          const cap = eredita(par.capacita, m), q = eredita(par.quota, m), g = eredita(par.scrap, m);
+          const cap = eredita(par.capacita, m), q = quotaDi(par, m), g = eredita(par.scrap, m);
           if (cap !== null && cap <= 0) { err.push(`${nomeP}, ${nomeFase(sc, fid)}: la capacità piena nel mese ${m} deve essere maggiore di zero.`); break; }
           if (q !== null && cap !== null && (q <= 0 || q > cap + 1e-9)) { err.push(`${nomeP}, ${nomeFase(sc, fid)}: la quota nel mese ${m} (${q}) deve stare tra 1 e la capacità piena (${cap}); oltre la capacità non si può riservare.`); break; }
           if (g !== null && (g < 0 || g >= 0.99 + 1e-12)) { err.push(`${nomeP}, ${nomeFase(sc, fid)}: scrap % nel mese ${m} deve stare tra 0 e 99 %.`); break; }
@@ -117,7 +120,7 @@
     if (err.length || (opts && opts.soloStruttura)) return err;
     for (let m = 1; m <= mesi; m++) for (const fid of usate) {
       let somma = 0;
-      for (const p of sc.prodotti) { if (!p.percorso.includes(fid)) continue; const par = p.parametri[fid]; somma += eredita(par.quota, m) / eredita(par.capacita, m); }
+      for (const p of sc.prodotti) { if (!p.percorso.includes(fid)) continue; const par = p.parametri[fid]; somma += quotaDi(par, m) / eredita(par.capacita, m); }
       if (somma > 1 + 1e-9) err.push(`M${m} ${nomeFase(sc, fid)}: le quote riservate superano la capacità della fase (Σ pesi = ${Math.round(somma * 1000) / 10} %). Abbassa una quota.`);
     }
     return err;
@@ -133,7 +136,7 @@
         const pesi = {}; let somma = 0, rif = null, usati = 0;
         for (const p of sc.prodotti) {
           if (!p.percorso.includes(f.id)) continue;
-          const par = p.parametri[f.id], cap = eredita(par.capacita, m), q = eredita(par.quota, m);
+          const par = p.parametri[f.id], cap = eredita(par.capacita, m), q = quotaDi(par, m);
           const peso = (cap && q !== null) ? q / cap : 0;
           pesi[p.id] = peso; somma += peso;
           if (rif === null) rif = { pid: p.id, cap };
@@ -174,7 +177,7 @@
       prodotti: [{ id: p.id, nome: p.nome, percorso: p.percorso.slice() }], registro: { [p.id]: {} }, filtri: { daMese: sc.filtri.daMese, aMese: sc.filtri.aMese, fase: 'tutte' } };
     for (const fid of p.percorso) {
       const par = p.parametri[fid], cap = {}, fisso = {};
-      for (let m = 1; m <= mesi; m++) { cap[String(m)] = eredita(par.quota, m); fisso[String(m)] = rip[m - 1].fasi[fid].perProdotto[pid].std; }
+      for (let m = 1; m <= mesi; m++) { cap[String(m)] = quotaDi(par, m); fisso[String(m)] = rip[m - 1].fasi[fid].perProdotto[pid].std; }
       v1.parametri[fid] = { capacita: cap, var: Object.assign({}, par.var), fisso, scrap: Object.assign({}, par.scrap) };
     }
     const cons = ((sc.consuntivo || {})[pid]) || {};
@@ -250,5 +253,5 @@
     return { filtri: { daMese: da, aMese: a }, strati, linea, quadratura: quad, righe, grafico2: g2, finiti, lavoratiPerMese };
   }
 
-  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, calcolaPesi, ripartisciFisso, scenarioStrato, calcolaLinea, totaleLinea };
+  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, quotaDi, calcolaPesi, ripartisciFisso, scenarioStrato, calcolaLinea, totaleLinea };
 });

@@ -105,7 +105,7 @@ textarea.json { width:100%; height:140px; background:var(--input); color:var(--t
 'use strict';
 const CHIAVE = 'mcsec.costiFasi.v2';
 // griglie per prodotto: capacità piena e quota (pezzi), variabile (€/pz), scrap (%)
-const VOCI_PRODOTTO = [['capacita', 'Capacità piena della fase per questo prodotto (pezzi al mese)', 0], ['quota', 'Quota riservata (pezzi al mese)', 0], ['var', 'Variabile standard € per pezzo', 2], ['scrap', 'Scrap normale %', 1]];
+const VOCI_PRODOTTO = [['capacita', 'Capacità piena della fase per questo prodotto (pezzi al mese)', 0], ['quota', 'Quota riservata (pezzi al mese) · vuota = tutta la capacità piena', 0], ['var', 'Variabile standard € per pezzo', 2], ['scrap', 'Scrap normale %', 1]];
 const stato = { scenario: null, risultato: null, passo: 1, meseCorrente: 1, scheda: 'costo', prodottoCorrente: null, vista3: 'linea', filtri: null };   // vista3: 'linea' o id prodotto nel Passo 03
 
 // ---- formato it-IT (funzioni pure in ../costi-fasi/ui.js) e motore di linea (linea.js)
@@ -173,9 +173,10 @@ function grigliaMesi(titolo, righe, opts) {
     const tr = h('tr', {}, h('td', {}, r.nome));
     for (let m = 1; m <= mesi; m++) {
       const scritto = r.mappa[String(m)] !== undefined && r.mappa[String(m)] !== null && r.mappa[String(m)] !== '';
-      const v = CostiFasi.eredita(r.mappa, m);
+      let v = CostiFasi.eredita(r.mappa, m);
+      if (v === null && r.fallback) v = r.fallback(m);   // es. quota vuota = capacità piena (mostrata in corsivo, modificabile)
       tr.append(h('td', {}, cellaInput(v === null ? null : Number((v * scala).toFixed(4)), { classe: scritto ? 'scritto' : 'ereditato', min: 0, max: r.max ? r.max(m) : opts.max,
-        regola: opts.regola || 'numero ≥ 0', placeholder: m === 1 ? 'obbl.' : '',
+        regola: opts.regola || 'numero ≥ 0', placeholder: m === 1 && !r.fallback ? 'obbl.' : '',
         onchange: x => { if (x === null) delete r.mappa[String(m)]; else r.mappa[String(m)] = x / scala; ricalcola(); render(); } })));
     }
     t.append(tr);
@@ -230,8 +231,11 @@ function renderProdotti(card) {
   sez.append(h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Nome prodotto ',
     h('input', { class: 'nome', style: 'width:260px', value: p.nome, onchange: e => { p.nome = e.target.value.trim() || p.id; ricalcola(); render(); } }),
     h('button', { disabled: sc.prodotti.length > 1 ? null : '', title: sc.prodotti.length > 1 ? 'Elimina il prodotto e il suo consuntivo' : 'Serve almeno un prodotto', onclick: () => {
-      if (!confirm(`Elimino «${p.nome}» con il suo consuntivo?`)) return;
-      sc.prodotti = sc.prodotti.filter(x => x.id !== p.id); delete sc.consuntivo[p.id]; stato.prodottoCorrente = null; ricalcola(); render(); } }, 'Elimina prodotto')));
+      if (!confirm(`Elimino «${p.nome}» con il suo consuntivo? I prodotti rimasti soli su una fase tornano alla quota piena.`)) return;
+      sc.prodotti = sc.prodotti.filter(x => x.id !== p.id); delete sc.consuntivo[p.id]; stato.prodottoCorrente = null;
+      // fasi rimaste a un solo prodotto: la sua quota si svuota e vale la capacità piena (Michele 28/09), resta modificabile
+      for (const fid of p.percorso) { const soli = sc.prodotti.filter(x => x.percorso.includes(fid)); if (soli.length === 1 && soli[0].parametri[fid]) soli[0].parametri[fid].quota = {}; }
+      ricalcola(); render(); } }, 'Elimina prodotto')));
   // fasi del percorso (spunta sul catalogo) e ordine (chip con frecce)
   const tb = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Nel percorso'))));
   for (const f of sc.fasi) {
@@ -249,7 +253,8 @@ function renderProdotti(card) {
   sez.append(h('div', { style: 'display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap' }, h('div', {}, h('h3', {}, 'Fasi del percorso'), tb), h('div', { style: 'flex:1 1 300px' }, per)));
   // le quattro griglie del prodotto; sotto le quote il peso su ogni fase e la Σ pesi di tutti i prodotti (≤ 100 %)
   const righe = voce => p.percorso.map(fid => { const par = p.parametri[fid] = p.parametri[fid] || { capacita: {}, quota: {}, var: {}, scrap: {} };
-    return { id: fid, nome: nomeFase(fid), mappa: par[voce], max: voce === 'quota' ? (m => CostiFasi.eredita(par.capacita, m) || undefined) : undefined }; });
+    return { id: fid, nome: nomeFase(fid), mappa: par[voce], max: voce === 'quota' ? (m => CostiFasi.eredita(par.capacita, m) || undefined) : undefined,
+      fallback: voce === 'quota' ? (m => CostiFasi.eredita(par.capacita, m)) : undefined }; });   // quota vuota = capacità piena
   const sottoQuota = riga => { const out = []; const pesi = Array.from({ length: mesi }, (_, i) => pesiMese(i + 1)); if (!pesi[0]) return out;
     out.push(['peso su fase (quota ÷ capacità)', pesi.map(w => [pct(w.fasi[riga.id].pesi[p.id] || 0), ''])]);
     out.push(['Σ pesi di tutti i prodotti', pesi.map(w => { const sm = w.fasi[riga.id].somma; return [pct(sm), sm > 1 + 1e-9 ? 'color:var(--ko);font-weight:700' : 'color:var(--ok)']; })]);
