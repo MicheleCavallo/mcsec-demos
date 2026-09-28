@@ -58,7 +58,10 @@ td.scarto { color:var(--arancio); }
 .tre .n .v { font-family:var(--head); font-weight:800; font-size:76px; color:var(--gold-light); line-height:1; }
 .tre .n .l { color:var(--muted); font-size:18px; margin-top:8px; }
 .tre .n.ar .v { color:var(--arancio); }
-.barra { display:flex; height:54px; margin-top:54px; gap:3px; }
+.staffe { display:flex; gap:3px; margin-top:44px; }
+.staffe div { border-top:2px solid var(--gold-light); border-left:2px solid var(--gold-light); border-right:2px solid var(--gold-light); height:14px; position:relative; }
+.staffe div span { position:absolute; left:0; right:0; top:-26px; text-align:center; font-family:var(--head); font-weight:700; font-size:15px; color:var(--gold-light); }
+.barra { display:flex; height:54px; margin-top:6px; gap:3px; }
 .barra div { height:100%; border-radius:4px; transform:scaleX(0); transform-origin:left; transition:transform .5s var(--ease); display:flex; align-items:center; justify-content:center; font-family:var(--head); font-weight:700; color:#0D1B2A; font-size:16px; white-space:nowrap; overflow:hidden; }
 .on .barra.in div { transform:scaleX(1); }
 .legenda { color:var(--muted); font-size:15px; margin-top:12px; }
@@ -117,10 +120,11 @@ td.scarto { color:var(--arancio); }
   <div class="kicker el" data-t="0">Il risultato</div>
   <h1 class="el" data-t="0">Costo previsto, costo effettivo, <span class="oro">costo della capacità inutilizzata</span>.</h1>
   <div class="tre">
-    <div class="n el" data-t="1"><div class="v" data-conta="18,00">18,00</div><div class="l">€ per pezzo, previsto a standard</div></div>
-    <div class="n el" data-t="2"><div class="v" data-conta="33,31">33,31</div><div class="l">€ per pezzo, effettivo</div></div>
-    <div class="n ar el" data-t="3"><div class="v" data-conta="854">854</div><div class="l">€ di capacità non usata nel periodo, su 1.106 spesi</div></div>
+    <div class="n el" data-t="1"><div class="v" data-conta="1.106">1.106</div><div class="l">€ spesi nel periodo (tre mesi, tutta la linea)</div></div>
+    <div class="n ar el" data-t="2"><div class="v" data-conta="854">854</div><div class="l">€ di capacità non usata: fasi ferme 480 + posti vuoti 374 (il 77 %)</div></div>
+    <div class="n el" data-t="3"><div class="v"><span data-conta="33,31">33,31</span><span style="font-size:30px;color:var(--muted)"> vs 18,00</span></div><div class="l">€ per pezzo finito, effettivo contro previsto: +85 %</div></div>
   </div>
+  <div class="staffe el" data-t="4"><div style="flex:854"><span>capacità non usata · 854 €</span></div><div style="flex:252"><span>sul prodotto · 252 €</span></div></div>
   <div class="barra el" data-t="4" id="barra">
     <div style="flex:480;background:var(--blu)">fasi ferme 480</div>
     <div style="flex:374;background:var(--arancio)">posti vuoti 374</div>
@@ -128,7 +132,7 @@ td.scarto { color:var(--arancio); }
     <div style="flex:12;background:#c98500"></div>
     <div style="flex:100;background:var(--rosa)">finiti 100</div>
   </div>
-  <div class="legenda el" data-t="4">Dove sono finiti i 1.106 € del periodo: i posti vuoti dell'aereo sono la fetta arancio.</div>
+  <div class="legenda el" data-t="4">Dove sono finiti i 1.106 €: 480 + 374 + 140 + 12 + 100. I posti vuoti dell'aereo sono la fetta arancio; sul prodotto vanno solo scarto, semilavorati e finiti.</div>
 </section>
 
 <!-- 4 · La proposta -->
@@ -143,8 +147,8 @@ td.scarto { color:var(--arancio); }
 <section class="scena" data-scena="6">
   <div class="centro">
     <div class="kicker el" data-t="0">L'invito</div>
-    <h1 class="el" data-t="0" style="text-align:center">Partiamo dal tuo aereo: <span class="oro">due prodotti e una fase condivisa</span>.</h1>
-    <div class="sub el" data-t="1">Una prima analisi, senza impegno.</div>
+    <h1 class="el" data-t="0" style="text-align:center">Partiamo dal tuo aereo <span class="oro">e facciamolo volare</span>.</h1>
+    <div class="sub el" data-t="1">Due prodotti e una fase condivisa. Una prima analisi, senza impegno.</div>
   </div>
   <div class="contatti el" data-t="1"><span>www.mcsec.it &nbsp;|&nbsp; info@mcsec.it &nbsp;|&nbsp; Catania (CT)</span><span>Performance Intelligence · metodologia MCSec</span></div>
 </section>
@@ -188,7 +192,7 @@ function applica() {
   // effetti speciali per passo
   if (sc === 1) { ordine.forEach((idx, pos) => { const p = seats[idx]; p.classList.toggle('pieno', t >= 2 && pos < 10); p.classList.toggle('vuoto', t >= 3 && pos >= 10); p.style.transitionDelay = (t >= 2 && pos < 10) ? (pos * 70) + 'ms' : (t >= 3 ? ((pos - 10) * 35) + 'ms' : '0ms'); }); }
   if (sc === 3) { const righe = document.querySelectorAll('.scena[data-scena="3"] tbody tr'); righe.forEach((r, i) => { const on = t >= 1 + Math.min(i, 1) && !(i === 2 && t < 3); r.querySelectorAll('td.num').forEach(c => conta(c, on ? Number(c.dataset.n) : 0)); }); }
-  if (sc === 4) { scena.querySelectorAll('.v').forEach((v, i) => { if (t >= i + 1) conta(v, v.dataset.conta, true); else v.textContent = '0'; }); }
+  if (sc === 4) { scena.querySelectorAll('[data-conta]').forEach((v, i) => { if (t >= i + 1) conta(v, v.dataset.conta, true); else v.textContent = '0'; }); }
   document.getElementById('hud').innerHTML = `passo <b>${k + 1}</b> / ${PASSI.length} · scena ${sc}`;
 }
 const timer = new Map();
@@ -198,7 +202,8 @@ function conta(el, target, virgola) {   // numero che sale in ~900 ms, ease-out;
   if (inizio === fine) return;
   clearInterval(timer.get(el)); const t0 = performance.now(), dur = 900;
   const id = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - p, 3), v = inizio + (fine - inizio) * e;
-    el.textContent = virgola ? v.toLocaleString('it-IT', { minimumFractionDigits: String(target).includes(',') ? 2 : 0, maximumFractionDigits: String(target).includes(',') ? 2 : 0 }) : String(Math.round(v));
+    const dec = virgola && String(target).includes(',') ? 2 : 0;   // formato it-IT a mano (punto migliaia, virgola decimali): non dipende dalle locali del browser
+    el.textContent = v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/,/g, '§').replace('.', ',').replace(/§/g, '.');
     if (p >= 1) clearInterval(id); }, 30);
   timer.set(el, id);
 }
