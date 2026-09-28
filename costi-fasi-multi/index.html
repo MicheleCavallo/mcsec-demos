@@ -422,7 +422,9 @@ function renderTotaleLinea(t, el) {
     h('div', { class: 'scroll' }, qt),
     h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale è la somma degli strati: ogni euro reale sta in un prodotto o nella Linea. Il budget a standard di ogni strato è fisso del prodotto (fisso di fase × peso) più variabile standard × lavorati. Nessun costo per pezzo uscito a livello linea: con più prodotti non ha senso, si legge nella vista del prodotto.')));
   c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo (tutta la linea)'), renderGrafico2(t.grafico2));
-  c.append(h('h3', {}, 'Pezzi lavorati per mese, per prodotto: buoni + scrap'), renderGrafico3Linea(t.lavoratiPerMese));
+  c.append(h('div', { style: 'display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap' },
+    h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Serie mensile per prodotto: atteso e reale per pezzo buono'), renderGrafico1Linea(t)),
+    h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Pezzi lavorati per mese, per prodotto: buoni + scrap'), renderGrafico3Linea(t.lavoratiPerMese))));
   el.append(c);
 }
 
@@ -567,6 +569,36 @@ function renderGrafico3(cp) {   // barre impilate: buoni (blu) + scrap (arancio)
   leg.append(svgEl('rect', { x: W - m.r - 118, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[0] }), svgEl('text', { x: W - m.r - 104, y: 16, fill: COL.testo, 'font-size': 11 }, 'buoni'),
     svgEl('rect', { x: W - m.r - 58, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[1] }), svgEl('text', { x: W - m.r - 44, y: 16, fill: COL.testo, 'font-size': 11 }, 'scrap'));
   svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, 'pezzi lavorati'));
+  return svg;
+}
+function renderGrafico1Linea(t) {   // una coppia di linee per prodotto: reale piena e atteso tratteggiata nel colore del prodotto; tratteggio leggero sui mesi senza buoni
+  const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };
+  const prodotti = stato.scenario.prodotti, COLP = [COL.parti[0], COL.parti[2], COL.parti[3], COL.parti[4]];
+  const mesi = []; for (let k = t.filtri.daMese; k <= t.filtri.aMese; k++) mesi.push(k);
+  const serieDi = p => (t.strati[p.id] ? t.strati[p.id].serie : []).filter(x => x.mese >= t.filtri.daMese && x.mese <= t.filtri.aMese);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Serie mensile per prodotto del costo per pezzo buono, atteso e reale', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const vals = prodotti.flatMap(p => serieDi(p).flatMap(x => [x.reale, x.atteso])).filter(v => v !== null && v !== undefined);
+  if (!vals.length) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo buono nel periodo')); return svg; }
+  const yMax = Math.max(...vals) * 1.15;
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / mesi.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  mesi.forEach((mm, i) => svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + mm)));
+  prodotti.forEach((p, k) => {
+    const col = COLP[k % COLP.length], serie = serieDi(p);
+    for (const [key, dash] of [['atteso', '5 4'], ['reale', null]]) {
+      let prev = null;
+      serie.forEach((sx, i) => { if (sx[key] === null || sx[key] === undefined) return;
+        if (prev !== null) svg.append(svgEl('path', { d: `M${x(prev)} ${y(serie[prev][key])} L${x(i)} ${y(sx[key])}`, fill: 'none', stroke: col, 'stroke-width': dash ? 1.5 : 2, 'stroke-linejoin': 'round', ...(dash ? { 'stroke-dasharray': dash } : {}), ...(i - prev > 1 ? { 'stroke-opacity': 0.6 } : {}) }));
+        prev = i;
+        const g = svgEl('g', {}); g.append(svgEl('circle', { cx: x(i), cy: y(sx[key]), r: dash ? 3 : 4.5, fill: dash ? '#0F1E33' : col, stroke: col, 'stroke-width': 2 }));
+        const hit = svgEl('circle', { cx: x(i), cy: y(sx[key]), r: 12, fill: 'transparent' }); hit.append(svgEl('title', {}, `M${sx.mese} · ${p.nome} · ${key}: ${fmt(sx[key])} €/pz buono · ${sx.buoni} buoni`)); g.append(hit); svg.append(g);
+        if (!dash && (i === serie.length - 1 || serie[i + 1][key] === null)) svg.append(svgEl('text', { x: x(i) + 8, y: y(sx[key]) + 4, fill: COL.testo, 'font-size': 10 }, fmt(sx[key])));
+      });
+    }
+  });
+  let lx = m.l;   // legenda: prodotto (linea piena = reale), poi «tratteggio = atteso»
+  prodotti.forEach((p, k) => { svg.append(svgEl('line', { x1: lx, x2: lx + 14, y1: 12, y2: 12, stroke: COLP[k % COLP.length], 'stroke-width': 2 }), svgEl('text', { x: lx + 18, y: 16, fill: COL.testo, 'font-size': 11 }, p.nome)); lx += 18 + p.nome.length * 6.4 + 16; });
+  svg.append(svgEl('line', { x1: lx, x2: lx + 14, y1: 12, y2: 12, stroke: COL.testo, 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }), svgEl('text', { x: lx + 18, y: 16, fill: COL.testo, 'font-size': 11 }, 'atteso (standard) · piena = reale'));
   return svg;
 }
 function renderGrafico3Linea(lpm) {   // per mese una barra per prodotto (colore del prodotto = buoni, scrap in arancio sopra), totale sopra la barra, dettaglio sotto il mese
