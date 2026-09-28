@@ -211,18 +211,22 @@ function renderStandard(el) {
   }
   cat.append(tb, h('button', { style: 'margin-top:6px', onclick: () => { let k = sc.fasi.length + 1; while (sc.fasi.some(x => x.id === 'F' + k)) k++; const id = 'F' + k; sc.fasi.push({ id, nome: 'Fase ' + k }); sc.linea[id] = { fisso: {} }; ricalcola(); render(); } }, '+ Aggiungi fase'));
   // mappa fasi × prodotti a fianco del catalogo: una colonna per prodotto, una riga per fase del catalogo, riquadro nel colore del prodotto se la fase è nel percorso
+  // la mappa è una seconda tabella con le stesse celle del catalogo (stessi th/td, un riquadro alto come l'input del nome):
+  // le righe coincidono per costruzione, in qualunque browser
   const COLP = ['#3987e5', '#199e70', '#c98500', '#d55181'];
-  // righe della mappa alte come quelle del catalogo (intestazione 27px, fasi 45px) così le fasi sono sulla stessa riga della tabella
   const mappa = h('div', {}, h('h3', { title: 'Ogni colonna è un prodotto: le fasi che attraversa, nell’ordine del catalogo; il numero è la posizione nel suo percorso.' }, 'Mappa fasi × prodotti'));
-  const griglia = h('div', { style: `display:grid;grid-template-columns:repeat(${sc.prodotti.length}, minmax(120px, 160px));grid-template-rows:27px repeat(${sc.fasi.length}, 45px);column-gap:14px;align-items:center` });
-  for (const q of sc.prodotti) griglia.append(h('div', { style: 'font-family:var(--head);font-weight:700;font-size:11px;color:var(--muted);text-align:center;align-self:center' }, q.nome));
-  for (const f of sc.fasi) for (const [k, q] of sc.prodotti.entries()) {
-    const pos = q.percorso.indexOf(f.id);
-    griglia.append(pos >= 0
-      ? h('div', { title: `${q.nome} · passo ${pos + 1}: ${f.nome}`, style: `border:1px solid ${COLP[k % COLP.length]};border-left:4px solid ${COLP[k % COLP.length]};border-radius:4px;padding:4px 8px;font-size:11px;background:var(--panel2)` }, h('span', { style: 'color:var(--muted);margin-right:6px' }, String(pos + 1).padStart(2, '0')), f.nome)
-      : h('div', { style: 'border:1px dashed var(--border);border-radius:4px;height:28px;opacity:.5' }));
+  const tm = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, ...sc.prodotti.map(q => h('th', { style: 'text-align:center;min-width:130px' }, q.nome)))));
+  for (const f of sc.fasi) {
+    const tr = h('tr', {});
+    sc.prodotti.forEach((q, k) => {
+      const pos = q.percorso.indexOf(f.id), col = COLP[k % COLP.length];
+      tr.append(h('td', { style: 'border-color:transparent;padding:4px 6px' }, pos >= 0
+        ? h('div', { title: `${q.nome} · passo ${pos + 1}: ${f.nome}`, style: `border:1px solid ${col};border-left:4px solid ${col};border-radius:4px;padding:7px 8px;font-family:var(--head);font-weight:700;font-size:12px;line-height:normal;background:var(--panel2);text-align:left;white-space:nowrap` }, h('span', { style: 'color:var(--muted);margin-right:6px;font-weight:400' }, String(pos + 1).padStart(2, '0')), f.nome)
+        : h('div', { style: 'border:1px dashed var(--border);border-radius:4px;padding:7px 8px;font-family:var(--head);font-weight:700;font-size:12px;line-height:normal;opacity:.5' }, ' ')));
+    });
+    tm.append(tr);
   }
-  mappa.append(griglia);
+  mappa.append(tm);
   card.append(h('div', { style: 'display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap' }, cat, mappa));
   // ---- Linea: fisso standard di fase, con sotto i pesi di tutti i prodotti e i pezzi equivalenti
   const sottoPesi = riga => {
