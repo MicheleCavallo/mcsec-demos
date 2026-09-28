@@ -211,7 +211,7 @@
     const percorso = prodotto.percorso.slice();
     const fasi = percorso.map(fid => ({ id: fid, nome: nomeFase(sc, fid) }));
     const parametri = risolviParametri(sc, percorso);
-    const ris = { errori: [], mesi: sc.mesi || MESI_DEFAULT, prodotto: prodotto.id, percorso, fasi, parametri };
+    const ris = { errori: [], mesi: sc.mesi || MESI_DEFAULT, prodotto: prodotto.id, prodottoNome: prodotto.nome || prodotto.id, percorso, fasi, parametri };
     ris.registro = calcolaRegistro(sc, percorso, parametri, prodotto.id);
     ris.semilavorati = calcolaSemilavorati(ris.registro, percorso, parametri);
     ris.sintesi = calcolaSintesi(ris.registro, percorso, parametri, ris.mesi);

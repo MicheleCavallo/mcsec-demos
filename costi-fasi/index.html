@@ -159,6 +159,11 @@ function renderStandard(el) {
   const sc = stato.scenario, prod = sc.prodotti[0];
   const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 01 · Standard: fasi, percorso e parametri per mese'),
     h('div', { class: 'lede' }, 'Lo standard per pezzo si calcola a capacità piena: variabile + (fisso ÷ OLC). I mesi senza valore ereditano dal mese precedente (celle in corsivo); un valore scritto a mano (bordo oro) vale da quel mese in poi. Svuotare una cella la riporta all\'eredità.'));
+  // prodotto: nome scelto dall'utente (Michele 28/09); v1 = un solo prodotto, il percorso e i parametri sotto sono i suoi
+  const pr = h('div', {}, h('h3', {}, 'Prodotto'),
+    h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Nome prodotto ',
+      h('input', { class: 'nome', style: 'width:260px', value: prod.nome || '', placeholder: 'es. Staffa 40x20', onchange: e => { prod.nome = e.target.value.trim() || 'Prodotto 1'; salva(); render(); } }),
+      h('span', { class: 'note', style: 'margin:0' }, 'Percorso, standard e consuntivo di questa pagina sono di questo prodotto.')));
   // catalogo fasi
   const cat = h('div', {}, h('h3', {}, 'Catalogo fasi della linea'));
   const tb = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Id'), h('th', {}, 'Nome'), h('th', {}, 'Nel percorso'), h('th', {}, ''))));
@@ -177,7 +182,7 @@ function renderStandard(el) {
       h('button', { disabled: i === 0 ? '' : null, onclick: () => { [prod.percorso[i - 1], prod.percorso[i]] = [prod.percorso[i], prod.percorso[i - 1]]; ricalcola(); render(); } }, '◀'),
       h('button', { disabled: i === prod.percorso.length - 1 ? '' : null, onclick: () => { [prod.percorso[i + 1], prod.percorso[i]] = [prod.percorso[i], prod.percorso[i + 1]]; ricalcola(); render(); } }, '▶')));
   });
-  card.append(cat, per);
+  card.append(pr, cat, per);
   // griglie parametri
   const mesi = sc.mesi || 12;
   for (const [voce, titolo] of VOCI) {
@@ -218,7 +223,7 @@ function renderConsuntivo(el) {
   const sc = stato.scenario, prod = sc.prodotti[0], r = stato.risultato;
   const mesi = sc.mesi || 12;
   const pronto = r && !r.errori.length;
-  const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 02 · Consuntivo: il reale, mese per mese'),
+  const card = h('div', { class: 'card' }, h('h2', {}, `Passo 02 · Consuntivo di ${prod.nome}: il reale, mese per mese`),
     h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti (i pezzi), poi a destra dei derivati reale variabile e reale fisso (gli euro), ciascuno con accanto il suo standard: variabile standard × lavorati e fisso standard della fase. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento «in transito» sotto la cella entrati). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (il suggerimento «già in coda» sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
   const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
   for (let m = 1; m <= mesi; m++) {
@@ -294,7 +299,7 @@ function renderRisultati(el) {
   stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: 12, fase: 'tutte' }, stato.scenario.filtri || {});
   if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';
   const cpH = CostiFasi.costoProdotto(r, stato.filtri), per = `M${cpH.filtri.daMese} → M${cpH.filtri.aMese}`;
-  q.append(h('p', { style: 'margin:6px 0' }, h('b', {}, `Prodotto finito ${per}: `), cpH.finitiPezzi
+  q.append(h('p', { style: 'margin:6px 0' }, h('b', {}, `${r.prodottoNome || 'Prodotto'} finito ${per}: `), cpH.finitiPezzi
     ? [`${fmt(cpH.finitiPezzi, 0)} pz usciti da ${nome(r.percorso[r.percorso.length - 1])} a `, h('b', { style: 'color:var(--gold-light)' }, `${fmt(cpH.finitoCosto)} €/pz reale`), ` contro ${fmt(cpH.finitoStandardPz)} €/pz previsto: `, h('b', { style: cpH.finitoDelta > 0.005 ? 'color:var(--ko)' : 'color:var(--ok)' }, `${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta / cpH.finitiPezzi)} €/pz, ${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta)} € in totale`), '.']
     : 'nessun pezzo ha completato la fase finale nel periodo.'));
   const schede = [['costo', 'Costo prodotto e grafici'], ['registro', 'Registro'], ['semilavorati', 'Semilavorati'], ['sintesi', 'Sintesi']];
@@ -319,7 +324,7 @@ function renderRisultati(el) {
     const cp = cpH;
     const sel = (k, opzioni) => { const s = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: e => { stato.filtri[k] = k === 'fase' ? e.target.value : Number(e.target.value); stato.scenario.filtri = Object.assign({}, stato.filtri); salva(); render(); } }); for (const [v, t] of opzioni) s.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, t)); return s; };
     const mesiOpz = Array.from({ length: r.mesi }, (_, i) => [i + 1, 'M' + (i + 1)]);
-    const c = h('div', { class: 'card' }, h('h2', {}, 'Costo del prodotto: atteso (standard) contro reale'),
+    const c = h('div', { class: 'card' }, h('h2', {}, `Costo di ${r.prodottoNome || 'prodotto'}: atteso (standard) contro reale`),
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Da mese ', sel('daMese', mesiOpz), ' a mese ', sel('aMese', mesiOpz), ' fase ', sel('fase', [['tutte', 'Tutte'], ...r.fasi.map(f => [f.id, f.nome])])),
       h('p', { class: 'note' }, `Periodo M${cp.filtri.daMese} → M${cp.filtri.aMese} · ${fmt(cp.lavorati, 0)} pezzi lavorati, ${fmt(cp.buoni, 0)} buoni, ${fmt(cp.scrap, 0)} scrap · finiti ${fmt(cp.finitiPezzi, 0)} a ${fmt(cp.finitoCosto)} €/pz.`));
     // in evidenza, prima di tutto: prodotto finito uscito (al reale di scarico dell'ultima fase) contro previsto (stessi pezzi al totale prodotto standard di fine periodo)
