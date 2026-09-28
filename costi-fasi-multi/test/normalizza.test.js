@@ -45,8 +45,8 @@ test('validaLinea: scenario valido → nessun errore', () => { assert.deepEqual(
 test('validaLinea: capacità mancante nel mese 1, quota oltre la capacità, capacità zero, fase fuori catalogo, fisso di linea mancante', () => {
   let s = dueProdotti(); delete s.prodotti[0].parametri.F1.capacita['1'];
   assert.ok(L.validaLinea(s).some(e => /Prodotto 1.*Fase 1.*capacità piena.*mese 1/i.test(e)), JSON.stringify(L.validaLinea(s)));
-  s = dueProdotti(); delete s.prodotti[0].parametri.F1.quota['1'];
-  assert.ok(!L.validaLinea(s).some(e => /quota/i.test(e)), 'quota vuota = capacità piena, non è un errore (regola 28/09)');
+  s = dueProdotti(); delete s.prodotti[0].parametri.F2.quota['1'];   // F2 è solo di P1: quota vuota = tutta la capacità, nessun errore
+  assert.deepEqual(L.validaLinea(s), [], 'quota vuota = capacità piena, non è un errore (regola 28/09)');
   s = dueProdotti(); s.prodotti[0].parametri.F1.quota['1'] = 60;
   assert.ok(L.validaLinea(s).some(e => /quota.*(oltre|maggiore).*capacit/i.test(e)));
   s = dueProdotti(); s.prodotti[0].parametri.F1.capacita['1'] = 0;
