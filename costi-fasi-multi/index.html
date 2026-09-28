@@ -271,64 +271,80 @@ function renderProdotti(card) {
   }
   card.append(sez);
 }
-// ---- Passo 2 · Consuntivo per mese
+// ---- Passo 2 · Consuntivo per mese: blocco Linea (fisso reale per fase, diviso ai prodotti coi pesi) + una tabella per prodotto
 function renderConsuntivo(el) {
-  const sc = stato.scenario, prod = sc.prodotti[0], r = stato.risultato;
-  const mesi = sc.mesi || 12;
+  const sc = stato.scenario, r = stato.risultato, mesi = sc.mesi || 12;
   const pronto = r && !r.errori.length;
-  const card = h('div', { class: 'card' }, h('h2', {}, `Passo 02 · Consuntivo di ${prod.nome}: il reale, mese per mese`),
-    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti (i pezzi), poi a destra dei derivati reale variabile e reale fisso (gli euro), ciascuno con accanto il suo standard: variabile standard × lavorati e fisso standard della fase. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento «in transito» sotto la cella entrati). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (il suggerimento «già in coda» sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
+  const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 02 · Consuntivo: il reale, mese per mese'),
+    h('div', { class: 'lede' }, 'Il fisso reale si scrive una volta per fase: l\u2019app lo divide tra i prodotti con i pesi del mese. Vuoto = fase ferma per tutti; 0 = attiva con fisso zero. Per ogni prodotto: entrati, lavorati, scrap, usciti (i pezzi) e il variabile reale; le quote del fisso sono calcolate. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese; ciò che è uscito a monte e non è ancora dichiarato entrato resta «in transito» (suggerimento sotto la cella entrati); i pezzi rimasti in coda sono già disponibili il mese dopo e non vanno ridichiarati («già in coda»).'));
+  // navigazione mesi: semafori con i KO di tutti gli strati e della linea; compilato se c'è il fisso di linea o un consuntivo di prodotto
   const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
+  sc.consuntivo.linea = sc.consuntivo.linea || {};
   for (let m = 1; m <= mesi; m++) {
     const koMese = pronto ? r.ko.filter(c => c.mese === m).length : 0;
-    const compilato = Object.keys(((sc.registro[prod.id] || {})[String(m)]) || {}).length > 0;
+    const compilato = Object.keys(sc.consuntivo.linea[String(m)] || {}).length > 0 || sc.prodotti.some(p => Object.keys((sc.consuntivo[p.id] || {})[String(m)] || {}).length > 0);
     nav.append(h('button', { class: m === stato.meseCorrente ? 'attivo' : '', style: 'min-width:0;flex:0 0 auto;padding:6px 10px', onclick: () => { stato.meseCorrente = m; render(); } },
       `M${m}`, koMese ? h('span', { class: 'semaforo ko', style: 'margin-left:6px;margin-right:0' }) : (compilato ? h('span', { class: 'semaforo ok', style: 'margin-left:6px;margin-right:0' }) : null)));
   }
   card.append(nav);
-  const m = stato.meseCorrente;
-  sc.registro[prod.id] = sc.registro[prod.id] || {};
-  const reg = sc.registro[prod.id];
-  const t = h('table', { class: 'consuntivo' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
-    h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'),
-    h('th', {}, 'Reale var. €'), h('th', {}, 'Std var. €'), h('th', {}, 'Reale fisso €'), h('th', {}, 'Std fisso €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
-  prod.percorso.forEach((fid, i) => {
-    const riga = pronto ? r.registro.find(x => x.mese === m && x.fase === fid) : null;
-    const cella = () => (reg[String(m)] = reg[String(m)] || {}, reg[String(m)][fid] = reg[String(m)][fid] || {});
-    const set = (k, v) => { const c = cella(); if (v === null) delete c[k]; else c[k] = v; if (!Object.keys(c).length) { delete reg[String(m)][fid]; if (!Object.keys(reg[String(m)]).length) delete reg[String(m)]; } ricalcola(); render(); };
-    const cur = (reg[String(m)] || {})[fid] || {};
-    const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
-    // sotto la cella entrati: pezzi in transito a monte non ancora dichiarati entrati (transito disponibile − entrati dichiarati, anche se hai scritto 0)
-    // e pezzi già in coda dal mese prima (non vanno ridichiarati)
-    const hint = [];
-    const residuo = riga && riga.suggeritiEntrati !== null ? riga.suggeritiEntrati - riga.H : 0;
-    if (residuo > 0) hint.push(`in transito: ${fmt(residuo, 0)}`);
-    if (riga && riga.codaPrecedente > 0) hint.push(`già in coda: ${fmt(riga.codaPrecedente, 0)}`);
-    const sugg = hint.length ? h('div', { class: 'hint' }, hint.join(' · ')) : null;
-    const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
-      h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
-      h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
-      h('td', {}, riga ? fmt(riga.I, 0) : '–'), h('td', {}, riga ? fmt(riga.L, 0) : '–'), h('td', {}, riga ? fmt(riga.N, 0) : '–'), h('td', {}, riga ? fmt(riga.P, 0) : '–'),
-      h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'),
-      // accanto a ogni reale il suo standard (Registro R = variabile standard × lavorati, T = fisso standard della fase); grigio se la fase è ferma
-      h('td', {}, inp('varReale', {})), h('td', { style: riga && !riga.attiva ? 'color:var(--grey)' : '' }, riga ? fmt(riga.R) : '–'),
-      h('td', {}, inp('fissoReale', {})), h('td', { style: riga && !riga.attiva ? 'color:var(--grey)' : '' }, riga ? fmt(riga.T) : '–'));
-    const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:260px;max-width:380px' });
-    if (riga) {
-      const miei = r.controlli.filter(c => c.mese === m && c.fase === fid);
-      const ko = miei.filter(c => c.esito === 'KO');
-      if (!riga.attiva && !ko.length) ctr.append(h('span', { class: 'semaforo tace' }), 'riga senza attività: fase ferma');
-      else if (!ko.length) ctr.append(h('span', { class: 'semaforo ok' }), 'OK: quadrature riga e natura, scrap, ciclo, uscite, stati');
-      else for (const c of ko) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `${c.codice} · ${c.messaggio}`));
-      if (riga.AO < 0) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `transito negativo: dichiarati entrati a valle più di quanto uscito da ${nomeFase(fid)}.`));
-    }
-    tr.append(ctr); t.append(tr);
-  });
-  card.append(h('div', { class: 'scroll' }, t));
-  if (pronto) {
-    const y = r.sintesi[m - 1];
-    card.append(h('p', { class: 'note' }, `Mese ${m}: costo reale ${fmt(y.B)} €, standard maturato ${fmt(y.C)} €, delta sui lavorati ${fmt(y.N)} €, non produzione ${fmt(y.O)} €. Quadratura stati ${y.I}, quadratura mese ${y.P}.`));
+  const m = stato.meseCorrente, rip = ripartizioneMese(m);
+  // ---- blocco Linea: una cella di fisso reale per fase; accanto lo standard di fase, le quote ai prodotti e il residuo Linea
+  const lin = sc.consuntivo.linea;
+  const tl = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Fisso reale €'), h('th', {}, 'Std fisso €'), h('th', { style: 'text-align:left' }, 'di cui ai prodotti (reale)'), h('th', {}, 'di cui Linea €'))));
+  for (const f of sc.fasi) {
+    const cur = (lin[String(m)] || {})[f.id] || {};
+    const set = v => { lin[String(m)] = lin[String(m)] || {}; if (v === null) { delete lin[String(m)][f.id]; if (!Object.keys(lin[String(m)]).length) delete lin[String(m)]; } else lin[String(m)][f.id] = { fissoReale: v }; ricalcola(); render(); };
+    const x = rip ? rip.fasi[f.id] : null;
+    const quote = x ? Object.entries(x.perProdotto).map(([pid, q]) => `${nomeProdotto(pid)} ${q.reale === null ? '–' : fmt(q.reale)}`).join(' · ') : '';
+    tl.append(h('tr', {}, h('td', {}, f.nome),
+      h('td', {}, cellaInput(cur.fissoReale === undefined || cur.fissoReale === null ? null : cur.fissoReale, { min: 0, regola: 'numero ≥ 0', onchange: set })),
+      h('td', {}, x ? fmt(x.fissoStd) : '–'),
+      h('td', { style: 'text-align:left;color:var(--muted);white-space:normal' }, quote || 'nessun prodotto su questa fase'),
+      h('td', { style: 'color:var(--grey)' }, x ? (x.linea.reale === null ? '–' : fmt(x.linea.reale)) : '–')));
   }
+  card.append(h('h3', {}, `Linea · fisso reale del mese M${m}`), h('div', { class: 'scroll' }, tl));
+  // ---- una tabella per prodotto (le sei celle della v1 meno il fisso reale, che qui è una quota calcolata)
+  for (const p of sc.prodotti) {
+    const st = pronto ? r.strati[p.id] : null;
+    sc.consuntivo[p.id] = sc.consuntivo[p.id] || {};
+    const reg = sc.consuntivo[p.id];
+    const t = h('table', { class: 'consuntivo' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
+      h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'),
+      h('th', {}, 'Reale var. €'), h('th', {}, 'Std var. €'), h('th', {}, 'Quota fisso reale €'), h('th', {}, 'Quota fisso std €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
+    p.percorso.forEach(fid => {
+      const riga = st ? st.registro.find(x => x.mese === m && x.fase === fid) : null;
+      const cella = () => (reg[String(m)] = reg[String(m)] || {}, reg[String(m)][fid] = reg[String(m)][fid] || {});
+      const set = (k, v) => { const c = cella(); if (v === null) delete c[k]; else c[k] = v; if (!Object.keys(c).length) { delete reg[String(m)][fid]; if (!Object.keys(reg[String(m)]).length) delete reg[String(m)]; } ricalcola(); render(); };
+      const cur = (reg[String(m)] || {})[fid] || {};
+      const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
+      const hint = [];
+      const residuo = riga && riga.suggeritiEntrati !== null ? riga.suggeritiEntrati - riga.H : 0;
+      if (residuo > 0) hint.push(`in transito: ${fmt(residuo, 0)}`);
+      if (riga && riga.codaPrecedente > 0) hint.push(`già in coda: ${fmt(riga.codaPrecedente, 0)}`);
+      const sugg = hint.length ? h('div', { class: 'hint' }, hint.join(' · ')) : null;
+      const grigio = riga && !riga.attiva ? 'color:var(--grey)' : '';
+      const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
+        h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
+        h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
+        h('td', {}, riga ? fmt(riga.I, 0) : '–'), h('td', {}, riga ? fmt(riga.L, 0) : '–'), h('td', {}, riga ? fmt(riga.N, 0) : '–'), h('td', {}, riga ? fmt(riga.P, 0) : '–'),
+        h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'),
+        h('td', {}, inp('varReale', {})), h('td', { style: grigio }, riga ? fmt(riga.R) : '–'),
+        h('td', { style: grigio }, riga && riga.S !== null && riga.S !== undefined ? fmt(riga.S) : '–'), h('td', { style: grigio }, riga ? fmt(riga.T) : '–'));
+      const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:260px;max-width:380px' });
+      if (riga) {
+        const miei = r.controlli.filter(c => c.mese === m && c.fase === fid && c.prodotto === p.id);
+        const ko = miei.filter(c => c.esito === 'KO');
+        if (!riga.attiva && !ko.length) ctr.append(h('span', { class: 'semaforo tace' }), 'riga senza attività: fase ferma');
+        else if (!ko.length) ctr.append(h('span', { class: 'semaforo ok' }), 'OK: quadrature riga e natura, scrap, ciclo, uscite, stati');
+        else for (const c of ko) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `${c.codice} · ${c.messaggio}`));
+        if (riga.AO < 0) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `transito negativo: dichiarati entrati a valle più di quanto uscito da ${nomeFase(fid)}.`));
+      }
+      tr.append(ctr); t.append(tr);
+    });
+    card.append(h('h3', {}, p.nome), h('div', { class: 'scroll' }, t));
+    if (st) { const y = st.sintesi[m - 1]; card.append(h('p', { class: 'note' }, `${p.nome}, mese ${m}: costo reale ${fmt(y.B)} €, standard maturato ${fmt(y.C)} €, delta sui lavorati ${fmt(y.N)} €, non produzione ${fmt(y.O)} €. Quadratura stati ${y.I}, quadratura mese ${y.P}.`)); }
+  }
+  if (pronto) { const lm = r.linea.perMese[m - 1]; card.append(h('p', { class: 'note' }, `Linea, mese ${m}: posti non assegnati ${fmt(lm.reale)} € reali, ${fmt(lm.std)} € a standard (non produzione della linea, su nessun prodotto).`)); }
   el.append(card);
 }
 // ---- Passo 3 · Risultati
