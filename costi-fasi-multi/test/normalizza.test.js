@@ -61,3 +61,10 @@ test('validaLinea: pesi oltre il 100 % nel mese 5, con mese e fase nel messaggio
   assert.ok(err.some(e => /M5.*Fase 1.*125/i.test(e)), JSON.stringify(err));
   assert.ok(!err.some(e => /M4/.test(e)), 'nel mese 4 i pesi tornano');
 });
+
+test('revisione 3: normalizzaV2 riporta i filtri dentro l\'orizzonte (1 ≤ daMese ≤ aMese ≤ mesi)', () => {
+  const s = L.normalizzaV2({ versione: 2, mesi: 6, fasi: [{ id: 'F1' }], prodotti: [{ id: 'P1', percorso: ['F1'] }], filtri: { daMese: 9, aMese: 12 } });
+  assert.deepEqual([s.filtri.daMese, s.filtri.aMese], [6, 6]);
+  const s2 = L.normalizzaV2({ versione: 2, mesi: 12, fasi: [{ id: 'F1' }], prodotti: [{ id: 'P1', percorso: ['F1'] }], filtri: { daMese: 5, aMese: 2 } });
+  assert.deepEqual([s2.filtri.daMese, s2.filtri.aMese], [5, 5]);
+});

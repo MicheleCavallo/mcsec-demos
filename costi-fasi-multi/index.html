@@ -140,7 +140,7 @@ function avviso(testo, tipo) { const el = document.getElementById('avviso'); el.
 function prodottoCorrente() { const sc = stato.scenario; if (!sc.prodotti.some(p => p.id === stato.prodottoCorrente)) stato.prodottoCorrente = sc.prodotti[0].id; return sc.prodotti.find(p => p.id === stato.prodottoCorrente); }
 function nomeProdotto(pid) { return (stato.scenario.prodotti.find(p => p.id === pid) || {}).nome || pid; }
 // pesi e ripartizione del mese m (null se il motore non parte)
-function pesiMese(m) { const r = stato.risultato; return r && !r.errori.length ? r.pesi[m - 1] : null; }
+function pesiMese(m) { const r = stato.risultato; return r && r.pesi && r.pesi.length ? r.pesi[m - 1] : null; }   // anche con il solo errore Σ pesi: la pagina mostra il rosso
 function ripartizioneMese(m) { const r = stato.risultato; return r && !r.errori.length ? r.ripartizione[m - 1] : null; }
 // ---- helpers DOM
 function h(tag, attrs, ...figli) {
@@ -645,7 +645,7 @@ function mostraJson(testo) {
 const qs = new URLSearchParams(location.search);
 if (qs.get('esempio') === '1') { stato.scenario = structuredClone(ESEMPIO_LINEA); stato.nonSalvare = true; } else carica();
 if (qs.get('passo')) stato.passo = Math.min(3, Math.max(1, Number(qs.get('passo')) || 1));
-if (qs.get('mese')) stato.meseCorrente = Math.min(12, Math.max(1, Number(qs.get('mese')) || 1));
+if (qs.get('mese')) stato.meseCorrente = Math.min(stato.scenario.mesi || 12, Math.max(1, Number(qs.get('mese')) || 1));   // dentro l'orizzonte dello scenario
 if (qs.get('scheda')) stato.scheda = qs.get('scheda');
 if (qs.get('prodotto')) { const v = qs.get('prodotto'); stato.vista3 = v; if (v !== 'linea') stato.prodottoCorrente = v; }
 ricalcola(); render();

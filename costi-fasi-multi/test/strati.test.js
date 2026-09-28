@@ -38,7 +38,7 @@ test('un solo prodotto con quota = capacità v1: lo strato riproduce la v1 cella
   rif.semilavorati.forEach((r, i) => stessaRiga(r, st.semilavorati[i], `Semilavorati M${r.mese} ${r.fase}`));
   rif.sintesi.forEach((r, i) => stessaRiga(Object.assign({}, r, { scostCumFase: undefined }), st.sintesi[i], `Sintesi M${r.mese}`));
   for (const k of ['lavorati', 'buoni', 'finitiPezzi', 'finitoCosto', 'realePieno', 'attesoPieno']) assert.ok(Math.abs(rif.costoProdotto[k] - st.costoProdotto[k]) <= TOL, k);
-  assert.ok(Math.abs(rif.costoProdotto.grafico2.totale - 1106) <= TOL);
+  assert.ok(Math.abs(st.costoProdotto.grafico2.totale - 1106) <= TOL, 'grafico 2 dello STRATO (non della v1) a 1.106');
   assert.deepEqual(st.ko, []);
 });
 

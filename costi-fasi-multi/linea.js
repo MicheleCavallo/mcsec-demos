@@ -35,8 +35,10 @@
     const cons = mappa(s.consuntivo); s.consuntivo = { linea: mappa(cons.linea) };
     for (const p of s.prodotti) s.consuntivo[p.id] = mappa(cons[p.id]);   // i prodotti assenti perdono il consuntivo
     const f = mappa(s.filtri);
-    s.filtri = { daMese: Number.isInteger(f.daMese) ? f.daMese : 1, aMese: Number.isInteger(f.aMese) ? f.aMese : s.mesi,
-      prodotto: typeof f.prodotto === 'string' ? f.prodotto : 'tutti', fase: typeof f.fase === 'string' ? f.fase : 'tutte' };
+    // filtri sempre dentro l'orizzonte: 1 ≤ daMese ≤ aMese ≤ mesi (revisione 28/09: fuori orizzonte il Passo 03 andava in crash)
+    const da = Math.min(s.mesi, Math.max(1, Number.isInteger(f.daMese) ? f.daMese : 1));
+    const a = Math.min(s.mesi, Math.max(da, Number.isInteger(f.aMese) ? f.aMese : s.mesi));
+    s.filtri = { daMese: da, aMese: a, prodotto: typeof f.prodotto === 'string' ? f.prodotto : 'tutti', fase: typeof f.fase === 'string' ? f.fase : 'tutte' };
     return s;
   }
 
@@ -71,7 +73,8 @@
   }
 
   // Errori di scenario (non KO): senza dati coerenti gli strati non si calcolano. Σ pesi ≤ 1 per fase e mese.
-  function validaLinea(sc) {
+  // opts.soloStruttura: salta il controllo Σ pesi (serve a calcolaLinea per dare comunque i pesi alla pagina quando l'unico errore è quello)
+  function validaLinea(sc, opts) {
     const err = [];
     if (!sc || typeof sc !== 'object') return ['Scenario mancante.'];
     if (!Array.isArray(sc.fasi) || !sc.fasi.length) err.push('Il catalogo delle fasi è vuoto.');
@@ -111,7 +114,7 @@
       else if (eredita(fisso, 1) === null) err.push(`${nomeFase(sc, fid)}: manca il fisso di fase nel mese 1.`);
     }
     for (const [m, celle] of Object.entries(((sc.consuntivo || {}).linea) || {})) for (const [fid, c] of Object.entries(celle || {})) if (c && !finito(c.fissoReale)) err.push(`Linea, M${m} ${nomeFase(sc, fid)}: fisso reale non è un numero.`);
-    if (err.length) return err;
+    if (err.length || (opts && opts.soloStruttura)) return err;
     for (let m = 1; m <= mesi; m++) for (const fid of usate) {
       let somma = 0;
       for (const p of sc.prodotti) { if (!p.percorso.includes(fid)) continue; const par = p.parametri[fid]; somma += eredita(par.quota, m) / eredita(par.capacita, m); }
@@ -189,7 +192,8 @@
 
   function calcolaLinea(sc) {
     const errori = validaLinea(sc);
-    if (errori.length) return { errori, pesi: [], ripartizione: [], strati: {}, controlli: [], ko: [] };
+    // con il solo errore Σ pesi > 100 % i pesi si calcolano lo stesso: la pagina deve mostrare dove sono in rosso (revisione 28/09)
+    if (errori.length) return { errori, pesi: validaLinea(sc, { soloStruttura: true }).length ? [] : calcolaPesi(sc), ripartizione: [], strati: {}, controlli: [], ko: [] };
     const pesi = calcolaPesi(sc), ripartizione = ripartisciFisso(sc, pesi);
     const strati = {}, controlli = [];
     for (const p of sc.prodotti) {
@@ -198,9 +202,11 @@
       for (const c of ris.controlli) controlli.push(Object.assign({}, c, { prodotto: p.id, messaggio: c.esito === 'KO' ? `${p.nome}: ${c.messaggio}` : c.messaggio }));
     }
     // strato Linea: residuo del fisso per fase e mese (reale null = fase ferma → 0)
-    const perMese = ripartizione.map(r => { const fasi = {}; let std = 0, reale = 0;
-      for (const [fid, x] of Object.entries(r.fasi)) { fasi[fid] = { std: x.linea.std, reale: x.linea.reale === null ? 0 : x.linea.reale }; std += fasi[fid].std; reale += fasi[fid].reale; }
-      return { mese: r.mese, fasi, std, reale }; });
+    // budget = std del residuo solo se la fase è attiva per la linea nel mese (fissoReale non null), come il budget v1 che conta solo le righe attive;
+    // std resta informativo anche a fase ferma (revisione 28/09: altrimenti una linea ferma mostrava un delta favorevole fittizio)
+    const perMese = ripartizione.map(r => { const fasi = {}; let std = 0, reale = 0, budget = 0;
+      for (const [fid, x] of Object.entries(r.fasi)) { const attiva = x.fissoReale !== null; fasi[fid] = { std: x.linea.std, reale: attiva ? x.linea.reale : 0, budget: attiva ? x.linea.std : 0 }; std += fasi[fid].std; reale += fasi[fid].reale; budget += fasi[fid].budget; }
+      return { mese: r.mese, fasi, std, reale, budget }; });
     // controlli di linea: LFERMA (fase ferma per la linea, prodotto che lavora) e LRES (posti non assegnati, informativo)
     const nomeF = fid => (sc.fasi.find(f => f.id === fid) || {}).nome || fid;
     for (const p of sc.prodotti) for (const r of strati[p.id].registro) {
@@ -216,7 +222,9 @@
   // ---- Totale della linea sul periodo: Σ strati (costoProdotto di ogni prodotto, fase «tutte») + strato Linea.
   // Il costo per pezzo uscito non esiste a livello linea (prodotti diversi): si legge per prodotto.
   function totaleLinea(res, filtri) {
-    const da = filtri.daMese, a = filtri.aMese;
+    // filtri riportati dentro l'orizzonte con la stessa regola del motore v1 (revisione 28/09: fuori orizzonte crash su serie[m-1])
+    const mesi = res.linea.perMese.length || MESI_DEFAULT;
+    const da = Math.min(mesi, Math.max(1, Number(filtri.daMese) || 1)), a = Math.min(mesi, Math.max(da, Number(filtri.aMese) || mesi));
     const strati = {}, righe = [], finiti = [];
     const q0 = () => ({ reale: 0, budget: 0, delta: 0 });
     const quad = { prodotto: q0(), nonProduzione: q0(), totale: q0() };
@@ -233,7 +241,7 @@
       finiti.push({ pid, nome, pezzi: cp.finitiPezzi, realePz: cp.finitoCosto, standardPz: cp.finitoStandardPz, deltaPz: cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null });
     }
     const linea = { reale: 0, budget: 0, delta: 0 };
-    for (const m of res.linea.perMese) if (m.mese >= da && m.mese <= a) { linea.reale += m.reale; linea.budget += m.std; }
+    for (const m of res.linea.perMese) if (m.mese >= da && m.mese <= a) { linea.reale += m.reale; linea.budget += m.budget; }
     linea.delta = linea.reale - linea.budget;
     for (const j of ['reale', 'budget', 'delta']) { quad.nonProduzione[j] += linea[j]; quad.totale[j] += linea[j]; }
     g2.linea = linea.reale; g2.totale += linea.reale;
