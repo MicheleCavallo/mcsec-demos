@@ -51,6 +51,10 @@ input.cella.scritto { border-color:var(--gold); }
 .scheda { border:1px solid var(--border); border-radius:6px; padding:8px 12px 10px; margin:8px 0; background:var(--panel2); }  /* scheda del prodotto corrente */
 table.consuntivo td { height:52px; position:relative; padding:4px 4px; }
 table.consuntivo th { padding:4px 4px; }
+table.griglia th, table.griglia td { padding:3px 4px; }   /* griglie fasi × 12 mesi: devono stare nella pagina */
+table.griglia input.cella { width:58px; }
+table.griglia td:first-child { font-size:11px; }
+table.griglia tr.derivati td { font-size:10px; }
 table.consuntivo input.cella { width:58px; }   /* più stretta: la tabella per prodotto deve stare nella pagina */  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
 .hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
@@ -168,7 +172,7 @@ function nomeFase(fid) { return (stato.scenario.fasi.find(x => x.id === fid) || 
 function grigliaMesi(titolo, righe, opts) {
   const sc = stato.scenario, mesi = sc.mesi || 12, scala = opts.scala || 1;
   const g = h('div', { class: 'scroll' }, h('h3', {}, titolo));
-  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), ...Array.from({ length: mesi }, (_, m) => h('th', {}, 'M' + (m + 1))))));
+  const t = h('table', { class: 'griglia' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), ...Array.from({ length: mesi }, (_, m) => h('th', {}, 'M' + (m + 1))))));
   for (const r of righe) {
     const tr = h('tr', {}, h('td', {}, r.nome));
     for (let m = 1; m <= mesi; m++) {
@@ -212,7 +216,8 @@ function renderStandard(el) {
     const pesi = Array.from({ length: mesi }, (_, i) => pesiMese(i + 1));
     if (!pesi[0]) return out;
     out.push(['Σ pesi dei prodotti', pesi.map(w => { const x = w.fasi[riga.id]; const st = x.somma > 1 + 1e-9 ? 'color:var(--ko)' : (x.somma === 0 ? 'color:var(--grey)' : ''); return [pct(x.somma), st]; })]);
-    out.push(['pezzi equivalenti', pesi.map(w => { const e = w.fasi[riga.id].equivalenti; return [e ? `${fmt(e.usati, Number.isInteger(e.usati) ? 0 : 1)} su ${fmt(e.capacita, 0)} ${nomeProdotto(e.riferimento)}` : '–', 'color:var(--muted);font-size:10px']; })]);
+    const rif = pesi[0].fasi[riga.id].equivalenti;   // il prodotto di riferimento va nell'etichetta, non in ogni cella
+    out.push([rif ? `pezzi eq. in ${nomeProdotto(rif.riferimento)}` : 'pezzi equivalenti', pesi.map(w => { const e = w.fasi[riga.id].equivalenti; return [e ? `${fmt(e.usati, Number.isInteger(e.usati) ? 0 : 1)} su ${fmt(e.capacita, 0)}` : '–', 'color:var(--muted)']; })]);
     return out;
   };
   card.append(grigliaMesi('Linea · fisso standard di fase € al mese', sc.fasi.map(f => ({ id: f.id, nome: f.nome, mappa: (sc.linea[f.id] = sc.linea[f.id] || { fisso: {} }).fisso })), { sotto: sottoPesi }));
@@ -256,8 +261,8 @@ function renderProdotti(card) {
     return { id: fid, nome: nomeFase(fid), mappa: par[voce], max: voce === 'quota' ? (m => CostiFasi.eredita(par.capacita, m) || undefined) : undefined,
       fallback: voce === 'quota' ? (m => CostiFasi.eredita(par.capacita, m)) : undefined }; });   // quota vuota = capacità piena
   const sottoQuota = riga => { const out = []; const pesi = Array.from({ length: mesi }, (_, i) => pesiMese(i + 1)); if (!pesi[0]) return out;
-    out.push(['peso su fase (quota ÷ capacità)', pesi.map(w => [pct(w.fasi[riga.id].pesi[p.id] || 0), ''])]);
-    out.push(['Σ pesi di tutti i prodotti', pesi.map(w => { const sm = w.fasi[riga.id].somma; return [pct(sm), sm > 1 + 1e-9 ? 'color:var(--ko);font-weight:700' : 'color:var(--ok)']; })]);
+    out.push(['peso (quota ÷ capacità)', pesi.map(w => [pct(w.fasi[riga.id].pesi[p.id] || 0), ''])]);
+    out.push(['Σ pesi dei prodotti', pesi.map(w => { const sm = w.fasi[riga.id].somma; return [pct(sm), sm > 1 + 1e-9 ? 'color:var(--ko);font-weight:700' : 'color:var(--ok)']; })]);
     return out; };
   for (const [voce, titolo] of VOCI_PRODOTTO) {
     const opts = voce === 'scrap' ? { scala: 100, max: 99, regola: 'tra 0 e 99' } : (voce === 'quota' ? { regola: 'tra 1 e la capacità piena', sotto: sottoQuota } : {});
