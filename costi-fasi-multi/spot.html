@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quanto ti costa la non produzione? · spot · MCSec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#0D1B2A; --panel:#12233C; --panel2:#0F1E33; --border:#23395A; --gold:#C29635; --gold-light:#D4AF37; --text:#FFFFFF; --muted:#B0B8C4; --grey:#6B7686;
+  --blu:#3987e5; --arancio:#d95926; --verde:#199e70; --rosa:#d55181; --head:'Manrope','Segoe UI',sans-serif; --font:'Nunito Sans','Segoe UI',sans-serif; --serif:'Playfair Display',Georgia,serif;
+  --ease:cubic-bezier(.2,.7,.2,1); }
+* { box-sizing:border-box; }
+html,body { margin:0; background:#080C10; color:var(--text); font-family:var(--font); }
+.foglio { width:1600px; height:900px; margin:0 auto; position:relative; overflow:hidden; background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%); }
+.scena { position:absolute; inset:0; padding:60px 80px; opacity:0; transition:opacity .4s var(--ease); pointer-events:none; }
+.scena.on { opacity:1; pointer-events:auto; }
+.kicker { font-family:var(--head); font-weight:700; font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-light); }
+h1 { font-family:var(--head); font-weight:800; font-size:44px; line-height:1.15; margin:8px 0 0; max-width:1100px; }
+h1 .oro { color:var(--gold-light); }
+.big { font-family:var(--head); font-weight:800; font-size:64px; line-height:1.1; color:var(--gold-light); }
+.sub { font-family:var(--serif); font-style:italic; color:var(--muted); font-size:22px; margin-top:10px; }
+.el { opacity:0; transform:translateY(14px); transition:opacity .38s var(--ease), transform .38s var(--ease); }
+.on .el.in { opacity:1; transform:none; }
+/* scena 1: l'aereo */
+.posti { display:grid; grid-template-columns:repeat(10, 46px); gap:10px; margin:40px 0 18px; }
+.posto { width:46px; height:46px; border-radius:8px 8px 4px 4px; border:1.5px solid var(--border); background:var(--panel2); transition:background .3s var(--ease), border-color .3s var(--ease), transform .3s var(--ease); }
+.posto.pieno { background:var(--gold-light); border-color:var(--gold-light); }
+.posto.vuoto { background:var(--arancio); border-color:var(--arancio); }
+.dida { font-family:var(--head); font-weight:700; font-size:16px; color:var(--muted); letter-spacing:.04em; }
+.frase1 { font-family:var(--head); font-weight:700; font-size:40px; margin-top:40px; }
+.frase2 { font-family:var(--head); font-weight:800; font-size:64px; color:var(--gold-light); line-height:1.1; }
+/* scena 1b e 5: mappa fasi × prodotti */
+.mappa { display:grid; grid-template-columns:260px 260px; gap:14px 40px; margin-top:40px; }
+.mappa .col { font-family:var(--head); font-weight:700; font-size:18px; color:var(--muted); text-align:center; }
+.fase { border:1.5px solid var(--blu); border-left:6px solid var(--blu); border-radius:6px; padding:12px 16px; font-family:var(--head); font-weight:700; font-size:20px; background:var(--panel2); }
+.fase.p2 { border-color:var(--verde); }
+.fase.cond { border-color:var(--gold-light); box-shadow:0 0 0 3px rgba(212,175,55,.25), 0 0 24px rgba(194,150,53,.35); }
+.fase.no { border:1.5px dashed var(--border); border-left:1.5px dashed var(--border); background:transparent; color:transparent; }
+.fase small { color:var(--muted); font-weight:400; margin-right:8px; }
+/* scena 2: i pezzi si muovono */
+table { border-collapse:collapse; margin-top:34px; font-size:22px; }
+th, td { border:1px solid var(--border); padding:10px 18px; text-align:right; }
+th { background:var(--panel2); font-family:var(--head); font-size:15px; color:var(--muted); font-weight:700; }
+td:first-child, th:first-child { text-align:left; font-family:var(--head); font-weight:700; }
+td.num { font-family:var(--head); font-weight:700; min-width:110px; }
+tr.ferma td { color:var(--grey); }
+tr.ferma td:first-child::after { content:' · ferma'; color:var(--arancio); font-size:15px; }
+td.scarto { color:var(--arancio); }
+/* scena 3: tre numeri e la barra */
+.tre { display:flex; gap:60px; margin-top:44px; }
+.tre .n { flex:1; }
+.tre .n .v { font-family:var(--head); font-weight:800; font-size:76px; color:var(--gold-light); line-height:1; }
+.tre .n .l { color:var(--muted); font-size:18px; margin-top:8px; }
+.tre .n.ar .v { color:var(--arancio); }
+.barra { display:flex; height:54px; margin-top:54px; gap:3px; }
+.barra div { height:100%; border-radius:4px; transform:scaleX(0); transform-origin:left; transition:transform .5s var(--ease); display:flex; align-items:center; justify-content:center; font-family:var(--head); font-weight:700; color:#0D1B2A; font-size:16px; white-space:nowrap; overflow:hidden; }
+.on .barra.in div { transform:scaleX(1); }
+.legenda { color:var(--muted); font-size:15px; margin-top:12px; }
+/* scena 4 e 5 */
+.logo { font-family:var(--head); font-weight:800; font-size:64px; color:var(--gold-light); letter-spacing:-.01em; }
+.centro { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 120px; }
+.contatti { position:absolute; left:80px; right:80px; bottom:40px; display:flex; justify-content:space-between; color:var(--muted); font-size:15px; border-top:1px solid var(--border); padding-top:12px; }
+#hud { position:absolute; right:16px; bottom:10px; font:12px var(--font); color:var(--muted); opacity:.7; }
+#hud b { color:var(--gold-light); }
+</style>
+</head>
+<body>
+<div class="foglio" id="foglio">
+
+<!-- 1 · Intro, l'aereo -->
+<section class="scena" data-scena="1">
+  <div class="kicker el" data-t="0">Performance Intelligence · MCSec</div>
+  <h1 class="el" data-t="0">Un aereo da 40 posti che decolla con 10 passeggeri.</h1>
+  <div class="sub el" data-t="1">Carburante, equipaggio, pista: li paghi uguali.</div>
+  <div class="posti el" data-t="1" id="posti"></div>
+  <div class="dida el" data-t="3">40 posti · 10 passeggeri · il volo costa uguale</div>
+  <div class="frase1 el" data-t="4">Sai quanto ti costa il prodotto, ma…</div>
+  <div class="frase2 el" data-t="5">non sai quanto ti costa la non produzione.</div>
+</section>
+
+<!-- 1b · Il problema: due prodotti, una fase condivisa -->
+<section class="scena" data-scena="2">
+  <div class="kicker el" data-t="0">Il problema</div>
+  <h1 class="el" data-t="0">Due prodotti, fasi diverse, <span class="oro">un impianto condiviso</span>.</h1>
+  <div class="sub el" data-t="1">Produci e non saturi? Il costo di ciò che produci, e il costo della capacità che non usi.</div>
+  <div class="mappa">
+    <div class="col el" data-t="1">Prodotto 1</div><div class="col el" data-t="1">Prodotto 2</div>
+    <div class="fase el" data-t="2"><small>01</small>Fase 1</div><div class="fase p2 el" data-t="2"><small>01</small>Fase 1</div>
+    <div class="fase el" data-t="3"><small>02</small>Fase 2</div><div class="fase no el" data-t="3">–</div>
+    <div class="fase cond el" data-t="4"><small>03</small>Fase 3 · condivisa</div><div class="fase p2 cond el" data-t="4"><small>02</small>Fase 3 · condivisa</div>
+  </div>
+</section>
+
+<!-- 2 · La produzione -->
+<section class="scena" data-scena="3">
+  <div class="kicker el" data-t="0">La produzione</div>
+  <h1 class="el" data-t="0">I pezzi si muovono tra le fasi. <span class="oro">Scarti e fermate</span> mostrano dove nascono gli scostamenti.</h1>
+  <table class="el" data-t="1">
+    <thead><tr><th>Fase</th><th>Entrati</th><th>Lavorati</th><th>Scartati</th><th>Usciti</th><th>Posti vuoti</th></tr></thead>
+    <tbody>
+      <tr><td>Fase 1</td><td class="num" data-n="30">0</td><td class="num" data-n="30">0</td><td class="num" data-n="0">0</td><td class="num" data-n="30">0</td><td class="num" data-n="20">0</td></tr>
+      <tr><td>Fase 2</td><td class="num" data-n="30">0</td><td class="num" data-n="25">0</td><td class="num scarto" data-n="5">0</td><td class="num" data-n="20">0</td><td class="num" data-n="15">0</td></tr>
+      <tr class="ferma"><td>Fase 3</td><td class="num" data-n="0">0</td><td class="num" data-n="0">0</td><td class="num" data-n="0">0</td><td class="num" data-n="0">0</td><td class="num" data-n="50">0</td></tr>
+    </tbody>
+  </table>
+  <div class="sub el" data-t="3">Fase 3 ferma: i suoi 50 posti vuoti costano lo stesso. Non finiscono sul pezzo: sono il costo del mese.</div>
+</section>
+
+<!-- 3 · Il risultato -->
+<section class="scena" data-scena="4">
+  <div class="kicker el" data-t="0">Il risultato</div>
+  <h1 class="el" data-t="0">Costo previsto, costo effettivo, <span class="oro">costo della capacità inutilizzata</span>.</h1>
+  <div class="tre">
+    <div class="n el" data-t="1"><div class="v" data-conta="18,00">18,00</div><div class="l">€ per pezzo, previsto a standard</div></div>
+    <div class="n el" data-t="2"><div class="v" data-conta="33,31">33,31</div><div class="l">€ per pezzo, effettivo</div></div>
+    <div class="n ar el" data-t="3"><div class="v" data-conta="854">854</div><div class="l">€ di capacità non usata nel periodo, su 1.106 spesi</div></div>
+  </div>
+  <div class="barra el" data-t="4" id="barra">
+    <div style="flex:480;background:var(--blu)">fasi ferme 480</div>
+    <div style="flex:374;background:var(--arancio)">posti vuoti 374</div>
+    <div style="flex:140;background:var(--verde)">scarto 140</div>
+    <div style="flex:12;background:#c98500"></div>
+    <div style="flex:100;background:var(--rosa)">finiti 100</div>
+  </div>
+  <div class="legenda el" data-t="4">Dove sono finiti i 1.106 € del periodo: i posti vuoti dell'aereo sono la fetta arancio.</div>
+</section>
+
+<!-- 4 · La proposta -->
+<section class="scena" data-scena="5">
+  <div class="centro">
+    <div class="logo el" data-t="0">MCSec</div>
+    <h1 class="el" data-t="1" style="text-align:center;margin-top:24px">Vent'anni di controlling, <span class="oro">applicati alla tua produzione</span>.</h1>
+  </div>
+</section>
+
+<!-- 5 · L'invito -->
+<section class="scena" data-scena="6">
+  <div class="centro">
+    <div class="kicker el" data-t="0">L'invito</div>
+    <h1 class="el" data-t="0" style="text-align:center">Partiamo dal tuo aereo: <span class="oro">due prodotti e una fase condivisa</span>.</h1>
+    <div class="sub el" data-t="1">Una prima analisi, senza impegno.</div>
+  </div>
+  <div class="contatti el" data-t="1"><span>www.mcsec.it &nbsp;|&nbsp; info@mcsec.it &nbsp;|&nbsp; Catania (CT)</span><span>Performance Intelligence · metodologia MCSec</span></div>
+</section>
+
+<div id="hud"></div>
+</div>
+<script>
+'use strict';
+// Sei scene, ognuna con passi interni (data-t). ?auto=1 va da sola con i tempi dello storyboard (versione 5);
+// ?pres=1 a passi: spazio/→/clic avanti, ← indietro. Senza parametri: tutto visibile della prima scena, poi a passi.
+const qs = new URLSearchParams(location.search);
+const AUTO = qs.get('auto') === '1';
+// posti dell'aereo: 40, i primi 10 si riempiono (oro), gli altri 30 restano vuoti (arancio) al passo 2
+const posti = document.getElementById('posti');
+for (let i = 0; i < 40; i++) posti.append(Object.assign(document.createElement('div'), { className: 'posto' }));
+// passi: [scena, passo interno]; durate in ms per la modalità automatica (tempi dello storyboard, tarati sul parlato)
+const PASSI = [
+  [1, 0, 2600], [1, 1, 2200], [1, 2, 2600], [1, 3, 2600], [1, 4, 2400], [1, 5, 3800],   // 0:00–0:16 + frase in due tempi
+  [2, 0, 2400], [2, 1, 2200], [2, 2, 1400], [2, 3, 1400], [2, 4, 3200],                // 1b
+  [3, 0, 2200], [3, 1, 2600], [3, 2, 2400], [3, 3, 3600],                              // 2
+  [4, 0, 2200], [4, 1, 1800], [4, 2, 1800], [4, 3, 2200], [4, 4, 3600],                // 3
+  [5, 0, 1400], [5, 1, 3200],                                                          // 4
+  [6, 0, 2200], [6, 1, 4000]];                                                         // 5
+let k = -1;
+function applica() {
+  const [sc, t] = k >= 0 ? PASSI[k] : [1, -1];
+  document.querySelectorAll('.scena').forEach(s => s.classList.toggle('on', Number(s.dataset.scena) === sc));
+  document.querySelectorAll('.scena').forEach(s => { if (Number(s.dataset.scena) !== sc) s.querySelectorAll('.el').forEach(e => e.classList.remove('in')); });
+  const scena = document.querySelector(`.scena[data-scena="${sc}"]`);
+  scena.querySelectorAll('.el').forEach(e => e.classList.toggle('in', Number(e.dataset.t) <= t));
+  // effetti speciali per passo
+  if (sc === 1) { document.querySelectorAll('.posto').forEach((p, i) => { p.classList.toggle('pieno', t >= 2 && i < 10); p.classList.toggle('vuoto', t >= 3 && i >= 10); if (t >= 2 && i < 10) p.style.transitionDelay = (i * 60) + 'ms'; else if (t >= 3) p.style.transitionDelay = ((i - 10) * 30) + 'ms'; else p.style.transitionDelay = '0ms'; }); }
+  if (sc === 3) { const righe = document.querySelectorAll('.scena[data-scena="3"] tbody tr'); righe.forEach((r, i) => { const on = t >= 1 + Math.min(i, 1) && !(i === 2 && t < 3); r.querySelectorAll('td.num').forEach(c => conta(c, on ? Number(c.dataset.n) : 0)); }); }
+  if (sc === 4) { scena.querySelectorAll('.v').forEach((v, i) => { if (t >= i + 1) conta(v, v.dataset.conta, true); else v.textContent = '0'; }); }
+  document.getElementById('hud').innerHTML = `passo <b>${k + 1}</b> / ${PASSI.length} · scena ${sc}`;
+}
+const timer = new Map();
+function conta(el, target, virgola) {   // numero che sale in ~900 ms, ease-out; virgola = formato it con due decimali
+  const fine = virgola ? Number(String(target).replace('.', '').replace(',', '.')) : Number(target);
+  const inizio = virgola ? Number(String(el.textContent).replace('.', '').replace(',', '.')) || 0 : Number(el.textContent) || 0;
+  if (inizio === fine) return;
+  clearInterval(timer.get(el)); const t0 = performance.now(), dur = 900;
+  const id = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - p, 3), v = inizio + (fine - inizio) * e;
+    el.textContent = virgola ? v.toLocaleString('it-IT', { minimumFractionDigits: String(target).includes(',') ? 2 : 0, maximumFractionDigits: String(target).includes(',') ? 2 : 0 }) : String(Math.round(v));
+    if (p >= 1) clearInterval(id); }, 30);
+  timer.set(el, id);
+}
+function avanti() { if (k < PASSI.length - 1) { k++; applica(); } }
+function indietro() { if (k > 0) { k--; applica(); } }
+document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); avanti(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); indietro(); } else if (e.key === 'Home') { k = 0; applica(); } });
+document.getElementById('foglio').addEventListener('click', avanti);
+k = 0; applica();
+if (AUTO) { const vel = Number(qs.get('v')) || 1; const tick = () => { if (k >= PASSI.length - 1) return; setTimeout(() => { avanti(); tick(); }, PASSI[k][2] / vel); }; tick(); }
+</script>
+</body>
+</html>
