@@ -162,5 +162,43 @@
     return out;
   }
 
-  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, calcolaPesi, ripartisciFisso };
+  // ---- Uno scenario v1 per prodotto (lo «strato»): capacità = quota del prodotto, fisso = fisso di fase × peso (mese per mese, espliciti),
+  // registro = consuntivo del prodotto + fissoReale × peso quando la linea non è ferma nel mese. Il motore v1 fa il resto.
+  function scenarioStrato(sc, pid, rip) {
+    const mesi = sc.mesi || MESI_DEFAULT;
+    const p = sc.prodotti.find(x => x.id === pid);
+    const v1 = { versione: 1, nome: `${sc.nome} · ${p.nome}`, mesi, fasi: sc.fasi.map(f => ({ id: f.id, nome: f.nome })), parametri: {},
+      prodotti: [{ id: p.id, nome: p.nome, percorso: p.percorso.slice() }], registro: { [p.id]: {} }, filtri: { daMese: sc.filtri.daMese, aMese: sc.filtri.aMese, fase: 'tutte' } };
+    for (const fid of p.percorso) {
+      const par = p.parametri[fid], cap = {}, fisso = {};
+      for (let m = 1; m <= mesi; m++) { cap[String(m)] = eredita(par.quota, m); fisso[String(m)] = rip[m - 1].fasi[fid].perProdotto[pid].std; }
+      v1.parametri[fid] = { capacita: cap, var: Object.assign({}, par.var), fisso, scrap: Object.assign({}, par.scrap) };
+    }
+    const cons = ((sc.consuntivo || {})[pid]) || {};
+    for (let m = 1; m <= mesi; m++) {
+      const mese = cons[String(m)] || {};
+      for (const fid of p.percorso) {
+        const cella = Object.assign({}, mese[fid] || {});
+        const reale = rip[m - 1].fasi[fid].perProdotto[pid].reale;
+        if (reale !== null) cella.fissoReale = reale;
+        if (Object.keys(cella).length) { v1.registro[p.id][String(m)] = v1.registro[p.id][String(m)] || {}; v1.registro[p.id][String(m)][fid] = cella; }
+      }
+    }
+    return v1;
+  }
+
+  function calcolaLinea(sc) {
+    const errori = validaLinea(sc);
+    if (errori.length) return { errori, pesi: [], ripartizione: [], strati: {}, controlli: [], ko: [] };
+    const pesi = calcolaPesi(sc), ripartizione = ripartisciFisso(sc, pesi);
+    const strati = {}, controlli = [];
+    for (const p of sc.prodotti) {
+      const ris = calcola(scenarioStrato(sc, p.id, ripartizione));
+      strati[p.id] = ris;
+      for (const c of ris.controlli) controlli.push(Object.assign({}, c, { prodotto: p.id, messaggio: c.esito === 'KO' ? `${p.nome}: ${c.messaggio}` : c.messaggio }));
+    }
+    return { errori: [], pesi, ripartizione, strati, controlli, ko: controlli.filter(c => c.esito === 'KO') };
+  }
+
+  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, calcolaPesi, ripartisciFisso, scenarioStrato, calcolaLinea };
 });
