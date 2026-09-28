@@ -617,9 +617,11 @@ function renderGrafico1(cp) {
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Serie mensile del costo per pezzo buono, atteso e reale', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
   const vals = serie.flatMap(s => [s.reale, s.atteso]).filter(v => v !== null);
   if (!vals.length) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo buono nel periodo')); return svg; }
-  const yMax = Math.max(...vals) * 1.15, bMax = Math.max(...serie.map(s => s.buoni || 0), 1);
-  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / serie.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
-  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  // asse y stretto sui dati (min −12 %, max +12 %): le oscillazioni del costo per pezzo si vedono; il minimo dell'asse è scritto sull'asse
+  const vMin = Math.min(...vals), vMax = Math.max(...vals), amp = Math.max(vMax - vMin, vMax * 0.12, 0.5);
+  const yMin = Math.max(0, Math.floor((vMin - amp * 0.6) * 2) / 2), yMax = Math.ceil((vMax + amp * 0.6) * 2) / 2, bMax = Math.max(...serie.map(s => s.buoni || 0), 1);
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / serie.length, y = v => m.t + (H - m.t - m.b) * (1 - (v - yMin) / (yMax - yMin));
+  for (let k = 0; k <= 4; k++) { const v = yMin + (yMax - yMin) * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 1))); }
   serie.forEach((s, i) => {   // barre dei pezzi buoni (magnitudine, recessive) con etichetta
     const hb = (H - m.t - m.b) * 0.22 * (s.buoni || 0) / bMax;
     if (hb > 0) svg.append(svgEl('rect', { x: x(i) - 9, y: H - m.b - hb, width: 18, height: hb, rx: 2, fill: COL.griglia }));
@@ -676,9 +678,10 @@ function renderGrafico1Linea(t) {   // una coppia di linee per prodotto: reale p
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Serie mensile per prodotto del costo per pezzo buono, atteso e reale', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
   const vals = prodotti.flatMap(p => serieDi(p).flatMap(x => [x.reale, x.atteso])).filter(v => v !== null && v !== undefined);
   if (!vals.length) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo buono nel periodo')); return svg; }
-  const yMax = Math.max(...vals) * 1.15;
-  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / mesi.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
-  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  const vMin = Math.min(...vals), vMax = Math.max(...vals), amp = Math.max(vMax - vMin, vMax * 0.12, 0.5);   // asse stretto sui dati
+  const yMin = Math.max(0, Math.floor((vMin - amp * 0.6) * 2) / 2), yMax = Math.ceil((vMax + amp * 0.6) * 2) / 2;
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / mesi.length, y = v => m.t + (H - m.t - m.b) * (1 - (v - yMin) / (yMax - yMin));
+  for (let k = 0; k <= 4; k++) { const v = yMin + (yMax - yMin) * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 1))); }
   mesi.forEach((mm, i) => svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + mm)));
   prodotti.forEach((p, k) => {
     const col = COLP[k % COLP.length], serie = serieDi(p);
