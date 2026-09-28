@@ -76,10 +76,10 @@ td.scarto { color:var(--arancio); }
 <!-- 1 · Intro, l'aereo -->
 <section class="scena" data-scena="1">
   <div class="kicker el" data-t="0">Performance Intelligence · MCSec</div>
-  <h1 class="el" data-t="0">La produzione come un aereo da 44 posti <span class="oro">che decolla con 11 passeggeri</span>.</h1>
+  <h1 class="el" data-t="0">La produzione come un aereo da 40 posti <span class="oro">che decolla con 10 passeggeri</span>.</h1>
   <div class="sub el" data-t="1">Carburante, equipaggio, pista: li paghi uguali.</div>
   <div class="posti el" data-t="1" id="posti"></div>
-  <div class="leg el" data-t="3"><span><i style="background:var(--gold-light)"></i>posti occupati · 11</span><span><i style="background:var(--arancio)"></i>posti vuoti · 33</span><span class="dida">il volo costa uguale</span></div>
+  <div class="leg el" data-t="3"><span><i style="background:var(--gold-light)"></i>posti occupati · 10</span><span><i style="background:var(--arancio)"></i>posti vuoti · 30</span><span class="dida">il volo costa uguale</span></div>
   <div class="frase1 el" data-t="4">Sai quanto ti costa il prodotto, ma…</div>
   <div class="frase2 el" data-t="5">non sai quanto ti costa la non produzione.</div>
 </section>
@@ -158,15 +158,15 @@ td.scarto { color:var(--arancio); }
 const qs = new URLSearchParams(location.search);
 const AUTO = qs.get('auto') === '1';
 // posti dell'aereo: 40, i primi 10 si riempiono (oro), gli altri 30 restano vuoti (arancio) al passo 2
-// l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 11 file da 4 (2 + corridoio + 2), coordinate nei pixel dell'immagine
+// l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 10 file da 4 (2 + corridoio + 2), l'undicesima fila è stata coperta nell'immagine, coordinate nei pixel dell'immagine
 const NS = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(NS, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
 const svg = el('svg', { viewBox: '0 0 2170 725' });
 const seats = [];
-for (let f = 0; f < 11; f++) for (let r = 0; r < 4; r++) {
+for (let f = 0; f < 10; f++) for (let r = 0; r < 4; r++) {
   const cx = 532 + f * 116.3, cy = [241, 304, 419, 482][r];
   const rect = el('rect', { class: 'posto', x: cx - 34, y: cy - 28, width: 68, height: 56, rx: 10 }); svg.append(rect); seats.push(rect);
 }
-const img = document.createElement('img'); img.src = 'aereo.png'; img.alt = 'Aereo visto dall’alto, 44 posti';
+const img = document.createElement('img'); img.src = 'aereo.png'; img.alt = 'Aereo visto dall’alto, 40 posti';
 document.getElementById('posti').append(img, svg);
 const ordine = seats.map((r, i) => i).sort((a, b) => Math.floor(a / 4) - Math.floor(b / 4) || (a % 4) - (b % 4));
 // passi: [scena, passo interno]; durate in ms per la modalità automatica (tempi dello storyboard, tarati sul parlato)
@@ -185,7 +185,7 @@ function applica() {
   const scena = document.querySelector(`.scena[data-scena="${sc}"]`);
   scena.querySelectorAll('.el').forEach(e => e.classList.toggle('in', Number(e.dataset.t) <= t));
   // effetti speciali per passo
-  if (sc === 1) { ordine.forEach((idx, pos) => { const p = seats[idx]; p.classList.toggle('pieno', t >= 2 && pos < 11); p.classList.toggle('vuoto', t >= 3 && pos >= 11); p.style.transitionDelay = (t >= 2 && pos < 11) ? (pos * 70) + 'ms' : (t >= 3 ? ((pos - 11) * 35) + 'ms' : '0ms'); }); }
+  if (sc === 1) { ordine.forEach((idx, pos) => { const p = seats[idx]; p.classList.toggle('pieno', t >= 2 && pos < 10); p.classList.toggle('vuoto', t >= 3 && pos >= 10); p.style.transitionDelay = (t >= 2 && pos < 10) ? (pos * 70) + 'ms' : (t >= 3 ? ((pos - 10) * 35) + 'ms' : '0ms'); }); }
   if (sc === 3) { const righe = document.querySelectorAll('.scena[data-scena="3"] tbody tr'); righe.forEach((r, i) => { const on = t >= 1 + Math.min(i, 1) && !(i === 2 && t < 3); r.querySelectorAll('td.num').forEach(c => conta(c, on ? Number(c.dataset.n) : 0)); }); }
   if (sc === 4) { scena.querySelectorAll('.v').forEach((v, i) => { if (t >= i + 1) conta(v, v.dataset.conta, true); else v.textContent = '0'; }); }
   document.getElementById('hud').innerHTML = `passo <b>${k + 1}</b> / ${PASSI.length} · scena ${sc}`;
