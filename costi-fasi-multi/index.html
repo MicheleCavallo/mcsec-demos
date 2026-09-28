@@ -233,8 +233,8 @@ function renderProdotti(card) {
     h('button', { disabled: sc.prodotti.length > 1 ? null : '', title: sc.prodotti.length > 1 ? 'Elimina il prodotto e il suo consuntivo' : 'Serve almeno un prodotto', onclick: () => {
       if (!confirm(`Elimino «${p.nome}» con il suo consuntivo? I prodotti rimasti soli su una fase tornano alla quota piena.`)) return;
       sc.prodotti = sc.prodotti.filter(x => x.id !== p.id); delete sc.consuntivo[p.id]; stato.prodottoCorrente = null;
-      // fasi rimaste a un solo prodotto: la sua quota si svuota e vale la capacità piena (Michele 28/09), resta modificabile
-      for (const fid of p.percorso) { const soli = sc.prodotti.filter(x => x.percorso.includes(fid)); if (soli.length === 1 && soli[0].parametri[fid]) soli[0].parametri[fid].quota = {}; }
+      // ogni fase rimasta a un solo prodotto (anche se il prodotto eliminato non la usava): la quota si svuota e vale la capacità piena (Michele 28/09), resta modificabile
+      for (const f of sc.fasi) { const soli = sc.prodotti.filter(x => x.percorso.includes(f.id)); if (soli.length === 1 && soli[0].parametri[f.id]) soli[0].parametri[f.id].quota = {}; }
       ricalcola(); render(); } }, 'Elimina prodotto')));
   // fasi del percorso (spunta sul catalogo) e ordine (chip con frecce)
   const tb = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Nel percorso'))));
