@@ -49,7 +49,9 @@ input.cella.scritto { border-color:var(--gold); }
 .evidenza h3 { margin:2px 0 8px; }
 .evidenza td.big { font-size:16px; font-weight:700; }
 .scheda { border:1px solid var(--border); border-radius:6px; padding:8px 12px 10px; margin:8px 0; background:var(--panel2); }  /* scheda del prodotto corrente */
-table.consuntivo td { height:52px; position:relative; }  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
+table.consuntivo td { height:52px; position:relative; padding:4px 4px; }
+table.consuntivo th { padding:4px 4px; }
+table.consuntivo input.cella { width:58px; }   /* più stretta: la tabella per prodotto deve stare nella pagina */  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
 .hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
 input.nome { width:140px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; }
@@ -310,7 +312,7 @@ function renderConsuntivo(el) {
     const reg = sc.consuntivo[p.id];
     const t = h('table', { class: 'consuntivo' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
       h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'),
-      h('th', {}, 'Reale var. €'), h('th', {}, 'Std var. €'), h('th', {}, 'Quota fisso reale €'), h('th', {}, 'Quota fisso std €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
+      h('th', {}, 'Reale var. €'), h('th', {}, 'Std var. €'), h('th', {}, 'Fisso reale €'), h('th', {}, 'Std fisso €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
     p.percorso.forEach(fid => {
       const riga = st ? st.registro.find(x => x.mese === m && x.fase === fid) : null;
       const cella = () => (reg[String(m)] = reg[String(m)] || {}, reg[String(m)][fid] = reg[String(m)][fid] || {});
@@ -330,12 +332,12 @@ function renderConsuntivo(el) {
         h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'),
         h('td', {}, inp('varReale', {})), h('td', { style: grigio }, riga ? fmt(riga.R) : '–'),
         h('td', { style: grigio }, riga && riga.S !== null && riga.S !== undefined ? fmt(riga.S) : '–'), h('td', { style: grigio }, riga ? fmt(riga.T) : '–'));
-      const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:260px;max-width:380px' });
+      const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:170px;max-width:240px;font-size:11px' });
       if (riga) {
         const miei = r.controlli.filter(c => c.mese === m && c.fase === fid && c.prodotto === p.id);
         const ko = miei.filter(c => c.esito === 'KO');
         if (!riga.attiva && !ko.length) ctr.append(h('span', { class: 'semaforo tace' }), 'riga senza attività: fase ferma');
-        else if (!ko.length) ctr.append(h('span', { class: 'semaforo ok' }), 'OK: quadrature riga e natura, scrap, ciclo, uscite, stati');
+        else if (!ko.length) ctr.append(h('span', { class: 'semaforo ok' }), 'OK: quadrature, scrap, ciclo, uscite, stati');
         else for (const c of ko) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `${c.codice} · ${c.messaggio}`));
         if (riga.AO < 0) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `transito negativo: dichiarati entrati a valle più di quanto uscito da ${nomeFase(fid)}.`));
       }
