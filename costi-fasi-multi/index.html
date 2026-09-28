@@ -49,6 +49,22 @@ input.cella.scritto { border-color:var(--gold); }
 .evidenza h3 { margin:2px 0 8px; }
 .evidenza td.big { font-size:16px; font-weight:700; }
 .scheda { border:1px solid var(--border); border-radius:6px; padding:8px 12px 10px; margin:8px 0; background:var(--panel2); }  /* scheda del prodotto corrente */
+/* raccolta dati dai sistemi aziendali (simulazione): pannello, barra e quattro passi */
+.raccolta { border:1px solid var(--gold); border-radius:8px; padding:10px 14px 12px; margin:8px 0 12px; background:var(--panel2); }
+.raccolta .kicker { font-family:var(--head); font-weight:700; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-light); }
+.raccolta .barra { height:6px; border-radius:3px; background:var(--border); margin:8px 0 10px; overflow:hidden; }
+.raccolta .barra div { height:100%; width:0; background:var(--gold-light); transition:width .6s cubic-bezier(.2,.7,.2,1); }
+.raccolta .passi4 { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+.raccolta .p4 { flex:1 1 180px; display:flex; gap:8px; align-items:flex-start; opacity:.45; transition:opacity .3s; }
+.raccolta .p4.attivo, .raccolta .p4.fatto { opacity:1; }
+.raccolta .p4 .pallino { width:16px; height:16px; border-radius:50%; border:2px solid var(--muted); flex:0 0 16px; margin-top:2px; display:flex; align-items:center; justify-content:center; font-size:10px; }
+.raccolta .p4.attivo .pallino { border-color:var(--gold-light); box-shadow:0 0 0 3px rgba(212,175,55,.25); }
+.raccolta .p4.fatto .pallino { border-color:var(--ok); background:var(--ok); color:#0D1B2A; }
+.raccolta .p4 b { font-family:var(--head); font-size:11px; letter-spacing:.06em; text-transform:uppercase; display:block; }
+.raccolta .p4 small { color:var(--muted); font-size:11px; }
+.raccolta .tag { display:inline-block; border:1px solid var(--gold); color:var(--gold-light); border-radius:3px; padding:0 5px; font-size:10px; font-family:var(--head); font-weight:700; margin-right:6px; }
+button.raccogli { background:var(--gold); color:#0D1B2A; border-color:var(--gold); font-size:13px; padding:9px 16px; }
+button.raccogli:disabled { opacity:.6; }
 table.consuntivo td { height:52px; position:relative; padding:4px 4px; }
 table.consuntivo th { padding:4px 4px; }
 table.griglia th, table.griglia td { padding:3px 4px; }   /* griglie fasi × 12 mesi: devono stare nella pagina */
@@ -318,6 +334,7 @@ function renderConsuntivo(el) {
   }
   card.append(nav);
   const m = stato.meseCorrente, rip = ripartizioneMese(m);
+  card.append(renderRaccolta(m));
   // ---- blocco Linea: una cella di fisso reale per fase; accanto lo standard di fase, le quote ai prodotti e il residuo Linea
   const lin = sc.consuntivo.linea;
   const tl = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Fisso reale €'), h('th', {}, 'Std fisso €'), h('th', { style: 'text-align:left' }, 'di cui ai prodotti (reale)'), h('th', {}, 'di cui Linea €'))));
@@ -388,6 +405,57 @@ function tabellaLettere(righe, lettere, nomi, extra, decPezzi) {
   for (const r of righe) t.append(h('tr', {}, h('td', {}, 'M' + r.mese), h('td', {}, extra(r)), ...lettere.map(L => h('td', { style: typeof r[L] === 'string' && r[L] !== 'OK' && r[L] !== '' ? 'color:var(--ko)' : '' }, val(L, r[L], decPezzi ? (decPezzi.includes(L) ? 0 : 2) : undefined)))));
   return h('div', { class: 'scroll' }, t);
 }
+// ---- Raccolta dati dai sistemi aziendali (simulazione, come nel Digital Twin): pulsante in evidenza, quattro passi animati,
+// poi il mese corrente si riempie con dati coerenti e sempre uguali a parità di scenario (nessun caso, così la demo è ripetibile)
+function renderRaccolta(m) {
+  const sc = stato.scenario, st = stato.raccolta || {};
+  const box = h('div', { class: 'raccolta' });
+  const testa = h('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between' });
+  testa.append(h('div', {}, h('div', { class: 'kicker' }, 'Raccolta dati dai sistemi aziendali'),
+    h('div', { style: 'margin-top:3px' }, h('span', { class: 'tag' }, 'CSV'), `estrazione_mes_linea.csv · M${m} · ${st.inCorso ? 'in corso' : 'automatico alle 06:00'}`)));
+  const btn = h('button', { class: 'raccogli', disabled: st.inCorso ? '' : null, onclick: () => avviaRaccolta(m) }, st.inCorso ? 'Raccolta in corso…' : `Raccogli i dati di M${m} dal gestionale`);
+  testa.append(btn); box.append(testa);
+  const barra = h('div', { class: 'barra' }, h('div', { style: `width:${(st.mese === m ? st.passo : 0) * 25}%` })); box.append(barra);
+  const passi = [['Trigger', `trigger delle 06:00 · M${m}`], ['Estrazione', 'MES linea · ERP'], ['Validazione', 'quadrature e formati'], ['Caricamento', 'consuntivo del mese']];
+  const riga = h('div', { class: 'passi4' });
+  passi.forEach(([t, sotto], i) => { const n = st.mese === m ? st.passo : 0;
+    riga.append(h('div', { class: 'p4 ' + (i + 1 < n ? 'fatto' : (i + 1 === n && st.inCorso ? 'attivo' : (i + 1 === n ? 'fatto' : ''))) }, h('div', { class: 'pallino' }, i + 1 <= n && !(i + 1 === n && st.inCorso) ? '✓' : ''), h('div', {}, h('b', {}, t), h('small', {}, sotto)))); });
+  box.append(riga);
+  box.append(h('p', { class: 'note', style: 'margin:8px 0 0' }, 'Simulazione: nella versione per il cliente i dati arrivano dal MES o dall\u2019ERP con un flusso automatico; qui il mese si riempie con valori coerenti con lo standard.'));
+  return box;
+}
+function avviaRaccolta(m) {
+  const sc = stato.scenario;
+  const pieno = sc.prodotti.some(p => Object.keys((sc.consuntivo[p.id] || {})[String(m)] || {}).length) || Object.keys(sc.consuntivo.linea[String(m)] || {}).length;
+  if (pieno && !confirm(`M${m} ha già dei dati: li sostituisco con quelli raccolti dal gestionale?`)) return;
+  stato.raccolta = { mese: m, passo: 1, inCorso: true }; render();
+  const t = 650;
+  setTimeout(() => { stato.raccolta.passo = 2; render(); }, t);
+  setTimeout(() => { stato.raccolta.passo = 3; render(); }, 2 * t);
+  setTimeout(() => { stato.raccolta.passo = 4; render(); }, 3 * t);
+  setTimeout(() => { simulaConsuntivo(m); stato.raccolta = { mese: m, passo: 4, inCorso: false }; ricalcola(); avviso(`Dati di M${m} caricati dal gestionale (simulazione): pezzi per fase e prodotto, variabile reale, fisso reale di fase.`); render(); }, 4 * t);
+}
+// dati coerenti: lungo il percorso ogni fase lavora ciò che le entra (prima fase: la quota), scarto = scrap normale, usciti = lavorati − scarto;
+// variabile reale = standard × lavorati × 1,04; fisso reale di fase = fisso standard × 1,03. Deterministico.
+function simulaConsuntivo(m) {
+  const sc = stato.scenario, r2 = x => Math.round(x * 100) / 100;
+  sc.consuntivo.linea[String(m)] = {};
+  for (const f of sc.fasi) { const std = CostiFasi.eredita(sc.linea[f.id].fisso, m); if (std !== null && sc.prodotti.some(p => p.percorso.includes(f.id))) sc.consuntivo.linea[String(m)][f.id] = { fissoReale: r2(std * 1.03) }; }
+  for (const p of sc.prodotti) {
+    sc.consuntivo[p.id][String(m)] = {};
+    // si lancia e si lavora al massimo l'OLC del prodotto (la quota più bassa del suo percorso): oltre il collo di bottiglia la linea vera non va
+    const olc = Math.round(Math.min(...p.percorso.map(fid => Linea.quotaDi(p.parametri[fid], m) || 0)));
+    let entrati = null;
+    p.percorso.forEach((fid, i) => {
+      const par = p.parametri[fid], quota = Linea.quotaDi(par, m) || 0, g = CostiFasi.eredita(par.scrap, m) || 0, v = CostiFasi.eredita(par.var, m) || 0;
+      const inp = i === 0 ? olc : entrati;
+      const lav = Math.min(inp, Math.round(quota), olc), scrap = Math.round(lav * g), usciti = lav - scrap;
+      sc.consuntivo[p.id][String(m)][fid] = { entrati: inp, lavorati: lav, scrap, usciti, varReale: r2(v * lav * 1.04) };
+      entrati = usciti;
+    });
+  }
+}
+
 // ---- Passo 3 · Risultati: intestazione con i controlli di tutti gli strati, filtri del periodo, selettore «Totale linea / prodotto»
 function renderRisultati(el) {
   const r = stato.risultato, sc = stato.scenario; if (!r) return;
@@ -727,6 +795,7 @@ if (qs.get('mese')) stato.meseCorrente = Math.min(stato.scenario.mesi || 12, Mat
 if (qs.get('scheda')) stato.scheda = qs.get('scheda');
 if (qs.get('prodotto')) { const v = qs.get('prodotto'); stato.vista3 = v; if (v !== 'linea') stato.prodottoCorrente = v; }
 ricalcola(); render();
+if (qs.get('raccolta') === '1') setTimeout(() => avviaRaccolta(stato.meseCorrente), 400);   // ?raccolta=1: parte da sola (demo e screenshot)
 </script>
 </body>
 </html>
