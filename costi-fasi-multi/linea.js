@@ -120,5 +120,47 @@
     return err;
   }
 
-  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea };
+  // ---- Pesi: quota ÷ capacità piena per prodotto e fase (frazione di tempo di fase); residuo = 1 − Σ pesi = strato Linea.
+  // equivalenti: le quote convertite nei pezzi del primo prodotto che usa la fase (1 pezzo lento vale più macchina di uno veloce).
+  function calcolaPesi(sc) {
+    const mesi = sc.mesi || MESI_DEFAULT, out = [];
+    for (let m = 1; m <= mesi; m++) {
+      const fasi = {};
+      for (const f of sc.fasi) {
+        const pesi = {}; let somma = 0, rif = null, usati = 0;
+        for (const p of sc.prodotti) {
+          if (!p.percorso.includes(f.id)) continue;
+          const par = p.parametri[f.id], cap = eredita(par.capacita, m), q = eredita(par.quota, m);
+          const peso = (cap && q !== null) ? q / cap : 0;
+          pesi[p.id] = peso; somma += peso;
+          if (rif === null) rif = { pid: p.id, cap };
+          usati += peso * rif.cap;
+        }
+        fasi[f.id] = { pesi, somma, residuo: Math.max(0, 1 - somma), equivalenti: rif ? { riferimento: rif.pid, usati, capacita: rif.cap } : null };
+      }
+      out.push({ mese: m, fasi });
+    }
+    return out;
+  }
+
+  // ---- Fisso di fase (uno per fase: standard in linea[fid].fisso, reale in consuntivo.linea[m][fid].fissoReale) diviso per pesi.
+  // fissoReale null = fase ferma per tutti (reale null in ogni strato); 0 = attiva con fisso zero.
+  function ripartisciFisso(sc, pesi) {
+    const mesi = sc.mesi || MESI_DEFAULT, out = [];
+    for (let m = 1; m <= mesi; m++) {
+      const fasi = {};
+      for (const f of sc.fasi) {
+        const std = n(eredita(((sc.linea || {})[f.id] || {}).fisso, m));
+        const cella = ((((sc.consuntivo || {}).linea || {})[String(m)]) || {})[f.id];
+        const reale = (cella && cella.fissoReale !== null && cella.fissoReale !== undefined && cella.fissoReale !== '') ? Number(cella.fissoReale) : null;
+        const w = pesi[m - 1].fasi[f.id], perProdotto = {};
+        for (const [pid, peso] of Object.entries(w.pesi)) perProdotto[pid] = { std: std * peso, reale: reale === null ? null : reale * peso };
+        fasi[f.id] = { fissoStd: std, fissoReale: reale, perProdotto, linea: { std: std * w.residuo, reale: reale === null ? null : reale * w.residuo } };
+      }
+      out.push({ mese: m, fasi });
+    }
+    return out;
+  }
+
+  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, calcolaPesi, ripartisciFisso };
 });
