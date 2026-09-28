@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Controllo dei costi per fase · multiprodotto · MCSec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+:root { --bg-deep:#080C10; --bg:#0D1B2A; --panel:#12233C; --panel2:#0F1E33; --border:#23395A; --gold:#C29635; --gold-light:#D4AF37; --text:#FFFFFF; --muted:#B0B8C4;
+  --ok:#7FB98A; --ko:#C97B6B; --grey:#6B7686; --input:#1B2E4A; --ered:#8A94A3; --dv-gold:#B08A32; --dv-blue:#5588C0;
+  --font:'Nunito Sans','Segoe UI',system-ui,sans-serif; --head:'Manrope','Segoe UI',system-ui,sans-serif; --serif:'Playfair Display',Georgia,serif; }
+* { box-sizing:border-box; }
+html,body { margin:0; color:var(--text); font-family:var(--font); font-size:13px; line-height:1.45; }
+body { padding:0 16px 40px; background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%) fixed; min-height:100vh; }
+.wrap { max-width:1280px; margin:0 auto; }
+header { display:flex; align-items:flex-end; justify-content:space-between; padding:16px 0 12px; border-bottom:1px solid var(--border); gap:12px; flex-wrap:wrap; }
+header .brand { display:flex; gap:14px; align-items:center; }
+header img { height:34px; width:auto; }
+header .kicker { font-family:var(--head); font-weight:700; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-light); }
+header .pillar { font-family:var(--serif); font-style:italic; color:var(--muted); font-size:12px; }
+header h1 { font-family:var(--head); font-weight:800; font-size:21px; margin:2px 0 0; line-height:1.2; }
+header h1 .gold { color:var(--gold-light); }
+.tools { display:flex; gap:6px; flex-wrap:wrap; }
+button { font-family:var(--head); font-weight:700; font-size:12px; padding:7px 11px; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
+button:hover { border-color:var(--gold); }
+button.primary { background:var(--gold); color:#0D1B2A; border-color:var(--gold); }
+button:disabled { opacity:.4; cursor:default; }
+.passi { display:flex; gap:6px; margin:14px 0; flex-wrap:wrap; }
+.passi button { flex:1; min-width:180px; text-align:left; padding:10px 12px; }
+.passi button.attivo { border-color:var(--gold); background:var(--panel2); box-shadow:0 0 0 1px rgba(194,150,53,.35); }
+.passi .n { color:var(--gold-light); margin-right:6px; }
+.passi small { display:block; color:var(--muted); font-weight:400; font-family:var(--font); }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin:10px 0; }
+h2 { font-family:var(--head); font-weight:800; font-size:16px; margin:4px 0 8px; }
+h3 { font-family:var(--head); font-weight:700; font-size:13px; color:var(--gold-light); margin:14px 0 6px; }
+.lede { border-left:3px solid var(--gold); padding-left:10px; color:var(--muted); font-size:12.5px; margin:4px 0 10px; }
+p.note { color:var(--muted); font-size:12px; margin:4px 0 8px; }
+table { border-collapse:collapse; width:100%; font-size:12px; }
+th, td { border:1px solid var(--border); padding:4px 6px; text-align:right; white-space:nowrap; }
+th { background:var(--panel2); font-family:var(--head); font-weight:700; font-size:11px; color:var(--muted); }
+td:first-child, th:first-child { text-align:left; }
+.scroll { overflow-x:auto; }
+input.cella { width:74px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; text-align:right; }
+input.cella.ereditato { color:var(--ered); font-style:italic; }
+input.cella.scritto { border-color:var(--gold); }
+.evidenza { border:1px solid var(--gold); border-radius:6px; padding:8px 12px 10px; margin:10px 0; background:var(--panel2); }  /* prodotto finito: il numero in evidenza nei Risultati */
+.evidenza h3 { margin:2px 0 8px; }
+.evidenza td.big { font-size:16px; font-weight:700; }
+table.consuntivo td { height:52px; position:relative; }  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
+.hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
+input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
+input.nome { width:140px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:3px 5px; font:inherit; }
+.semaforo { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+.semaforo.ok { background:var(--ok); } .semaforo.ko { background:var(--ko); } .semaforo.tace { background:var(--grey); }
+.ko-box { border-color:var(--ko); }
+.msg { padding:8px 10px; border-radius:6px; margin:8px 0; font-size:12px; }
+.msg.err { background:rgba(201,123,107,.15); border:1px solid var(--ko); }
+.msg.ok { background:rgba(127,185,138,.12); border:1px solid var(--ok); }
+.chip { display:inline-block; padding:3px 8px; border-radius:10px; background:var(--panel2); border:1px solid var(--border); font-size:11px; margin:0 4px 6px 0; }
+.chip button { padding:0 6px; font-size:10px; margin-left:2px; }
+footer { margin-top:30px; padding-top:10px; border-top:1px solid var(--border); color:var(--muted); font-size:11px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+textarea.json { width:100%; height:140px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:12px/1.4 Consolas,monospace; padding:8px; }
+.derivati td:first-child { color:var(--muted); }
+@media (max-width:640px) { header h1 { font-size:17px; } input.cella { width:60px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <img src="logo-mcsec-oro.png" alt="MCSec">
+    <div>
+      <div class="kicker">Performance Intelligence</div>
+      <div class="pillar">il controllo di gestione automatizzato, per ogni reparto che conta</div>
+      <h1>Controllo dei costi per fase <span class="gold">a costo standard · più prodotti</span></h1>
+    </div>
+  </div>
+  <div class="tools">
+    <button id="btnEsempio">Ricarica esempio 2 prodotti</button>
+    <button id="btnCopia">Copia JSON</button>
+    <button id="btnIncolla">Incolla JSON</button>
+    <button id="btnAzzera">Azzera</button>
+  </div>
+</header>
+<div id="avviso"></div>
+<nav class="passi">
+  <button data-passo="1"><span class="n">01</span>Standard<small>linea, prodotti, quote e parametri per mese</small></button>
+  <button data-passo="2"><span class="n">02</span>Consuntivo<small>fisso di fase e pezzi per prodotto, mese per mese</small></button>
+  <button data-passo="3"><span class="n">03</span>Risultati<small>totale linea e ogni prodotto: quadratura, costo prodotto, schede</small></button>
+</nav>
+<main id="main"></main>
+<footer><span>www.mcsec.it &nbsp;|&nbsp; info@mcsec.it &nbsp;|&nbsp; Catania (CT)</span><span>Performance Intelligence · metodologia MCSec · demo con dati di esempio</span></footer>
+</div>
+
+<script src="../costi-fasi/engine.js"></script>
+<script src="../costi-fasi/ui.js"></script>
+<script src="linea.js"></script>
+<script src="esempio-linea.js"></script>
+<script>
+'use strict';
+const CHIAVE = 'mcsec.costiFasi.v2';
+// griglie per prodotto: capacità piena e quota (pezzi), variabile (€/pz), scrap (%)
+const VOCI_PRODOTTO = [['capacita', 'Capacità piena della fase per questo prodotto (pezzi al mese)', 0], ['quota', 'Quota riservata (pezzi al mese)', 0], ['var', 'Variabile standard € per pezzo', 2], ['scrap', 'Scrap normale %', 1]];
+const stato = { scenario: null, risultato: null, passo: 1, meseCorrente: 1, scheda: 'costo', prodottoCorrente: null, filtri: null };
+
+// ---- formato it-IT (funzioni pure in ../costi-fasi/ui.js) e motore di linea (linea.js)
+const { fmt, leggiNumero } = CostiFasiUI;
+const Linea = CostiFasiLinea;
+function pct(x) { return x === null || x === undefined ? '–' : fmt(x * 100, 1) + ' %'; }
+
+// ---- stato, salvataggio, import/export
+function ricalcola() { stato.risultato = Linea.calcolaLinea(stato.scenario); salva(); }
+function salva() {
+  if (stato.nonSalvare) return;   // modalità esempio da URL: non sovrascrive il lavoro salvato
+  try { localStorage.setItem(CHIAVE, JSON.stringify(stato.scenario)); } catch (e) { avviso('Il browser non permette di salvare: alla chiusura si perde tutto (finestra privata?).', 'err'); }
+}
+function carica() {
+  let t = null;
+  try { t = localStorage.getItem(CHIAVE); } catch (e) { /* localStorage assente */ }
+  if (t) {
+    const r = Linea.analizzaScenarioV2(t);
+    if (r.ok) { stato.scenario = r.scenario; return; }
+    try { localStorage.setItem(CHIAVE + '.backup', t); } catch (e) { /* niente */ }
+    avviso('Lo scenario salvato nel browser non è leggibile (' + r.errore + ') ed è stato messo da parte. Caricato l\'esempio.', 'err');
+  }
+  stato.scenario = structuredClone(ESEMPIO_LINEA);
+}
+function importaScenario(testo) {
+  const r = Linea.analizzaScenarioV2(testo);
+  if (!r.ok) return r;
+  stato.scenario = r.scenario; stato.filtri = null; stato.prodottoCorrente = null; stato.nonSalvare = false; ricalcola(); render();
+  return { ok: true, convertito: r.convertito === true };
+}
+function esportaScenario() { return JSON.stringify(stato.scenario, null, 1); }
+function avviso(testo, tipo) { const el = document.getElementById('avviso'); el.replaceChildren(); if (testo) el.append(h('div', { class: 'msg ' + (tipo || 'ok') }, testo)); }
+// il prodotto selezionato nei passi 1 e 2 (se non esiste più, il primo)
+function prodottoCorrente() { const sc = stato.scenario; if (!sc.prodotti.some(p => p.id === stato.prodottoCorrente)) stato.prodottoCorrente = sc.prodotti[0].id; return sc.prodotti.find(p => p.id === stato.prodottoCorrente); }
+function nomeProdotto(pid) { return (stato.scenario.prodotti.find(p => p.id === pid) || {}).nome || pid; }
+// pesi e ripartizione del mese m (null se il motore non parte)
+function pesiMese(m) { const r = stato.risultato; return r && !r.errori.length ? r.pesi[m - 1] : null; }
+function ripartizioneMese(m) { const r = stato.risultato; return r && !r.errori.length ? r.ripartizione[m - 1] : null; }
+// ---- helpers DOM
+function h(tag, attrs, ...figli) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) { if (k === 'class') el.className = v; else if (k.startsWith('on')) el.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined) el.setAttribute(k, v); }
+  for (const f of figli.flat()) if (f !== null && f !== undefined) el.append(f.nodeType ? f : document.createTextNode(String(f)));
+  return el;
+}
+function cellaInput(valore, opts) {   // opts: {classe, onchange, min, max, intero, regola, placeholder, title}
+  const inp = h('input', { class: 'cella ' + (opts.classe || ''), type: 'text', inputmode: 'decimal', value: valore === null || valore === undefined ? '' : String(valore).replace('.', ','), placeholder: opts.placeholder || '', title: opts.title || '' });
+  inp.addEventListener('change', () => {
+    const v = leggiNumero(inp.value);
+    if (v === null) { opts.onchange(null); return; }
+    if (Number.isNaN(v) || (opts.min !== undefined && v < opts.min) || (opts.intero && !Number.isInteger(v)) || (opts.max !== undefined && v > opts.max)) { inp.classList.add('errore'); inp.title = opts.regola || 'Valore non ammesso'; return; }
+    inp.classList.remove('errore'); opts.onchange(v);
+  });
+  return inp;
+}
+function nomeFase(fid) { return (stato.scenario.fasi.find(x => x.id === fid) || {}).nome || fid; }
+
+// ---- griglia fasi × mesi con eredità dal mese prima (celle in corsivo), valore scritto a mano (bordo oro), placeholder «obbl.» sul mese 1.
+// righe: [{ nome, mappa, max?(m) }]; opts: { scala (100 per lo scrap), max, regola, sotto?(riga) → [[etichetta, [[testo, stile], …]], …] }
+function grigliaMesi(titolo, righe, opts) {
+  const sc = stato.scenario, mesi = sc.mesi || 12, scala = opts.scala || 1;
+  const g = h('div', { class: 'scroll' }, h('h3', {}, titolo));
+  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), ...Array.from({ length: mesi }, (_, m) => h('th', {}, 'M' + (m + 1))))));
+  for (const r of righe) {
+    const tr = h('tr', {}, h('td', {}, r.nome));
+    for (let m = 1; m <= mesi; m++) {
+      const scritto = r.mappa[String(m)] !== undefined && r.mappa[String(m)] !== null && r.mappa[String(m)] !== '';
+      const v = CostiFasi.eredita(r.mappa, m);
+      tr.append(h('td', {}, cellaInput(v === null ? null : Number((v * scala).toFixed(4)), { classe: scritto ? 'scritto' : 'ereditato', min: 0, max: r.max ? r.max(m) : opts.max,
+        regola: opts.regola || 'numero ≥ 0', placeholder: m === 1 ? 'obbl.' : '',
+        onchange: x => { if (x === null) delete r.mappa[String(m)]; else r.mappa[String(m)] = x / scala; ricalcola(); render(); } })));
+    }
+    t.append(tr);
+    if (opts.sotto) for (const [etich, valori] of opts.sotto(r)) t.append(h('tr', { class: 'derivati' }, h('td', {}, etich), ...valori.map(([txt, stile]) => h('td', { style: stile || '' }, txt))));
+  }
+  g.append(t); return g;
+}
+
+// ---- Passo 1 · Standard: linea (catalogo fasi, fisso di fase) + schede prodotto
+function renderStandard(el) {
+  const sc = stato.scenario, mesi = sc.mesi || 12;
+  const card = h('div', { class: 'card' }, h('h2', {}, 'Passo 01 · Standard: linea e prodotti'),
+    h('div', { class: 'lede' }, 'Lo standard per pezzo di ogni prodotto si calcola a capacità piena: variabile + (fisso del prodotto ÷ OLC del prodotto). Il fisso di fase è uno solo e si divide tra i prodotti in proporzione ai pesi (quota ÷ capacità piena); la parte non riservata a nessun prodotto è dello strato «Linea». I mesi senza valore ereditano dal mese precedente (celle in corsivo); un valore scritto a mano (bordo oro) vale da quel mese in poi. Svuotare una cella la riporta all\'eredità.'));
+  // ---- Linea: catalogo fasi
+  const usataDa = fid => sc.prodotti.filter(p => p.percorso.includes(fid)).map(p => p.nome);
+  const cat = h('div', {}, h('h3', {}, 'Linea · catalogo fasi'));
+  const tb = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Id'), h('th', {}, 'Nome'), h('th', { style: 'text-align:left' }, 'Usata da'), h('th', {}, ''))));
+  for (const f of sc.fasi) {
+    const usi = usataDa(f.id);
+    tb.append(h('tr', {}, h('td', {}, f.id),
+      h('td', {}, h('input', { class: 'nome', value: f.nome, onchange: e => { f.nome = e.target.value; ricalcola(); render(); } })),
+      h('td', { style: 'text-align:left;color:var(--muted)' }, usi.length ? usi.join(', ') : 'nessun prodotto'),
+      h('td', {}, h('button', { disabled: usi.length ? '' : null, title: usi.length ? 'Togli prima la fase dai percorsi dei prodotti' : 'Elimina dal catalogo', onclick: () => {
+        sc.fasi = sc.fasi.filter(x => x.id !== f.id); delete sc.linea[f.id];
+        for (const m of Object.keys(sc.consuntivo.linea)) { delete sc.consuntivo.linea[m][f.id]; if (!Object.keys(sc.consuntivo.linea[m]).length) delete sc.consuntivo.linea[m]; }
+        ricalcola(); render(); } }, '✕'))));
+  }
+  cat.append(tb, h('button', { style: 'margin-top:6px', onclick: () => { let k = sc.fasi.length + 1; while (sc.fasi.some(x => x.id === 'F' + k)) k++; const id = 'F' + k; sc.fasi.push({ id, nome: 'Fase ' + k }); sc.linea[id] = { fisso: {} }; ricalcola(); render(); } }, '+ Aggiungi fase'));
+  card.append(cat);
+  // ---- Linea: fisso standard di fase, con sotto i pesi di tutti i prodotti e i pezzi equivalenti
+  const sottoPesi = riga => {
+    const out = [];
+    const pesi = Array.from({ length: mesi }, (_, i) => pesiMese(i + 1));
+    if (!pesi[0]) return out;
+    out.push(['Σ pesi dei prodotti', pesi.map(w => { const x = w.fasi[riga.id]; const st = x.somma > 1 + 1e-9 ? 'color:var(--ko)' : (x.somma === 0 ? 'color:var(--grey)' : ''); return [pct(x.somma), st]; })]);
+    out.push(['pezzi equivalenti', pesi.map(w => { const e = w.fasi[riga.id].equivalenti; return [e ? `${fmt(e.usati, 0)} su ${fmt(e.capacita, 0)} ${nomeProdotto(e.riferimento)}` : '–', 'color:var(--muted);font-size:10px']; })]);
+    return out;
+  };
+  card.append(grigliaMesi('Linea · fisso standard di fase € al mese', sc.fasi.map(f => ({ id: f.id, nome: f.nome, mappa: (sc.linea[f.id] = sc.linea[f.id] || { fisso: {} }).fisso })), { sotto: sottoPesi }));
+  renderProdotti(card);
+  el.append(card);
+}
+// schede prodotto: al Task 7
+function renderProdotti(card) { void card; }
+// ---- Passo 2 · Consuntivo per mese
+function renderConsuntivo(el) {
+  const sc = stato.scenario, prod = sc.prodotti[0], r = stato.risultato;
+  const mesi = sc.mesi || 12;
+  const pronto = r && !r.errori.length;
+  const card = h('div', { class: 'card' }, h('h2', {}, `Passo 02 · Consuntivo di ${prod.nome}: il reale, mese per mese`),
+    h('div', { class: 'lede' }, 'Sei celle per riga: entrati, lavorati, scrap, usciti (i pezzi), poi a destra dei derivati reale variabile e reale fisso (gli euro), ciascuno con accanto il suo standard: variabile standard × lavorati e fisso standard della fase. Entrati e usciti li dichiari tu, fase per fase, anche nello stesso mese: un pezzo uscito da una fase può entrare e essere lavorato a valle subito, e si porta dietro il costo accumulato. Ciò che è uscito a monte e non hai ancora dichiarato entrato resta «in transito» (il suggerimento «in transito» sotto la cella entrati). I pezzi rimasti in coda nella fase sono già disponibili il mese dopo: non vanno ridichiarati come entrati (il suggerimento «già in coda» sotto la cella te li ricorda). Reale fisso e lavorati vuoti = fase ferma nel mese. Reale fisso 0 = fase attiva con fisso zero.'));
+  const nav = h('div', { class: 'passi', style: 'margin:6px 0' });
+  for (let m = 1; m <= mesi; m++) {
+    const koMese = pronto ? r.ko.filter(c => c.mese === m).length : 0;
+    const compilato = Object.keys(((sc.registro[prod.id] || {})[String(m)]) || {}).length > 0;
+    nav.append(h('button', { class: m === stato.meseCorrente ? 'attivo' : '', style: 'min-width:0;flex:0 0 auto;padding:6px 10px', onclick: () => { stato.meseCorrente = m; render(); } },
+      `M${m}`, koMese ? h('span', { class: 'semaforo ko', style: 'margin-left:6px;margin-right:0' }) : (compilato ? h('span', { class: 'semaforo ok', style: 'margin-left:6px;margin-right:0' }) : null)));
+  }
+  card.append(nav);
+  const m = stato.meseCorrente;
+  sc.registro[prod.id] = sc.registro[prod.id] || {};
+  const reg = sc.registro[prod.id];
+  const t = h('table', { class: 'consuntivo' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Entrati'), h('th', {}, 'Lavorati'), h('th', {}, 'Scrap'), h('th', {}, 'Usciti'),
+    h('th', {}, 'Dispon.'), h('th', {}, 'Coda'), h('th', {}, 'WIP fine'), h('th', {}, 'Pronti'), h('th', {}, 'Transito'),
+    h('th', {}, 'Reale var. €'), h('th', {}, 'Std var. €'), h('th', {}, 'Reale fisso €'), h('th', {}, 'Std fisso €'), h('th', { style: 'text-align:left' }, 'Controlli'))));
+  prod.percorso.forEach((fid, i) => {
+    const riga = pronto ? r.registro.find(x => x.mese === m && x.fase === fid) : null;
+    const cella = () => (reg[String(m)] = reg[String(m)] || {}, reg[String(m)][fid] = reg[String(m)][fid] || {});
+    const set = (k, v) => { const c = cella(); if (v === null) delete c[k]; else c[k] = v; if (!Object.keys(c).length) { delete reg[String(m)][fid]; if (!Object.keys(reg[String(m)]).length) delete reg[String(m)]; } ricalcola(); render(); };
+    const cur = (reg[String(m)] || {})[fid] || {};
+    const inp = (k, opts) => cellaInput(cur[k] === undefined ? null : cur[k], Object.assign({ min: 0, onchange: v => set(k, v) }, opts));
+    // sotto la cella entrati: pezzi in transito a monte non ancora dichiarati entrati (transito disponibile − entrati dichiarati, anche se hai scritto 0)
+    // e pezzi già in coda dal mese prima (non vanno ridichiarati)
+    const hint = [];
+    const residuo = riga && riga.suggeritiEntrati !== null ? riga.suggeritiEntrati - riga.H : 0;
+    if (residuo > 0) hint.push(`in transito: ${fmt(residuo, 0)}`);
+    if (riga && riga.codaPrecedente > 0) hint.push(`già in coda: ${fmt(riga.codaPrecedente, 0)}`);
+    const sugg = hint.length ? h('div', { class: 'hint' }, hint.join(' · ')) : null;
+    const tr = h('tr', {}, h('td', {}, nomeFase(fid)),
+      h('td', {}, inp('entrati', { intero: true, regola: 'intero ≥ 0', placeholder: riga && riga.suggeritiEntrati ? String(riga.suggeritiEntrati) : '' }), sugg),
+      h('td', {}, inp('lavorati', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('scrap', { intero: true, regola: 'intero ≥ 0' })), h('td', {}, inp('usciti', { intero: true, regola: 'intero ≥ 0' })),
+      h('td', {}, riga ? fmt(riga.I, 0) : '–'), h('td', {}, riga ? fmt(riga.L, 0) : '–'), h('td', {}, riga ? fmt(riga.N, 0) : '–'), h('td', {}, riga ? fmt(riga.P, 0) : '–'),
+      h('td', { style: riga && riga.AO < 0 ? 'color:var(--ko)' : '' }, riga ? fmt(riga.AO, 0) : '–'),
+      // accanto a ogni reale il suo standard (Registro R = variabile standard × lavorati, T = fisso standard della fase); grigio se la fase è ferma
+      h('td', {}, inp('varReale', {})), h('td', { style: riga && !riga.attiva ? 'color:var(--grey)' : '' }, riga ? fmt(riga.R) : '–'),
+      h('td', {}, inp('fissoReale', {})), h('td', { style: riga && !riga.attiva ? 'color:var(--grey)' : '' }, riga ? fmt(riga.T) : '–'));
+    const ctr = h('td', { style: 'text-align:left;white-space:normal;min-width:260px;max-width:380px' });
+    if (riga) {
+      const miei = r.controlli.filter(c => c.mese === m && c.fase === fid);
+      const ko = miei.filter(c => c.esito === 'KO');
+      if (!riga.attiva && !ko.length) ctr.append(h('span', { class: 'semaforo tace' }), 'riga senza attività: fase ferma');
+      else if (!ko.length) ctr.append(h('span', { class: 'semaforo ok' }), 'OK: quadrature riga e natura, scrap, ciclo, uscite, stati');
+      else for (const c of ko) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `${c.codice} · ${c.messaggio}`));
+      if (riga.AO < 0) ctr.append(h('div', {}, h('span', { class: 'semaforo ko' }), `transito negativo: dichiarati entrati a valle più di quanto uscito da ${nomeFase(fid)}.`));
+    }
+    tr.append(ctr); t.append(tr);
+  });
+  card.append(h('div', { class: 'scroll' }, t));
+  if (pronto) {
+    const y = r.sintesi[m - 1];
+    card.append(h('p', { class: 'note' }, `Mese ${m}: costo reale ${fmt(y.B)} €, standard maturato ${fmt(y.C)} €, delta sui lavorati ${fmt(y.N)} €, non produzione ${fmt(y.O)} €. Quadratura stati ${y.I}, quadratura mese ${y.P}.`));
+  }
+  el.append(card);
+}
+// ---- Passo 3 · Risultati
+const BLOCCHI_REG = [['Quantità', ['G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']], ['Per natura', ['Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']],
+  ['Per destinazione', ['Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH']], ['Controlli e indici', ['AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU']]];
+const DEC = { J: 0, K: 0, M: 0, G: 0, H: 0, I: 0, L: 0, N: 0, O: 0, P: 0, C: 0, D: 0, AO: 0, AL: 'pct', AP: 'pct' };
+function val(col, v, dec) { if (v === null || v === undefined || v === '') return '–'; if (typeof v === 'string') return v; const d = dec !== undefined ? dec : DEC[col]; if (d === 'pct') return pct(v); return fmt(v, d === undefined ? 2 : d); }
+function tabellaLettere(righe, lettere, nomi, extra, decPezzi) {
+  const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Mese'), h('th', {}, 'Fase'), ...lettere.map(L => h('th', { title: nomi[L] || '' }, L, h('br'), h('small', { style: 'font-weight:400' }, nomi[L] || ''))))));
+  // decPezzi: per le tabelle diverse dal Registro, elenco delle colonne a pezzi (0 decimali); tutto il resto a 2. Senza decPezzi vale la mappa DEC del Registro.
+  for (const r of righe) t.append(h('tr', {}, h('td', {}, 'M' + r.mese), h('td', {}, extra(r)), ...lettere.map(L => h('td', { style: typeof r[L] === 'string' && r[L] !== 'OK' && r[L] !== '' ? 'color:var(--ko)' : '' }, val(L, r[L], decPezzi ? (decPezzi.includes(L) ? 0 : 2) : undefined)))));
+  return h('div', { class: 'scroll' }, t);
+}
+function renderRisultati(el) {
+  const r = stato.risultato; if (!r || r.errori.length) return;
+  const nome = fid => (r.fasi.find(f => f.id === fid) || {}).nome || fid;
+  const q = h('div', { class: 'card ' + (r.ko.length ? 'ko-box' : '') }, h('h2', {}, 'Passo 03 · Risultati'));
+  if (!r.ko.length) q.append(h('p', {}, h('span', { class: 'semaforo ok' }), 'Tutti i controlli dicono OK: quadrature riga e natura, scrap, ciclo, uscite, stati dei semilavorati, quadrature di sintesi.'));
+  else q.append(h('p', {}, h('span', { class: 'semaforo ko' }), `${r.ko.length} controlli KO. Un KO si spiega, non si riscrive:`), h('ul', { style: 'margin:4px 0 8px 18px' }, ...r.ko.slice(0, 20).map(c => h('li', {}, `${c.codice} · ${c.messaggio}`))));
+  // in testa: il prodotto finito (usciti dalla fase finale) al reale contro il previsto, con gli stessi filtri della scheda Costo prodotto
+  stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: 12, fase: 'tutte' }, stato.scenario.filtri || {});
+  if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';
+  const cpH = CostiFasi.costoProdotto(r, stato.filtri), per = `M${cpH.filtri.daMese} → M${cpH.filtri.aMese}`;
+  q.append(h('p', { style: 'margin:6px 0' }, h('b', {}, `${r.prodottoNome || 'Prodotto'} finito ${per}: `), cpH.finitiPezzi
+    ? [`${fmt(cpH.finitiPezzi, 0)} pz usciti da ${nome(r.percorso[r.percorso.length - 1])} a `, h('b', { style: 'color:var(--gold-light)' }, `${fmt(cpH.finitoCosto)} €/pz reale`), ` contro ${fmt(cpH.finitoStandardPz)} €/pz previsto: `, h('b', { style: cpH.finitoDelta > 0.005 ? 'color:var(--ko)' : 'color:var(--ok)' }, `${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta / cpH.finitiPezzi)} €/pz, ${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta)} € in totale`), '.']
+    : 'nessun pezzo ha completato la fase finale nel periodo.'));
+  const schede = [['costo', 'Costo prodotto e grafici'], ['registro', 'Registro'], ['semilavorati', 'Semilavorati'], ['sintesi', 'Sintesi']];
+  q.append(h('div', { class: 'passi', style: 'margin:6px 0' }, ...schede.map(([k, t]) => h('button', { class: k === stato.scheda ? 'attivo' : '', style: 'min-width:0;padding:7px 12px', onclick: () => { stato.scheda = k; render(); } }, t))));
+  el.append(q);
+  const ultimoAttivo = Math.max(1, ...r.registro.filter(y => y.attiva).map(y => y.mese));
+  const attive = r.registro.filter(x => x.mese <= ultimoAttivo);
+  if (stato.scheda === 'registro') {
+    const c = h('div', { class: 'card' }, h('h2', {}, 'Registro'), h('p', { class: 'note' }, `Lettere = colonne dell'Excel. Mesi mostrati fino all'ultimo con attività (M${ultimoAttivo}).`));
+    for (const [titolo, lettere] of BLOCCHI_REG) c.append(h('h3', {}, titolo), tabellaLettere(attive, lettere, CostiFasi.NOMI.registro, x => nome(x.fase)));
+    el.append(c);
+  } else if (stato.scheda === 'semilavorati') {
+    const righe = r.semilavorati.filter(s => s.mese <= ultimoAttivo);
+    el.append(h('div', { class: 'card' }, h('h2', {}, 'Semilavorati: magazzino a costo medio per fase'), h('p', { class: 'note' }, 'Ogni fase tiene un conto di magazzino dei semilavorati in uscita: rimanenza iniziale, carico dei buoni (più lo scarto normale), scarico verso la fase a valle al costo medio, rimanenza finale. Lo scarto anomalo va a perdita con tutto il costo accumulato.'),
+      tabellaLettere(righe, 'CDEFGHIJKLMNOPQRSTUV'.split(''), CostiFasi.NOMI.semilavorati, x => nome(x.fase), ['C', 'F', 'I', 'L'])));
+  } else if (stato.scheda === 'sintesi') {
+    const lettere = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'];
+    const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Mese'), ...lettere.map(L => h('th', {}, L, h('br'), h('small', { style: 'font-weight:400' }, CostiFasi.NOMI.sintesi[L]))), ...r.fasi.map(f => h('th', {}, 'Scost. cum.', h('br'), h('small', { style: 'font-weight:400' }, f.nome))))));
+    for (const y of r.sintesi) t.append(h('tr', {}, h('td', {}, 'M' + y.mese), ...lettere.map(L => h('td', { style: typeof y[L] === 'string' && y[L] !== 'OK' ? 'color:var(--ko)' : '' }, val(L, y[L], ['F', 'G'].includes(L) ? 0 : 2))), ...r.fasi.map(f => h('td', {}, fmt(y.scostCumFase[f.id])))));
+    el.append(h('div', { class: 'card' }, h('h2', {}, 'Sintesi per mese'), h('p', { class: 'note' }, 'Quadratura stati: maturato cumulato (al listino del mese) = magazzino a standard per stati + scrap a standard. Quadratura mese: scostamento totale = delta sui lavorati + non produzione.'), h('div', { class: 'scroll' }, t)));
+  } else {
+    const cp = cpH;
+    const sel = (k, opzioni) => { const s = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: e => { stato.filtri[k] = k === 'fase' ? e.target.value : Number(e.target.value); stato.scenario.filtri = Object.assign({}, stato.filtri); salva(); render(); } }); for (const [v, t] of opzioni) s.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, t)); return s; };
+    const mesiOpz = Array.from({ length: r.mesi }, (_, i) => [i + 1, 'M' + (i + 1)]);
+    const c = h('div', { class: 'card' }, h('h2', {}, `Costo di ${r.prodottoNome || 'prodotto'}: atteso (standard) contro reale`),
+      h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Da mese ', sel('daMese', mesiOpz), ' a mese ', sel('aMese', mesiOpz), ' fase ', sel('fase', [['tutte', 'Tutte'], ...r.fasi.map(f => [f.id, f.nome])])),
+      h('p', { class: 'note' }, `Periodo M${cp.filtri.daMese} → M${cp.filtri.aMese} · ${fmt(cp.lavorati, 0)} pezzi lavorati, ${fmt(cp.buoni, 0)} buoni, ${fmt(cp.scrap, 0)} scrap · finiti ${fmt(cp.finitiPezzi, 0)} a ${fmt(cp.finitoCosto)} €/pz.`));
+    // in evidenza, prima di tutto: prodotto finito uscito (al reale di scarico dell'ultima fase) contro previsto (stessi pezzi al totale prodotto standard di fine periodo)
+    const kd = cp.finitoDelta > 0.005 ? 'color:var(--ko)' : '';
+    // una riga sola (Michele 28/09): pezzi, reale e standard per pezzo affiancati, delta; i totali in euro stanno nella quadratura sotto
+    const dpz = cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null;
+    const pu = h('table', { style: 'max-width:640px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, 'Reale €/pz'), h('th', {}, 'Standard €/pz'), h('th', {}, 'Delta €/pz'), h('th', {}, 'Delta %'))));
+    pu.append(h('tr', {}, h('td', {}, `Uscito dalla fase finale M${cp.filtri.daMese} → M${cp.filtri.aMese}`), h('td', {}, fmt(cp.finitiPezzi, 0)),
+      h('td', { class: 'big' }, fmt(cp.finitoCosto)), h('td', { class: 'big' }, fmt(cp.finitoStandardPz)), h('td', { class: 'big', style: kd }, fmt(dpz)), h('td', { style: kd }, dpz === null || !cp.finitoStandardPz ? '–' : pct(dpz / cp.finitoStandardPz))));
+    // quadratura del periodo: tutti i costi consuntivi contro standard, sul prodotto e fuori dal prodotto, fino al totale
+    const Q = cp.quadratura;
+    // una sola colonna standard (scelta di Michele 28/09): il budget a standard = fisso standard + variabile standard × lavorati (colonna V);
+    // lo scostamento verso lo standard maturato resta nella scheda Sintesi, come nell'Excel
+    // colonne in euro del periodo e, a destra, le stesse voci per pezzo finito uscito (÷ pezzi usciti): quanto peserebbe ogni voce sul pezzo out
+    const nOut = cp.finitiPezzi, u = v => nOut ? fmt(v / nOut) : '–';
+    const rigaQ = (voce, x, lettura, opts) => { const o = opts || {}; const cl = o.big ? 'big' : ''; const ko = x.deltaSpesa > 0.005 ? 'color:var(--ko)' : '';
+      return h('tr', { style: o.stile || '' }, h('td', { style: o.indent ? 'padding-left:22px;color:var(--muted)' : '' }, voce),
+        h('td', { class: cl }, fmt(x.reale)), h('td', { class: cl }, fmt(x.budget)), h('td', { class: cl, style: ko }, fmt(x.deltaSpesa)),
+        h('td', { class: cl, style: 'border-left:2px solid var(--border)' }, u(x.reale)), h('td', { class: cl }, u(x.budget)), h('td', { class: cl, style: ko }, u(x.deltaSpesa)),
+        h('td', { style: 'text-align:left;color:var(--muted);white-space:normal;min-width:200px' }, lettura)); };
+    const qt = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Quadratura del periodo'), h('th', {}, 'Reale €'), h('th', {}, 'Budget a standard €'), h('th', {}, 'Delta €'),
+      h('th', { style: 'border-left:2px solid var(--border)' }, `Reale €/pz out`), h('th', {}, 'Standard €/pz out'), h('th', {}, 'Delta €/pz out'), h('th', { style: 'text-align:left' }, 'Lettura'))));
+    qt.append(rigaQ('Sul prodotto (pezzi lavorati, scarto normale incluso)', Q.prodotto, 'standard dei pezzi lavorati; il delta è l’efficienza sui pezzi'));
+    qt.append(rigaQ('di cui prodotto finito uscito', Q.finito, 'la tabella sopra', { indent: true }));
+    qt.append(rigaQ('di cui semilavorati a magazzino, scarto anomalo, variazione rimanenze', Q.restoProdotto, 'per differenza', { indent: true }));
+    qt.append(rigaQ('Non produzione (fasi ferme + posti vuoti)', Q.nonProduzione, 'a conto economico, non va sul prodotto; a standard vale la quota fissa dei posti rimasti vuoti'));
+    qt.append(rigaQ('Totale costi del periodo', Q.totale, 'spesa reale contro budget a standard: il delta è l’inefficienza del periodo', { big: true, stile: 'border-top:2px solid var(--gold)' }));
+    c.append(h('div', { class: 'evidenza' }, h('h3', {}, 'Prodotto finito e quadratura del periodo: reale contro standard'), h('div', { class: 'scroll' }, pu),
+      h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Reale: costo di scarico dei pezzi che hanno completato la fase finale nel periodo (tutto il ciclo). Standard: totale prodotto a listino (Parametri E7) del mese finale. In euro totali: riga «di cui prodotto finito uscito» qui sotto.'),
+      h('div', { class: 'scroll' }, qt),
+      h('p', { class: 'note', style: 'margin:6px 0 0' }, `Il totale reale è la spesa del periodo (la stessa del grafico «dove sono finiti gli euro»). Le colonne «per pezzo out» dividono ogni voce per i ${fmt(nOut, 0)} pezzi usciti: sul prodotto finito torna il ${fmt(cp.finitoCosto)} contro ${fmt(cp.finitoStandardPz)} della tabella sopra; il totale dice quanto costerebbe il pezzo se gli caricassi anche ciò che non è suo. Il budget a standard è quanto era lecito spendere con questi volumi e questa linea: fisso standard di ogni fase attiva più variabile standard × pezzi lavorati; sui posti vuoti vale la quota fissa standard. Lo scostamento verso lo standard maturato (solo pezzi lavorati) è nella scheda Sintesi.`)));
+    const righe = [['Variabile €/pz lavorato', 'Var', 'listino Parametri'], ['Fisso €/pz lavorato', 'Fisso', 'canone di fase a budget ÷ lavorati'], ['Pieno €/pz lavorato', 'Pieno', 'budget di periodo ÷ lavorati'],
+      ['Sul prodotto €/pz buono', 'SulProdotto', 'incluso lo scarto normale: è il numero da guardare'], ['Non produzione €/pz lavorato', 'NonProd', 'posti vuoti: non va sul prodotto'], ['Somma medie di fase €/pz', 'SommaMedie', 'reale − listino sull\'intero ciclo; non è il costo del finito']];
+    const t = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Voce'), h('th', {}, 'Reale'), h('th', {}, 'Atteso'), h('th', {}, 'Delta'), h('th', { style: 'text-align:left' }, 'Lettura'))));
+    for (const [v, k, l] of righe) t.append(h('tr', {}, h('td', {}, v), h('td', {}, fmt(cp['reale' + k])), h('td', {}, fmt(cp['atteso' + k])), h('td', { style: cp['delta' + k] > 0.005 ? 'color:var(--ko)' : '' }, fmt(cp['delta' + k])), h('td', { style: 'text-align:left;color:var(--muted)' }, l)));
+    t.append(h('tr', {}, h('td', {}, 'Scrap anomalo a perdita €/pz buono'), h('td', {}, fmt(cp.scrapAnomaloPerPezzoBuono)), h('td', {}, '–'), h('td', {}, fmt(cp.scrapAnomaloTotale) + ' € tot.'), h('td', { style: 'text-align:left;color:var(--muted)' }, 'a conto economico del periodo')));
+    c.append(h('div', { class: 'scroll' }, t));
+    const pf = h('table', {}, h('thead', {}, h('tr', {}, ...['Fase', 'Lavorati', 'Atteso listino €/pz buono', 'Atteso maturato', 'Reale sul prodotto', 'Delta €/pz', 'Delta %', 'Reale pieno', 'Non produzione', 'Scrap pz', 'Buoni', 'di cui anomalo', 'Anomalo €/pz buono'].map(x => h('th', {}, x)))));
+    for (const f of cp.perFase) pf.append(h('tr', {}, h('td', {}, f.nome), h('td', {}, fmt(f.C, 0)), h('td', {}, fmt(f.D)), h('td', {}, fmt(f.E)), h('td', {}, fmt(f.F)), h('td', { style: f.G > 0.005 ? 'color:var(--ko)' : '' }, fmt(f.G)), h('td', {}, pct(f.H)), h('td', {}, fmt(f.I)), h('td', {}, fmt(f.J)), h('td', {}, fmt(f.K, 0)), h('td', {}, fmt(f.L, 0)), h('td', {}, fmt(f.M, 3)), h('td', {}, fmt(f.N))));
+    c.append(h('h3', {}, 'Dettaglio per fase'), h('div', { class: 'scroll' }, pf));
+    // grafico 1 (€/pz buono) e, a fianco, grafico 3 (pezzi lavorati per mese: buoni + scrap), stessi filtri
+    // stessa base flex e stesso viewBox (760×270) → stessa altezza resa; allineati in basso
+    c.append(h('div', { style: 'display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap' },
+      h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp)),
+      h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Pezzi lavorati per mese: buoni + scrap'), renderGrafico3(cp))));
+    c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
+    el.append(c);
+  }
+}
+// ---- Grafici SVG (skill dataviz: palette validata sulla superficie #12233C, marks sottili, legenda + etichette dirette, tooltip)
+const NS = 'http://www.w3.org/2000/svg';
+const COL = { reale: '#B08A32', atteso: '#5588C0', griglia: '#23395A', testo: '#B0B8C4', muto: '#6B7686',
+  parti: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'] };
+function svgEl(tag, attrs, testo) { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); if (testo !== undefined) e.textContent = testo; return e; }
+function renderGrafico1(cp) {
+  const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };
+  const serie = cp.serie.filter(s => s.mese >= cp.filtri.daMese && s.mese <= cp.filtri.aMese);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Serie mensile del costo per pezzo buono, atteso e reale', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const vals = serie.flatMap(s => [s.reale, s.atteso]).filter(v => v !== null);
+  if (!vals.length) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo buono nel periodo')); return svg; }
+  const yMax = Math.max(...vals) * 1.15, bMax = Math.max(...serie.map(s => s.buoni || 0), 1);
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / serie.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  serie.forEach((s, i) => {   // barre dei pezzi buoni (magnitudine, recessive) con etichetta
+    const hb = (H - m.t - m.b) * 0.22 * (s.buoni || 0) / bMax;
+    if (hb > 0) svg.append(svgEl('rect', { x: x(i) - 9, y: H - m.b - hb, width: 18, height: hb, rx: 2, fill: COL.griglia }));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, s.buoni ? `${s.buoni} buoni` : 'nessun buono'));
+  });
+  // linea: tratto pieno tra mesi consecutivi con buoni; tratteggiato quando in mezzo ci sono mesi senza buoni (il trend resta leggibile)
+  const linea = (k, col) => { let prev = null; serie.forEach((s, i) => { if (s[k] === null) return;
+    if (prev !== null) svg.append(svgEl('path', { d: `M${x(prev)} ${y(serie[prev][k])} L${x(i)} ${y(s[k])}`, fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-linejoin': 'round', ...(i - prev > 1 ? { 'stroke-dasharray': '5 4', 'stroke-opacity': 0.7 } : {}) }));
+    prev = i; }); };
+  linea('atteso', COL.atteso); linea('reale', COL.reale);
+  serie.forEach((s, i) => { for (const [k, col, nome] of [['atteso', COL.atteso, 'atteso'], ['reale', COL.reale, 'reale']]) if (s[k] !== null) {
+    const g = svgEl('g', {});
+    g.append(svgEl('circle', { cx: x(i), cy: y(s[k]), r: 4.5, fill: col, stroke: '#0F1E33', 'stroke-width': 2 }));
+    const hit = svgEl('circle', { cx: x(i), cy: y(s[k]), r: 12, fill: 'transparent' });
+    hit.append(svgEl('title', {}, `M${s.mese} · ${nome}: ${fmt(s[k])} €/pz buono` + (s.delta !== null ? ` · delta ${fmt(s.delta)}` : '') + ` · ${s.buoni} buoni`));
+    g.append(hit); svg.append(g);
+    if (i === serie.length - 1 || serie[i + 1][k] === null) svg.append(svgEl('text', { x: x(i) + 8, y: y(s[k]) + 4, fill: COL.testo, 'font-size': 10 }, fmt(s[k])));   // etichetta diretta sull'ultimo punto
+  } });
+  const leg = svgEl('g', {});   // legenda (2 serie)
+  leg.append(svgEl('circle', { cx: W - m.r - 150, cy: 12, r: 4, fill: COL.atteso }), svgEl('text', { x: W - m.r - 142, y: 16, fill: COL.testo, 'font-size': 11 }, 'atteso (standard)'),
+    svgEl('circle', { cx: W - m.r - 50, cy: 12, r: 4, fill: COL.reale }), svgEl('text', { x: W - m.r - 42, y: 16, fill: COL.testo, 'font-size': 11 }, 'reale'));
+  svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, '€ per pezzo buono'));
+  return svg;
+}
+function renderGrafico3(cp) {   // barre impilate: buoni (blu) + scrap (arancio) = lavorati, etichetta del totale sopra la barra
+  const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };   // stesso viewBox del grafico 1: stessa altezza resa
+  const serie = cp.serie.filter(s => s.mese >= cp.filtri.daMese && s.mese <= cp.filtri.aMese);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Pezzi lavorati per mese, buoni e scrap', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const lavMax = Math.max(...serie.map(s => s.lavorati || 0));
+  if (lavMax <= 0) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo lavorato nel periodo')); return svg; }
+  const yMax = Math.ceil(lavMax * 1.15), bw = Math.min(34, (W - m.l - m.r) / serie.length * 0.5);
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / serie.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  serie.forEach((s, i) => {
+    const lav = s.lavorati || 0, buoni = s.buoni || 0, scrap = lav - buoni;
+    if (buoni > 0) { const r = svgEl('rect', { x: x(i) - bw / 2, y: y(buoni), width: bw, height: y(0) - y(buoni), fill: COL.parti[0] }); r.append(svgEl('title', {}, `M${s.mese} · buoni: ${buoni}`)); svg.append(r); }
+    if (scrap > 0) { const r = svgEl('rect', { x: x(i) - bw / 2, y: y(lav), width: bw, height: y(buoni) - y(lav), fill: COL.parti[1] }); r.append(svgEl('title', {}, `M${s.mese} · scrap: ${scrap}`)); svg.append(r); }
+    if (lav > 0) svg.append(svgEl('text', { x: x(i), y: y(lav) - 5, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, fmt(lav, 0)));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, lav > 0 ? `${buoni} buoni · ${scrap} scrap` : (s.lavorati === null ? '' : 'fermo')));
+  });
+  const leg = svgEl('g', {});
+  leg.append(svgEl('rect', { x: W - m.r - 118, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[0] }), svgEl('text', { x: W - m.r - 104, y: 16, fill: COL.testo, 'font-size': 11 }, 'buoni'),
+    svgEl('rect', { x: W - m.r - 58, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[1] }), svgEl('text', { x: W - m.r - 44, y: 16, fill: COL.testo, 'font-size': 11 }, 'scrap'));
+  svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, 'pezzi lavorati'));
+  return svg;
+}
+function renderGrafico2(cp) {
+  const g = cp.grafico2, W = 1200, H = 142, GAP = 2;   // viewBox largo: a tutta larghezza i testi restano a misura normale
+  const parti = [['Fasi ferme', g.fasiFerme], ['Posti vuoti', g.postiVuoti], ['Scarto anomalo', g.scartoAnomalo], ['Semilavorati', g.semilavorati], ['Finiti', g.finiti]].map((p, i) => [...p, COL.parti[i]]);
+  const tot = parti.reduce((s, p) => s + Math.max(p[1], 0), 0);
+  const box = h('div', {});
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Ripartizione della spesa del periodo', style: 'display:block' });   // tutta larghezza (Michele 28/09)
+  if (tot <= 0) { svg.append(svgEl('text', { x: W / 2, y: 40, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun costo nel periodo')); box.append(svg); return box; }
+  // barra da y=22 a 66; font ridotti (11/9); le fette troppo strette per il testo (verde, rosa) hanno l'etichetta SOPRA la barra,
+  // sfalsata su due righe (y 8 / 18) quando due fette strette sono vicine (Michele 28/09)
+  const Y0 = 22, HB = 44, FV = 11, FN = 9;
+  let xx = 0, sopraN = 0, ultimoSopraX = -1e9;
+  for (const [nome, v, col] of parti) { const w = W * Math.max(v, 0) / tot; if (w <= 0) continue;
+    const r = svgEl('rect', { x: xx + (xx > 0 ? GAP : 0), y: Y0, width: Math.max(w - (xx > 0 ? GAP : 0), 0), height: HB, rx: 3, fill: col });
+    r.append(svgEl('title', {}, `${nome}: ${fmt(v)} € (${pct(v / tot)})`)); svg.append(r);
+    const cx = xx + w / 2, larghezzaTesto = Math.max(fmt(v, 0).length * FV * 0.62, nome.length * FN * 0.55) + 10;
+    if (w >= larghezzaTesto) {
+      svg.append(svgEl('text', { x: cx, y: Y0 + 19, fill: '#0D1B2A', 'font-size': FV, 'font-weight': 700, 'text-anchor': 'middle' }, fmt(v, 0)), svgEl('text', { x: cx, y: Y0 + 34, fill: '#0D1B2A', 'font-size': FN, 'text-anchor': 'middle' }, nome));
+    } else {   // etichetta sopra la barra, colore della fetta; se la precedente «sopra» è vicina, sale di una riga
+      const vicina = cx - ultimoSopraX < 120; const yy = vicina && sopraN % 2 === 0 ? 8 : 18; sopraN = vicina ? sopraN + 1 : 0; ultimoSopraX = cx;
+      const anchor = cx > W - 80 ? 'end' : (cx < 80 ? 'start' : 'middle');
+      svg.append(svgEl('line', { x1: cx, x2: cx, y1: yy + 2, y2: Y0, stroke: col, 'stroke-width': 1 }),
+        svgEl('text', { x: cx, y: yy, fill: col, 'font-size': FN, 'font-weight': 700, 'text-anchor': anchor }, `${nome} ${fmt(v, 0)}`));
+    }
+    xx += w; }
+  const YL = Y0 + HB + 12, YT = YL + 17;
+  const wce = W * g.aContoEconomico / tot;
+  svg.append(svgEl('line', { x1: 0, x2: Math.max(wce - GAP, 0), y1: YL, y2: YL, stroke: 'var(--ko)', 'stroke-width': 2 }), svgEl('text', { x: wce / 2, y: YT, fill: 'var(--ko)', 'font-size': 11, 'text-anchor': 'middle' }, `${fmt(g.aContoEconomico)} € a conto economico del periodo`));
+  svg.append(svgEl('line', { x1: wce + GAP, x2: W, y1: YL, y2: YL, stroke: 'var(--ok)', 'stroke-width': 2 }), svgEl('text', { x: W, y: YT, fill: 'var(--ok)', 'font-size': 11, 'text-anchor': 'end' }, `${fmt(g.aMagazzino)} € a magazzino`));
+  let lx = 0;   // legenda (5 parti)
+  for (const [nome, , col] of parti) { svg.append(svgEl('rect', { x: lx, y: YT + 20, width: 10, height: 10, rx: 2, fill: col }), svgEl('text', { x: lx + 14, y: YT + 29, fill: COL.testo, 'font-size': 10, 'font-weight': 700 }, nome)); lx += 14 + nome.length * 6 + 18; }
+  box.append(svg);
+  const nota = Math.abs(tot - g.totale) > 0.005 ? `Le cinque parti (${fmt(tot)} €) non tornano sulla spesa del periodo (${fmt(g.totale)} €): il periodo non parte da un magazzino vuoto. Prova da M1.` : `Totale ${fmt(g.totale)} € = spesa reale del periodo: fasi ferme + posti vuoti + scarto anomalo + semilavorati + finiti.`;
+  box.append(h('p', { class: 'note' }, nota));
+  if (cp.finitoCosto && g.fasiFerme > 0 && cp.finitiPezzi > 0) box.append(h('p', { class: 'note' }, `Se caricassi le fasi ferme sul pezzo: ${fmt(cp.finitoCosto)} → ${fmt(cp.finitoCosto + g.fasiFerme / cp.finitiPezzi)} €/pz, un numero che dipende dai volumi, non dall'efficienza.`));
+  return box;
+}
+
+// ---- render generale
+function render() {
+  document.querySelectorAll('.passi button').forEach(b => b.classList.toggle('attivo', Number(b.dataset.passo) === stato.passo));
+  const main = document.getElementById('main'); main.innerHTML = '';
+  const r = stato.risultato;
+  if (r && r.errori.length) main.append(h('div', { class: 'msg err' }, 'Il motore non parte finché lo scenario non è coerente: ', h('ul', {}, ...r.errori.map(e => h('li', {}, e)))));
+  if (stato.passo === 1) renderStandard(main); else if (stato.passo === 2) renderConsuntivo(main); else renderRisultati(main);
+}
+document.querySelectorAll('.passi button').forEach(b => b.addEventListener('click', () => { stato.passo = Number(b.dataset.passo); render(); }));
+document.getElementById('btnEsempio').addEventListener('click', () => { stato.scenario = structuredClone(ESEMPIO_LINEA); stato.filtri = null; stato.prodottoCorrente = null; stato.nonSalvare = false; ricalcola(); avviso('Esempio a due prodotti ricaricato.'); render(); });
+document.getElementById('btnAzzera').addEventListener('click', () => { if (!confirm('Azzero tutto lo scenario? Linea, prodotti e consuntivo.')) return;
+  stato.scenario = { versione: 2, nome: 'Nuova linea', mesi: 12, fasi: [{ id: 'F1', nome: 'Fase 1' }], linea: { F1: { fisso: {} } }, prodotti: [{ id: 'P1', nome: 'Prodotto 1', percorso: ['F1'], parametri: { F1: { capacita: {}, quota: {}, var: {}, scrap: {} } } }], consuntivo: { linea: {}, P1: {} }, filtri: { daMese: 1, aMese: 12, prodotto: 'tutti', fase: 'tutte' } };
+  stato.passo = 1; stato.filtri = null; stato.prodottoCorrente = null; stato.nonSalvare = false; ricalcola(); avviso(''); render(); });
+document.getElementById('btnCopia').addEventListener('click', async () => { const t = esportaScenario(); try { await navigator.clipboard.writeText(t); avviso('Scenario copiato negli appunti.'); } catch (e) { mostraJson(t); } });
+document.getElementById('btnIncolla').addEventListener('click', () => mostraJson(''));
+function mostraJson(testo) {
+  avviso('');
+  const ta = h('textarea', { class: 'json', placeholder: 'Incolla qui lo scenario JSON' }); ta.value = testo;
+  const box = h('div', { class: 'card' }, h('h3', {}, 'Scenario in testo (JSON)'), ta,
+    h('div', { style: 'margin-top:6px;display:flex;gap:6px' }, h('button', { class: 'primary', onclick: () => { const r = importaScenario(ta.value); if (!r.ok) avviso(r.errore, 'err'); else { avviso(r.convertito ? 'Scenario della versione 1 importato come un prodotto solo (capacità piena = quota, fisso portato a livello linea).' : 'Scenario importato.'); box.remove(); } } }, 'Importa'), h('button', { onclick: () => box.remove() }, 'Chiudi')));
+  document.getElementById('main').prepend(box);
+}
+// ?passo=1|2|3 &mese=1..12 &scheda=costo|registro|semilavorati|sintesi &prodotto=P1|linea &esempio=1 (ignora il salvataggio): per link diretti e screenshot
+const qs = new URLSearchParams(location.search);
+if (qs.get('esempio') === '1') { stato.scenario = structuredClone(ESEMPIO_LINEA); stato.nonSalvare = true; } else carica();
+if (qs.get('passo')) stato.passo = Math.min(3, Math.max(1, Number(qs.get('passo')) || 1));
+if (qs.get('mese')) stato.meseCorrente = Math.min(12, Math.max(1, Number(qs.get('mese')) || 1));
+if (qs.get('scheda')) stato.scheda = qs.get('scheda');
+if (qs.get('prodotto')) stato.prodottoCorrente = qs.get('prodotto');
+ricalcola(); render();
+</script>
+</body>
+</html>
