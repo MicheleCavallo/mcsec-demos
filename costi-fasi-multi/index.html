@@ -103,6 +103,7 @@ textarea.json { width:100%; height:140px; background:var(--input); color:var(--t
 
 <script src="../costi-fasi/engine.js"></script>
 <script src="../costi-fasi/ui.js"></script>
+<script src="../costi-fasi/lettura.js"></script>
 <script src="linea.js"></script>
 <script src="esempio-linea.js"></script>
 <script>
@@ -399,6 +400,15 @@ function renderRisultati(el) {
   if (stato.vista3 === 'linea') renderTotaleLinea(t, el); else renderRisultatiProdotto(r.strati[stato.vista3], el);
 }
 
+// ---- «Lettura dei risultati»: frasi generate dai numeri con regole fisse (lettura.js), sotto i grafici
+function renderLettura(frasi) {
+  const box = h('div', { class: 'scheda', style: 'margin-top:14px' }, h('h3', {}, 'Lettura dei risultati'));
+  if (!frasi.length) { box.append(h('p', { class: 'note' }, 'Niente da commentare: nessun costo nel periodo.')); return box; }
+  box.append(h('ul', { style: 'margin:4px 0 4px 18px;line-height:1.55' }, ...frasi.map(f => h('li', { style: 'margin:3px 0' }, f.testo))));
+  box.append(h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Commento generato dai numeri delle tabelle con regole fisse: a parità di dati dice sempre la stessa cosa.'));
+  return box;
+}
+
 // ---- vista Totale linea: prodotti finiti, quadratura per strato, grafico degli euro a sei parti, pezzi lavorati per prodotto
 function renderTotaleLinea(t, el) {
   const c = h('div', { class: 'card' }, h('h2', {}, `Totale linea M${t.filtri.daMese} → M${t.filtri.aMese}: reale contro standard`));
@@ -425,6 +435,7 @@ function renderTotaleLinea(t, el) {
   c.append(h('div', { style: 'display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap' },
     h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Serie mensile per prodotto: atteso e reale per pezzo buono'), renderGrafico1Linea(t)),
     h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Pezzi lavorati per mese, per prodotto: buoni + scrap'), renderGrafico3Linea(t.lavoratiPerMese))));
+  c.append(renderLettura(CostiFasiLettura.letturaLinea(t, stato.risultato)));
   el.append(c);
 }
 
@@ -506,6 +517,7 @@ function renderRisultatiProdotto(r, el) {
       h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp)),
       h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Pezzi lavorati per mese: buoni + scrap'), renderGrafico3(cp))));
     c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
+    c.append(renderLettura(CostiFasiLettura.letturaProdotto(cp, r)));
     el.append(c);
   }
 }

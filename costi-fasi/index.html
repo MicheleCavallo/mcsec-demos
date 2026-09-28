@@ -48,6 +48,7 @@ input.cella.scritto { border-color:var(--gold); }
 .evidenza { border:1px solid var(--gold); border-radius:6px; padding:8px 12px 10px; margin:10px 0; background:var(--panel2); }  /* prodotto finito: il numero in evidenza nei Risultati */
 .evidenza h3 { margin:2px 0 8px; }
 .evidenza td.big { font-size:16px; font-weight:700; }
+.scheda { border:1px solid var(--border); border-radius:6px; padding:8px 12px 10px; margin:8px 0; background:var(--panel2); }
 table.consuntivo td { height:52px; position:relative; }  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
 .hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
@@ -96,6 +97,7 @@ textarea.json { width:100%; height:140px; background:var(--input); color:var(--t
 
 <script src="engine.js"></script>
 <script src="ui.js"></script>
+<script src="lettura.js"></script>
 <script src="esempio.js"></script>
 <script>
 'use strict';
@@ -371,8 +373,17 @@ function renderRisultati(el) {
       h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Serie mensile: atteso e reale per pezzo buono'), renderGrafico1(cp)),
       h('div', { style: 'flex:1 1 460px;min-width:0' }, h('h3', {}, 'Pezzi lavorati per mese: buoni + scrap'), renderGrafico3(cp))));
     c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo'), renderGrafico2(cp));
+    c.append(renderLettura(CostiFasiLettura.letturaProdotto(cp, r)));
     el.append(c);
   }
+}
+// ---- «Lettura dei risultati»: frasi generate dai numeri con regole fisse (lettura.js), sotto i grafici
+function renderLettura(frasi) {
+  const box = h('div', { class: 'scheda', style: 'margin-top:14px' }, h('h3', {}, 'Lettura dei risultati'));
+  if (!frasi.length) { box.append(h('p', { class: 'note' }, 'Niente da commentare: nessun costo nel periodo.')); return box; }
+  box.append(h('ul', { style: 'margin:4px 0 4px 18px;line-height:1.55' }, ...frasi.map(f => h('li', { style: 'margin:3px 0' }, f.testo))));
+  box.append(h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Commento generato dai numeri delle tabelle con regole fisse: a parità di dati dice sempre la stessa cosa.'));
+  return box;
 }
 // ---- Grafici SVG (skill dataviz: palette validata sulla superficie #12233C, marks sottili, legenda + etichette dirette, tooltip)
 const NS = 'http://www.w3.org/2000/svg';
