@@ -53,7 +53,8 @@ test('due prodotti → due strati, ciascuno con il proprio percorso e i propri p
   assert.equal(res.strati.P1.registro.find(r => r.mese === 1 && r.fase === 'F1').J, 10);
   assert.equal(res.strati.P2.registro.find(r => r.mese === 1 && r.fase === 'F1').J, 5);
   assert.ok(Math.abs(res.strati.P1.registro.find(r => r.mese === 1 && r.fase === 'F1').S - 120) < 1e-9, 'fisso reale di P1 su F1 = 200 × 0,6');
-  assert.ok(res.controlli.every(c => c.prodotto === 'P1' || c.prodotto === 'P2'));
+  // i controlli degli strati portano il prodotto; quelli di linea (LRES, posti non assegnati) hanno prodotto null
+  assert.ok(res.controlli.every(c => c.prodotto === 'P1' || c.prodotto === 'P2' || (c.prodotto === null && c.codice === 'LRES')));
 });
 
 test('calcolaLinea con scenario non valido: errori e nessuno strato', () => {

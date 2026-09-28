@@ -197,8 +197,50 @@
       strati[p.id] = ris;
       for (const c of ris.controlli) controlli.push(Object.assign({}, c, { prodotto: p.id, messaggio: c.esito === 'KO' ? `${p.nome}: ${c.messaggio}` : c.messaggio }));
     }
-    return { errori: [], pesi, ripartizione, strati, controlli, ko: controlli.filter(c => c.esito === 'KO') };
+    // strato Linea: residuo del fisso per fase e mese (reale null = fase ferma → 0)
+    const perMese = ripartizione.map(r => { const fasi = {}; let std = 0, reale = 0;
+      for (const [fid, x] of Object.entries(r.fasi)) { fasi[fid] = { std: x.linea.std, reale: x.linea.reale === null ? 0 : x.linea.reale }; std += fasi[fid].std; reale += fasi[fid].reale; }
+      return { mese: r.mese, fasi, std, reale }; });
+    // controlli di linea: LFERMA (fase ferma per la linea, prodotto che lavora) e LRES (posti non assegnati, informativo)
+    const nomeF = fid => (sc.fasi.find(f => f.id === fid) || {}).nome || fid;
+    for (const p of sc.prodotti) for (const r of strati[p.id].registro) {
+      const ferma = ripartizione[r.mese - 1].fasi[r.fase].fissoReale === null;
+      const lav = n(r.J) > 0;
+      controlli.push({ mese: r.mese, fase: r.fase, prodotto: p.id, codice: 'LFERMA', esito: ferma && lav ? 'KO' : 'tace',
+        messaggio: ferma && lav ? `${p.nome}, M${r.mese} ${nomeF(r.fase)}: la fase è ferma per la linea (fisso reale vuoto) ma il prodotto ha lavorato ${r.J} pezzi: scrivi il fisso reale della fase (anche 0) o togli i lavorati.` : '' });
+    }
+    for (const w of pesi) for (const [fid, x] of Object.entries(w.fasi)) if (x.residuo > 1e-9 && x.somma > 0) controlli.push({ mese: w.mese, fase: fid, prodotto: null, codice: 'LRES', esito: 'tace', messaggio: `M${w.mese} ${nomeF(fid)}: ${Math.round(x.residuo * 1000) / 10} % della fase non è riservato a nessun prodotto (strato Linea).` });
+    return { errori: [], pesi, ripartizione, strati, linea: { perMese }, controlli, ko: controlli.filter(c => c.esito === 'KO') };
   }
 
-  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, calcolaPesi, ripartisciFisso, scenarioStrato, calcolaLinea };
+  // ---- Totale della linea sul periodo: Σ strati (costoProdotto di ogni prodotto, fase «tutte») + strato Linea.
+  // Il costo per pezzo uscito non esiste a livello linea (prodotti diversi): si legge per prodotto.
+  function totaleLinea(res, filtri) {
+    const da = filtri.daMese, a = filtri.aMese;
+    const strati = {}, righe = [], finiti = [];
+    const q0 = () => ({ reale: 0, budget: 0, delta: 0 });
+    const quad = { prodotto: q0(), nonProduzione: q0(), totale: q0() };
+    const g2 = { fasiFerme: 0, postiVuoti: 0, scartoAnomalo: 0, semilavorati: 0, finiti: 0, linea: 0, totale: 0 };
+    for (const [pid, ris] of Object.entries(res.strati)) {
+      const cp = costoProdotto(ris, { daMese: da, aMese: a, fase: 'tutte' });
+      strati[pid] = cp;
+      const nome = ris.prodottoNome || pid;
+      const q = k => ({ reale: cp.quadratura[k].reale, budget: cp.quadratura[k].budget, delta: cp.quadratura[k].deltaSpesa });
+      const riga = { pid, nome, quadratura: { prodotto: q('prodotto'), finito: q('finito'), restoProdotto: q('restoProdotto'), nonProduzione: q('nonProduzione'), totale: q('totale') } };
+      righe.push(riga);
+      for (const k of ['prodotto', 'nonProduzione', 'totale']) for (const j of ['reale', 'budget', 'delta']) quad[k][j] += riga.quadratura[k][j];
+      for (const k of ['fasiFerme', 'postiVuoti', 'scartoAnomalo', 'semilavorati', 'finiti', 'totale']) g2[k] += cp.grafico2[k];
+      finiti.push({ pid, nome, pezzi: cp.finitiPezzi, realePz: cp.finitoCosto, standardPz: cp.finitoStandardPz, deltaPz: cp.finitiPezzi ? cp.finitoDelta / cp.finitiPezzi : null });
+    }
+    const linea = { reale: 0, budget: 0, delta: 0 };
+    for (const m of res.linea.perMese) if (m.mese >= da && m.mese <= a) { linea.reale += m.reale; linea.budget += m.std; }
+    linea.delta = linea.reale - linea.budget;
+    for (const j of ['reale', 'budget', 'delta']) { quad.nonProduzione[j] += linea[j]; quad.totale[j] += linea[j]; }
+    g2.linea = linea.reale; g2.totale += linea.reale;
+    const lavoratiPerMese = [];
+    for (let m = da; m <= a; m++) { const prodotti = {}; for (const [pid, cp] of Object.entries(strati)) { const s = cp.serie[m - 1]; prodotti[pid] = { lavorati: s.lavorati || 0, buoni: s.buoni || 0 }; } lavoratiPerMese.push({ mese: m, prodotti }); }
+    return { filtri: { daMese: da, aMese: a }, strati, linea, quadratura: quad, righe, grafico2: g2, finiti, lavoratiPerMese };
+  }
+
+  return { normalizzaV2, analizzaScenarioV2, convertiV1, validaLinea, calcolaPesi, ripartisciFisso, scenarioStrato, calcolaLinea, totaleLinea };
 });
