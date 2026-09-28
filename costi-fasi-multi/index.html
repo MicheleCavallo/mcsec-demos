@@ -422,7 +422,7 @@ function renderTotaleLinea(t, el) {
     h('div', { class: 'scroll' }, qt),
     h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale è la somma degli strati: ogni euro reale sta in un prodotto o nella Linea. Il budget a standard di ogni strato è fisso del prodotto (fisso di fase × peso) più variabile standard × lavorati. Nessun costo per pezzo uscito a livello linea: con più prodotti non ha senso, si legge nella vista del prodotto.')));
   c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo (tutta la linea)'), renderGrafico2(t.grafico2));
-  c.append(h('h3', {}, 'Pezzi lavorati per mese, per prodotto'), renderGrafico3Linea(t.lavoratiPerMese));
+  c.append(h('h3', {}, 'Pezzi lavorati per mese, per prodotto: buoni + scrap'), renderGrafico3Linea(t.lavoratiPerMese));
   el.append(c);
 }
 
@@ -569,27 +569,32 @@ function renderGrafico3(cp) {   // barre impilate: buoni (blu) + scrap (arancio)
   svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, 'pezzi lavorati'));
   return svg;
 }
-function renderGrafico3Linea(lpm) {   // barre impilate per prodotto (un colore per prodotto), totale sopra la barra
+function renderGrafico3Linea(lpm) {   // per mese una barra per prodotto (colore del prodotto = buoni, scrap in arancio sopra), totale sopra la barra, dettaglio sotto il mese
   const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };
-  const prodotti = stato.scenario.prodotti;
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Pezzi lavorati per mese, per prodotto', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
-  const tot = s => prodotti.reduce((a, p) => a + ((s.prodotti[p.id] || {}).lavorati || 0), 0);
-  const lavMax = Math.max(...lpm.map(tot));
+  const prodotti = stato.scenario.prodotti, np = Math.max(1, prodotti.length);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Pezzi lavorati per mese e per prodotto, buoni e scrap', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const lav = (s, p) => (s.prodotti[p.id] || {}).lavorati || 0, buoni = (s, p) => (s.prodotti[p.id] || {}).buoni || 0;
+  const lavMax = Math.max(...lpm.map(s => Math.max(...prodotti.map(p => lav(s, p)))));
   if (lavMax <= 0) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo lavorato nel periodo')); return svg; }
-  const yMax = Math.ceil(lavMax * 1.15), bw = Math.min(34, (W - m.l - m.r) / lpm.length * 0.5);
-  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / lpm.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  const yMax = Math.ceil(lavMax * 1.15), slot = (W - m.l - m.r) / lpm.length, bw = Math.min(26, slot * 0.7 / np), gap = 3;
+  const x0 = i => m.l + (i + 0.5) * slot, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
   for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  const SCRAP = COL.parti[1], COL_PRODOTTO = [COL.parti[0], COL.parti[2], COL.parti[3], COL.parti[4]];   // ai prodotti blu, verde, oro, rosa: l'arancio è lo scrap, il grigio la Linea
   lpm.forEach((s, i) => {
-    let base = 0;
-    prodotti.forEach((p, k) => { const lav = (s.prodotti[p.id] || {}).lavorati || 0; if (lav <= 0) return;
-      const r = svgEl('rect', { x: x(i) - bw / 2, y: y(base + lav), width: bw, height: y(base) - y(base + lav), fill: COL.parti[k % COL.parti.length] });
-      r.append(svgEl('title', {}, `M${s.mese} · ${p.nome}: ${lav} lavorati, ${(s.prodotti[p.id] || {}).buoni || 0} buoni`)); svg.append(r); base += lav; });
-    if (base > 0) svg.append(svgEl('text', { x: x(i), y: y(base) - 5, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, fmt(base, 0)));
-    svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
-    svg.append(svgEl('text', { x: x(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, base > 0 ? prodotti.map(p => `${(s.prodotti[p.id] || {}).lavorati || 0}`).join(' + ') : 'fermo'));
+    const largh = np * bw + (np - 1) * gap, xs = x0(i) - largh / 2;
+    let tot = 0;
+    prodotti.forEach((p, k) => {
+      const l = lav(s, p), b = buoni(s, p), sc = l - b, x = xs + k * (bw + gap); tot += l;
+      if (b > 0) { const r = svgEl('rect', { x, y: y(b), width: bw, height: y(0) - y(b), fill: COL_PRODOTTO[k % COL_PRODOTTO.length] }); r.append(svgEl('title', {}, `M${s.mese} · ${p.nome}: ${b} buoni`)); svg.append(r); }
+      if (sc > 0) { const r = svgEl('rect', { x, y: y(l), width: bw, height: y(b) - y(l), fill: SCRAP }); r.append(svgEl('title', {}, `M${s.mese} · ${p.nome}: ${sc} scrap`)); svg.append(r); }
+      if (l > 0) svg.append(svgEl('text', { x: x + bw / 2, y: y(l) - 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'middle' }, fmt(l, 0)));
+    });
+    svg.append(svgEl('text', { x: x0(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
+    svg.append(svgEl('text', { x: x0(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, tot > 0 ? prodotti.map(p => `${p.nome.replace(/^Prodotto /, 'P')} ${lav(s, p)} (${buoni(s, p)} buoni)`).join(' · ') : 'fermo'));
   });
-  let lx = m.l;   // legenda: un colore per prodotto
-  prodotti.forEach((p, k) => { svg.append(svgEl('rect', { x: lx, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[k % COL.parti.length] }), svgEl('text', { x: lx + 14, y: 16, fill: COL.testo, 'font-size': 11 }, p.nome)); lx += 14 + p.nome.length * 6.4 + 18; });
+  let lx = m.l;   // legenda: un colore per prodotto (i buoni) + scrap
+  prodotti.forEach((p, k) => { svg.append(svgEl('rect', { x: lx, y: 7, width: 10, height: 10, rx: 2, fill: COL_PRODOTTO[k % COL_PRODOTTO.length] }), svgEl('text', { x: lx + 14, y: 16, fill: COL.testo, 'font-size': 11 }, p.nome)); lx += 14 + p.nome.length * 6.4 + 18; });
+  svg.append(svgEl('rect', { x: lx, y: 7, width: 10, height: 10, rx: 2, fill: SCRAP }), svgEl('text', { x: lx + 14, y: 16, fill: COL.testo, 'font-size': 11 }, 'scrap'));
   return svg;
 }
 function renderGrafico2(cp) {
