@@ -104,7 +104,7 @@ textarea.json { width:100%; height:140px; background:var(--input); color:var(--t
 const CHIAVE = 'mcsec.costiFasi.v2';
 // griglie per prodotto: capacità piena e quota (pezzi), variabile (€/pz), scrap (%)
 const VOCI_PRODOTTO = [['capacita', 'Capacità piena della fase per questo prodotto (pezzi al mese)', 0], ['quota', 'Quota riservata (pezzi al mese)', 0], ['var', 'Variabile standard € per pezzo', 2], ['scrap', 'Scrap normale %', 1]];
-const stato = { scenario: null, risultato: null, passo: 1, meseCorrente: 1, scheda: 'costo', prodottoCorrente: null, filtri: null };
+const stato = { scenario: null, risultato: null, passo: 1, meseCorrente: 1, scheda: 'costo', prodottoCorrente: null, vista3: 'linea', filtri: null };   // vista3: 'linea' o id prodotto nel Passo 03
 
 // ---- formato it-IT (funzioni pure in ../costi-fasi/ui.js) e motore di linea (linea.js)
 const { fmt, leggiNumero } = CostiFasiUI;
@@ -358,15 +358,67 @@ function tabellaLettere(righe, lettere, nomi, extra, decPezzi) {
   for (const r of righe) t.append(h('tr', {}, h('td', {}, 'M' + r.mese), h('td', {}, extra(r)), ...lettere.map(L => h('td', { style: typeof r[L] === 'string' && r[L] !== 'OK' && r[L] !== '' ? 'color:var(--ko)' : '' }, val(L, r[L], decPezzi ? (decPezzi.includes(L) ? 0 : 2) : undefined)))));
   return h('div', { class: 'scroll' }, t);
 }
+// ---- Passo 3 · Risultati: intestazione con i controlli di tutti gli strati, filtri del periodo, selettore «Totale linea / prodotto»
 function renderRisultati(el) {
-  const r = stato.risultato; if (!r || r.errori.length) return;
-  const nome = fid => (r.fasi.find(f => f.id === fid) || {}).nome || fid;
+  const r = stato.risultato, sc = stato.scenario; if (!r) return;
+  stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: sc.mesi || 12, fase: 'tutte' }, sc.filtri || {});
+  if (stato.vista3 !== 'linea' && !sc.prodotti.some(p => p.id === stato.vista3)) stato.vista3 = 'linea';
   const q = h('div', { class: 'card ' + (r.ko.length ? 'ko-box' : '') }, h('h2', {}, 'Passo 03 · Risultati'));
-  if (!r.ko.length) q.append(h('p', {}, h('span', { class: 'semaforo ok' }), 'Tutti i controlli dicono OK: quadrature riga e natura, scrap, ciclo, uscite, stati dei semilavorati, quadrature di sintesi.'));
+  if (r.errori.length) { q.append(h('p', { class: 'note' }, 'Correggi lo scenario nel Passo 01 per vedere i risultati.')); el.append(q); return; }
+  if (!r.ko.length) q.append(h('p', {}, h('span', { class: 'semaforo ok' }), 'Tutti i controlli dicono OK su ogni prodotto: quadrature riga e natura, scrap, ciclo, uscite, stati dei semilavorati, quadrature di sintesi, fasi ferme di linea.'));
   else q.append(h('p', {}, h('span', { class: 'semaforo ko' }), `${r.ko.length} controlli KO. Un KO si spiega, non si riscrive:`), h('ul', { style: 'margin:4px 0 8px 18px' }, ...r.ko.slice(0, 20).map(c => h('li', {}, `${c.codice} · ${c.messaggio}`))));
+  const t = Linea.totaleLinea(r, stato.filtri), per = `M${t.filtri.daMese} → M${t.filtri.aMese}`;
+  // riga di sintesi: il prodotto finito di ogni prodotto, reale contro previsto
+  const parti = [];
+  for (const f of t.finiti) {
+    if (parti.length) parti.push(' · ');
+    parti.push(h('b', {}, `${f.nome}: `));
+    if (f.pezzi) parti.push(`${fmt(f.pezzi, 0)} pz a `, h('b', { style: 'color:var(--gold-light)' }, `${fmt(f.realePz)} €/pz reale`), ` contro ${fmt(f.standardPz)} previsto `, h('b', { style: f.deltaPz > 0.005 ? 'color:var(--ko)' : 'color:var(--ok)' }, `(${f.deltaPz > 0 ? '+' : ''}${fmt(f.deltaPz)} €/pz)`));
+    else parti.push('nessun pezzo finito nel periodo');
+  }
+  q.append(h('p', { style: 'margin:6px 0' }, h('b', {}, `Prodotti finiti ${per}. `), ...parti));
+  const sel = (k, opzioni) => { const e = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: ev => { stato.filtri[k] = Number(ev.target.value); stato.scenario.filtri = Object.assign({}, stato.scenario.filtri, stato.filtri); salva(); render(); } }); for (const [v, tx] of opzioni) e.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, tx)); return e; };
+  const mesiOpz = Array.from({ length: sc.mesi || 12 }, (_, i) => [i + 1, 'M' + (i + 1)]);
+  q.append(h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0' }, 'Periodo da mese ', sel('daMese', mesiOpz), ' a mese ', sel('aMese', mesiOpz), h('span', { class: 'note', style: 'margin:0' }, '(vale per il totale e per ogni prodotto)')));
+  const bar = h('div', { class: 'passi', style: 'margin:6px 0' });
+  bar.append(h('button', { class: stato.vista3 === 'linea' ? 'attivo' : '', style: 'min-width:0;flex:0 0 auto;padding:7px 12px', onclick: () => { stato.vista3 = 'linea'; render(); } }, 'Totale linea'));
+  for (const p of sc.prodotti) bar.append(h('button', { class: stato.vista3 === p.id ? 'attivo' : '', style: 'min-width:0;flex:0 0 auto;padding:7px 12px', onclick: () => { stato.vista3 = p.id; render(); } }, p.nome));
+  q.append(bar); el.append(q);
+  if (stato.vista3 === 'linea') renderTotaleLinea(t, el); else renderRisultatiProdotto(r.strati[stato.vista3], el);
+}
+
+// ---- vista Totale linea: prodotti finiti, quadratura per strato, grafico degli euro a sei parti, pezzi lavorati per prodotto
+function renderTotaleLinea(t, el) {
+  const c = h('div', { class: 'card' }, h('h2', {}, `Totale linea M${t.filtri.daMese} → M${t.filtri.aMese}: reale contro standard`));
+  const pu = h('table', { style: 'max-width:720px' }, h('thead', {}, h('tr', {}, h('th', {}, 'Prodotto finito'), h('th', {}, 'Pezzi'), h('th', {}, 'Reale €/pz'), h('th', {}, 'Standard €/pz'), h('th', {}, 'Delta €/pz'), h('th', {}, 'Delta %'))));
+  for (const f of t.finiti) { const kd = f.deltaPz > 0.005 ? 'color:var(--ko)' : '';
+    pu.append(h('tr', {}, h('td', {}, f.nome), h('td', {}, fmt(f.pezzi, 0)), h('td', { class: 'big' }, fmt(f.realePz)), h('td', { class: 'big' }, fmt(f.standardPz)), h('td', { class: 'big', style: kd }, fmt(f.deltaPz)), h('td', { style: kd }, f.deltaPz === null || !f.standardPz ? '–' : pct(f.deltaPz / f.standardPz)))); }
+  const rigaQ = (voce, x, lettura, o) => { o = o || {}; const cl = o.big ? 'big' : '';
+    return h('tr', { style: o.stile || '' }, h('td', { style: o.indent ? 'padding-left:22px;color:var(--muted)' : (o.bold ? 'font-weight:700' : '') }, voce),
+      h('td', { class: cl }, fmt(x.reale)), h('td', { class: cl }, fmt(x.budget)), h('td', { class: cl, style: x.delta > 0.005 ? 'color:var(--ko)' : '' }, fmt(x.delta)),
+      h('td', { style: 'text-align:left;color:var(--muted);white-space:normal;min-width:240px' }, lettura)); };
+  const qt = h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Quadratura del periodo, per strato'), h('th', {}, 'Reale €'), h('th', {}, 'Budget a standard €'), h('th', {}, 'Delta €'), h('th', { style: 'text-align:left' }, 'Lettura'))));
+  for (const riga of t.righe) {
+    qt.append(rigaQ(riga.nome, riga.quadratura.totale, 'totale dello strato: sul prodotto + non produzione', { bold: true }));
+    qt.append(rigaQ('sul prodotto', riga.quadratura.prodotto, 'pezzi lavorati, scarto normale incluso', { indent: true }));
+    qt.append(rigaQ('non produzione', riga.quadratura.nonProduzione, 'posti vuoti e fasi ferme dentro le quote del prodotto', { indent: true }));
+  }
+  qt.append(rigaQ('Linea: posti non assegnati', t.linea, 'quota di fase non riservata a nessun prodotto (1 − Σ pesi): a conto economico, su nessun prodotto', { bold: true }));
+  qt.append(rigaQ('Totale costi del periodo', t.quadratura.totale, 'spesa reale contro budget a standard: il delta è l\u2019inefficienza della linea', { big: true, stile: 'border-top:2px solid var(--gold)' }));
+  c.append(h('div', { class: 'evidenza' }, h('h3', {}, 'Prodotti finiti e quadratura della linea'), h('div', { class: 'scroll' }, pu),
+    h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Per ogni prodotto: costo di scarico dei pezzi che hanno completato la sua fase finale nel periodo, contro il totale prodotto a listino del mese finale.'),
+    h('div', { class: 'scroll' }, qt),
+    h('p', { class: 'note', style: 'margin:6px 0 0' }, 'Il totale è la somma degli strati: ogni euro reale sta in un prodotto o nella Linea. Il budget a standard di ogni strato è fisso del prodotto (fisso di fase × peso) più variabile standard × lavorati. Nessun costo per pezzo uscito a livello linea: con più prodotti non ha senso, si legge nella vista del prodotto.')));
+  c.append(h('h3', {}, 'Dove sono finiti gli euro del periodo (tutta la linea)'), renderGrafico2(t.grafico2));
+  c.append(h('h3', {}, 'Pezzi lavorati per mese, per prodotto'), renderGrafico3Linea(t.lavoratiPerMese));
+  el.append(c);
+}
+
+function renderRisultatiProdotto(r, el) {
+  const nome = fid => (r.fasi.find(f => f.id === fid) || {}).nome || fid;
+  const q = h('div', { class: 'card' }, h('h2', {}, `${r.prodottoNome}: risultati dello strato`));
   // in testa: il prodotto finito (usciti dalla fase finale) al reale contro il previsto, con gli stessi filtri della scheda Costo prodotto
-  stato.filtri = stato.filtri || Object.assign({ daMese: 1, aMese: 12, fase: 'tutte' }, stato.scenario.filtri || {});
-  if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';
+  if (stato.filtri.fase !== 'tutte' && !r.percorso.includes(stato.filtri.fase)) stato.filtri.fase = 'tutte';   // il filtro fase vale per il prodotto in vista
   const cpH = CostiFasi.costoProdotto(r, stato.filtri), per = `M${cpH.filtri.daMese} → M${cpH.filtri.aMese}`;
   q.append(h('p', { style: 'margin:6px 0' }, h('b', {}, `${r.prodottoNome || 'Prodotto'} finito ${per}: `), cpH.finitiPezzi
     ? [`${fmt(cpH.finitiPezzi, 0)} pz usciti da ${nome(r.percorso[r.percorso.length - 1])} a `, h('b', { style: 'color:var(--gold-light)' }, `${fmt(cpH.finitoCosto)} €/pz reale`), ` contro ${fmt(cpH.finitoStandardPz)} €/pz previsto: `, h('b', { style: cpH.finitoDelta > 0.005 ? 'color:var(--ko)' : 'color:var(--ok)' }, `${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta / cpH.finitiPezzi)} €/pz, ${cpH.finitoDelta > 0 ? '+' : ''}${fmt(cpH.finitoDelta)} € in totale`), '.']
@@ -391,7 +443,7 @@ function renderRisultati(el) {
     el.append(h('div', { class: 'card' }, h('h2', {}, 'Sintesi per mese'), h('p', { class: 'note' }, 'Quadratura stati: maturato cumulato (al listino del mese) = magazzino a standard per stati + scrap a standard. Quadratura mese: scostamento totale = delta sui lavorati + non produzione.'), h('div', { class: 'scroll' }, t)));
   } else {
     const cp = cpH;
-    const sel = (k, opzioni) => { const s = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: e => { stato.filtri[k] = k === 'fase' ? e.target.value : Number(e.target.value); stato.scenario.filtri = Object.assign({}, stato.filtri); salva(); render(); } }); for (const [v, t] of opzioni) s.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, t)); return s; };
+    const sel = (k, opzioni) => { const s = h('select', { style: 'background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font:inherit', onchange: e => { stato.filtri[k] = k === 'fase' ? e.target.value : Number(e.target.value); stato.scenario.filtri = Object.assign({}, stato.scenario.filtri, stato.filtri); salva(); render(); } }); for (const [v, t] of opzioni) s.append(h('option', { value: v, ...(String(stato.filtri[k]) === String(v) ? { selected: '' } : {}) }, t)); return s; };
     const mesiOpz = Array.from({ length: r.mesi }, (_, i) => [i + 1, 'M' + (i + 1)]);
     const c = h('div', { class: 'card' }, h('h2', {}, `Costo di ${r.prodottoNome || 'prodotto'}: atteso (standard) contro reale`),
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Da mese ', sel('daMese', mesiOpz), ' a mese ', sel('aMese', mesiOpz), ' fase ', sel('fase', [['tutte', 'Tutte'], ...r.fasi.map(f => [f.id, f.nome])])),
@@ -446,7 +498,7 @@ function renderRisultati(el) {
 // ---- Grafici SVG (skill dataviz: palette validata sulla superficie #12233C, marks sottili, legenda + etichette dirette, tooltip)
 const NS = 'http://www.w3.org/2000/svg';
 const COL = { reale: '#B08A32', atteso: '#5588C0', griglia: '#23395A', testo: '#B0B8C4', muto: '#6B7686',
-  parti: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'] };
+  parti: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#8A94A3'] };   // la sesta = Linea (posti non assegnati)
 function svgEl(tag, attrs, testo) { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); if (testo !== undefined) e.textContent = testo; return e; }
 function renderGrafico1(cp) {
   const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };
@@ -505,9 +557,32 @@ function renderGrafico3(cp) {   // barre impilate: buoni (blu) + scrap (arancio)
   svg.append(leg, svgEl('text', { x: m.l, y: 16, fill: COL.testo, 'font-size': 11 }, 'pezzi lavorati'));
   return svg;
 }
+function renderGrafico3Linea(lpm) {   // barre impilate per prodotto (un colore per prodotto), totale sopra la barra
+  const W = 760, H = 270, m = { l: 50, r: 16, t: 26, b: 46 };
+  const prodotti = stato.scenario.prodotti;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Pezzi lavorati per mese, per prodotto', style: 'max-width:760px;display:block;background:var(--panel2);border:1px solid var(--border);border-radius:6px' });
+  const tot = s => prodotti.reduce((a, p) => a + ((s.prodotti[p.id] || {}).lavorati || 0), 0);
+  const lavMax = Math.max(...lpm.map(tot));
+  if (lavMax <= 0) { svg.append(svgEl('text', { x: W / 2, y: H / 2, fill: COL.testo, 'text-anchor': 'middle', 'font-size': 13 }, 'Nessun pezzo lavorato nel periodo')); return svg; }
+  const yMax = Math.ceil(lavMax * 1.15), bw = Math.min(34, (W - m.l - m.r) / lpm.length * 0.5);
+  const x = i => m.l + (i + 0.5) * (W - m.l - m.r) / lpm.length, y = v => m.t + (H - m.t - m.b) * (1 - v / yMax);
+  for (let k = 0; k <= 4; k++) { const v = yMax * k / 4; svg.append(svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: COL.griglia }), svgEl('text', { x: m.l - 6, y: y(v) + 4, fill: COL.testo, 'font-size': 10, 'text-anchor': 'end' }, fmt(v, 0))); }
+  lpm.forEach((s, i) => {
+    let base = 0;
+    prodotti.forEach((p, k) => { const lav = (s.prodotti[p.id] || {}).lavorati || 0; if (lav <= 0) return;
+      const r = svgEl('rect', { x: x(i) - bw / 2, y: y(base + lav), width: bw, height: y(base) - y(base + lav), fill: COL.parti[k % COL.parti.length] });
+      r.append(svgEl('title', {}, `M${s.mese} · ${p.nome}: ${lav} lavorati, ${(s.prodotti[p.id] || {}).buoni || 0} buoni`)); svg.append(r); base += lav; });
+    if (base > 0) svg.append(svgEl('text', { x: x(i), y: y(base) - 5, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, fmt(base, 0)));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 14, fill: COL.testo, 'font-size': 11, 'text-anchor': 'middle' }, 'M' + s.mese));
+    svg.append(svgEl('text', { x: x(i), y: H - m.b + 27, fill: COL.muto, 'font-size': 9, 'text-anchor': 'middle' }, base > 0 ? prodotti.map(p => `${(s.prodotti[p.id] || {}).lavorati || 0}`).join(' + ') : 'fermo'));
+  });
+  let lx = m.l;   // legenda: un colore per prodotto
+  prodotti.forEach((p, k) => { svg.append(svgEl('rect', { x: lx, y: 7, width: 10, height: 10, rx: 2, fill: COL.parti[k % COL.parti.length] }), svgEl('text', { x: lx + 14, y: 16, fill: COL.testo, 'font-size': 11 }, p.nome)); lx += 14 + p.nome.length * 6.4 + 18; });
+  return svg;
+}
 function renderGrafico2(cp) {
-  const g = cp.grafico2, W = 1200, H = 142, GAP = 2;   // viewBox largo: a tutta larghezza i testi restano a misura normale
-  const parti = [['Fasi ferme', g.fasiFerme], ['Posti vuoti', g.postiVuoti], ['Scarto anomalo', g.scartoAnomalo], ['Semilavorati', g.semilavorati], ['Finiti', g.finiti]].map((p, i) => [...p, COL.parti[i]]);
+  const g = cp.grafico2 || cp, W = 1200, H = 142, GAP = 2;   // cp = costo prodotto di uno strato (v1) oppure il grafico2 di linea (con «linea»)   // viewBox largo: a tutta larghezza i testi restano a misura normale
+  const parti = [['Fasi ferme', g.fasiFerme], ['Posti vuoti', g.postiVuoti], ['Scarto anomalo', g.scartoAnomalo], ['Semilavorati', g.semilavorati], ['Finiti', g.finiti], ...(g.linea !== undefined ? [['Linea (posti non assegnati)', g.linea]] : [])].map((p, i) => [...p, COL.parti[i]]);
   const tot = parti.reduce((s, p) => s + Math.max(p[1], 0), 0);
   const box = h('div', {});
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Ripartizione della spesa del periodo', style: 'display:block' });   // tutta larghezza (Michele 28/09)
@@ -530,13 +605,15 @@ function renderGrafico2(cp) {
     }
     xx += w; }
   const YL = Y0 + HB + 12, YT = YL + 17;
-  const wce = W * g.aContoEconomico / tot;
-  svg.append(svgEl('line', { x1: 0, x2: Math.max(wce - GAP, 0), y1: YL, y2: YL, stroke: 'var(--ko)', 'stroke-width': 2 }), svgEl('text', { x: wce / 2, y: YT, fill: 'var(--ko)', 'font-size': 11, 'text-anchor': 'middle' }, `${fmt(g.aContoEconomico)} € a conto economico del periodo`));
-  svg.append(svgEl('line', { x1: wce + GAP, x2: W, y1: YL, y2: YL, stroke: 'var(--ok)', 'stroke-width': 2 }), svgEl('text', { x: W, y: YT, fill: 'var(--ok)', 'font-size': 11, 'text-anchor': 'end' }, `${fmt(g.aMagazzino)} € a magazzino`));
+  const aCE = g.aContoEconomico !== undefined ? g.aContoEconomico : g.fasiFerme + g.postiVuoti + g.scartoAnomalo + (g.linea || 0);
+  const aMag = g.aMagazzino !== undefined ? g.aMagazzino : g.semilavorati + g.finiti;
+  const wce = W * aCE / tot;
+  svg.append(svgEl('line', { x1: 0, x2: Math.max(wce - GAP, 0), y1: YL, y2: YL, stroke: 'var(--ko)', 'stroke-width': 2 }), svgEl('text', { x: wce / 2, y: YT, fill: 'var(--ko)', 'font-size': 11, 'text-anchor': 'middle' }, `${fmt(aCE)} € a conto economico del periodo`));
+  svg.append(svgEl('line', { x1: wce + GAP, x2: W, y1: YL, y2: YL, stroke: 'var(--ok)', 'stroke-width': 2 }), svgEl('text', { x: W, y: YT, fill: 'var(--ok)', 'font-size': 11, 'text-anchor': 'end' }, `${fmt(aMag)} € a magazzino`));
   let lx = 0;   // legenda (5 parti)
   for (const [nome, , col] of parti) { svg.append(svgEl('rect', { x: lx, y: YT + 20, width: 10, height: 10, rx: 2, fill: col }), svgEl('text', { x: lx + 14, y: YT + 29, fill: COL.testo, 'font-size': 10, 'font-weight': 700 }, nome)); lx += 14 + nome.length * 6 + 18; }
   box.append(svg);
-  const nota = Math.abs(tot - g.totale) > 0.005 ? `Le cinque parti (${fmt(tot)} €) non tornano sulla spesa del periodo (${fmt(g.totale)} €): il periodo non parte da un magazzino vuoto. Prova da M1.` : `Totale ${fmt(g.totale)} € = spesa reale del periodo: fasi ferme + posti vuoti + scarto anomalo + semilavorati + finiti.`;
+  const nota = Math.abs(tot - g.totale) > 0.005 ? `Le cinque parti (${fmt(tot)} €) non tornano sulla spesa del periodo (${fmt(g.totale)} €): il periodo non parte da un magazzino vuoto. Prova da M1.` : `Totale ${fmt(g.totale)} € = spesa reale del periodo: fasi ferme + posti vuoti + scarto anomalo + semilavorati + finiti${g.linea !== undefined ? ' + Linea' : ''}.`;
   box.append(h('p', { class: 'note' }, nota));
   if (cp.finitoCosto && g.fasiFerme > 0 && cp.finitiPezzi > 0) box.append(h('p', { class: 'note' }, `Se caricassi le fasi ferme sul pezzo: ${fmt(cp.finitoCosto)} → ${fmt(cp.finitoCosto + g.fasiFerme / cp.finitiPezzi)} €/pz, un numero che dipende dai volumi, non dall'efficienza.`));
   return box;
@@ -570,7 +647,7 @@ if (qs.get('esempio') === '1') { stato.scenario = structuredClone(ESEMPIO_LINEA)
 if (qs.get('passo')) stato.passo = Math.min(3, Math.max(1, Number(qs.get('passo')) || 1));
 if (qs.get('mese')) stato.meseCorrente = Math.min(12, Math.max(1, Number(qs.get('mese')) || 1));
 if (qs.get('scheda')) stato.scheda = qs.get('scheda');
-if (qs.get('prodotto')) stato.prodottoCorrente = qs.get('prodotto');
+if (qs.get('prodotto')) { const v = qs.get('prodotto'); stato.vista3 = v; if (v !== 'linea') stato.prodottoCorrente = v; }
 ricalcola(); render();
 </script>
 </body>
