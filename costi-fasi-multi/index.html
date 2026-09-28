@@ -210,7 +210,19 @@ function renderStandard(el) {
         ricalcola(); render(); } }, '✕'))));
   }
   cat.append(tb, h('button', { style: 'margin-top:6px', onclick: () => { let k = sc.fasi.length + 1; while (sc.fasi.some(x => x.id === 'F' + k)) k++; const id = 'F' + k; sc.fasi.push({ id, nome: 'Fase ' + k }); sc.linea[id] = { fisso: {} }; ricalcola(); render(); } }, '+ Aggiungi fase'));
-  card.append(cat);
+  // mappa fasi × prodotti a fianco del catalogo: una colonna per prodotto, una riga per fase del catalogo, riquadro nel colore del prodotto se la fase è nel percorso
+  const COLP = ['#3987e5', '#199e70', '#c98500', '#d55181'];
+  const mappa = h('div', {}, h('h3', {}, 'Mappa fasi × prodotti'), h('p', { class: 'note' }, 'Ogni colonna è un prodotto: le fasi che attraversa, nell’ordine del catalogo; il numero è la posizione nel suo percorso.'));
+  const griglia = h('div', { style: `display:grid;grid-template-columns:repeat(${sc.prodotti.length}, minmax(120px, 160px));gap:6px 14px;align-items:stretch` });
+  for (const q of sc.prodotti) griglia.append(h('div', { style: 'font-family:var(--head);font-weight:700;font-size:12px;text-align:center;padding-bottom:2px' }, q.nome));
+  for (const f of sc.fasi) for (const [k, q] of sc.prodotti.entries()) {
+    const pos = q.percorso.indexOf(f.id);
+    griglia.append(pos >= 0
+      ? h('div', { title: `${q.nome} · passo ${pos + 1}: ${f.nome}`, style: `border:1px solid ${COLP[k % COLP.length]};border-left:4px solid ${COLP[k % COLP.length]};border-radius:4px;padding:4px 8px;font-size:11px;background:var(--panel2)` }, h('span', { style: 'color:var(--muted);margin-right:6px' }, String(pos + 1).padStart(2, '0')), f.nome)
+      : h('div', { style: 'border:1px dashed var(--border);border-radius:4px;min-height:26px;opacity:.5' }));
+  }
+  mappa.append(griglia);
+  card.append(h('div', { style: 'display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap' }, cat, mappa));
   // ---- Linea: fisso standard di fase, con sotto i pesi di tutti i prodotti e i pezzi equivalenti
   const sottoPesi = riga => {
     const out = [];
