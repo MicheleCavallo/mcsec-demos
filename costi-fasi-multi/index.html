@@ -406,7 +406,7 @@ function tabellaLettere(righe, lettere, nomi, extra, decPezzi) {
   return h('div', { class: 'scroll' }, t);
 }
 // ---- Raccolta dati dai sistemi aziendali (simulazione, come nel Digital Twin): pulsante in evidenza, quattro passi animati,
-// poi il mese corrente si riempie con dati coerenti: lancio tra 75 % e 100 % dell'OLC, costi reali con un'oscillazione casuale intorno allo standard
+// poi il mese corrente si riempie con dati coerenti: lancio tra 25 % e 95 % dell'OLC, costi reali con un'oscillazione casuale intorno allo standard
 function renderRaccolta(m) {
   const sc = stato.scenario, st = stato.raccolta || {};
   const box = h('div', { class: 'raccolta' });
@@ -421,7 +421,7 @@ function renderRaccolta(m) {
   passi.forEach(([t, sotto], i) => { const n = st.mese === m ? st.passo : 0;
     riga.append(h('div', { class: 'p4 ' + (i + 1 < n ? 'fatto' : (i + 1 === n && st.inCorso ? 'attivo' : (i + 1 === n ? 'fatto' : ''))) }, h('div', { class: 'pallino' }, i + 1 <= n && !(i + 1 === n && st.inCorso) ? '✓' : ''), h('div', {}, h('b', {}, t), h('small', {}, sotto)))); });
   box.append(riga);
-  box.append(h('p', { class: 'note', style: 'margin:8px 0 0' }, 'Simulazione: nella versione per il cliente i dati arrivano dal MES o dall\u2019ERP con un flusso automatico; qui il mese si riempie con valori coerenti con lo standard: lancio tra il 75 % e il 100 % della capacità, fisso reale tra −5 % e +15 %, variabile tra −5 % e +10 %, diversi ogni volta.'));
+  box.append(h('p', { class: 'note', style: 'margin:8px 0 0' }, 'Simulazione: nella versione per il cliente i dati arrivano dal MES o dall\u2019ERP con un flusso automatico; qui il mese si riempie con valori coerenti con lo standard: lancio tra il 25 % e il 95 % della capacità, fisso reale tra −5 % e +15 %, variabile tra −5 % e +10 %, diversi ogni volta.'));
   return box;
 }
 function avviaRaccolta(m) {
@@ -448,7 +448,7 @@ function simulaConsuntivo(m) {
     let entrati = null;
     p.percorso.forEach((fid, i) => {
       const par = p.parametri[fid], quota = Linea.quotaDi(par, m) || 0, g = CostiFasi.eredita(par.scrap, m) || 0, v = CostiFasi.eredita(par.var, m) || 0;
-      const inp = i === 0 ? Math.max(1, Math.round(olc * (0.75 + Math.random() * 0.25))) : entrati;   // lancio tra il 75 % e il 100 % dell'OLC: i volumi variano, i posti vuoti pure
+      const inp = i === 0 ? Math.max(1, Math.round(olc * (0.25 + Math.random() * 0.70))) : entrati;   // lancio tra il 25 % e il 95 % dell'OLC (Michele: l'OLC è quasi sempre più teorico che reale)
       const lav = Math.min(inp, Math.round(quota), olc), scrap = Math.round(lav * g), usciti = lav - scrap;
       sc.consuntivo[p.id][String(m)][fid] = { entrati: inp, lavorati: lav, scrap, usciti, varReale: r2(v * lav * (0.95 + Math.random() * 0.15)) };
       entrati = usciti;
