@@ -24,14 +24,12 @@ h1 .oro { color:var(--gold-light); }
 .el { opacity:0; transform:translateY(14px); transition:opacity .38s var(--ease), transform .38s var(--ease); }
 .on .el.in { opacity:1; transform:none; }
 /* scena 1: l'aereo */
-.posti { margin:26px 0 8px; width:900px; }
-.posti svg { width:900px; height:auto; display:block; }
-.fusoliera { fill:var(--panel); stroke:var(--border); stroke-width:2; }
-.ala { fill:var(--panel2); stroke:var(--border); stroke-width:2; }
-.finestrino { fill:#0F1E33; stroke:var(--border); }
-.posto { fill:#0F1E33; stroke:var(--border); stroke-width:1.5; transition:fill .3s var(--ease), stroke .3s var(--ease); }
-.posto.pieno { fill:var(--gold-light); stroke:var(--gold-light); }
-.posto.vuoto { fill:var(--arancio); stroke:var(--arancio); }
+.posti { margin:18px 0 6px; width:1100px; position:relative; }
+.posti img { width:1100px; height:auto; display:block; border-radius:12px; }
+.posti svg { position:absolute; inset:0; width:100%; height:100%; }
+.posto { fill:transparent; stroke:transparent; stroke-width:6; transition:fill .35s var(--ease), stroke .35s var(--ease); }
+.posto.pieno { fill:rgba(212,175,55,.85); stroke:var(--gold-light); }
+.posto.vuoto { fill:rgba(217,89,38,.85); stroke:var(--arancio); }
 .leg { display:flex; gap:28px; align-items:center; font-family:var(--head); font-weight:700; font-size:16px; color:var(--muted); }
 .leg i { display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:8px; vertical-align:-2px; }
 .dida { font-family:var(--head); font-weight:700; font-size:16px; color:var(--muted); letter-spacing:.04em; }
@@ -78,10 +76,10 @@ td.scarto { color:var(--arancio); }
 <!-- 1 · Intro, l'aereo -->
 <section class="scena" data-scena="1">
   <div class="kicker el" data-t="0">Performance Intelligence · MCSec</div>
-  <h1 class="el" data-t="0">La produzione come un aereo da 40 posti <span class="oro">che decolla con 10 passeggeri</span>.</h1>
+  <h1 class="el" data-t="0">La produzione come un aereo da 44 posti <span class="oro">che decolla con 11 passeggeri</span>.</h1>
   <div class="sub el" data-t="1">Carburante, equipaggio, pista: li paghi uguali.</div>
   <div class="posti el" data-t="1" id="posti"></div>
-  <div class="leg el" data-t="3"><span><i style="background:var(--gold-light)"></i>posti occupati · 10</span><span><i style="background:var(--arancio)"></i>posti vuoti · 30</span><span class="dida">il volo costa uguale</span></div>
+  <div class="leg el" data-t="3"><span><i style="background:var(--gold-light)"></i>posti occupati · 11</span><span><i style="background:var(--arancio)"></i>posti vuoti · 33</span><span class="dida">il volo costa uguale</span></div>
   <div class="frase1 el" data-t="4">Sai quanto ti costa il prodotto, ma…</div>
   <div class="frase2 el" data-t="5">non sai quanto ti costa la non produzione.</div>
 </section>
@@ -160,21 +158,16 @@ td.scarto { color:var(--arancio); }
 const qs = new URLSearchParams(location.search);
 const AUTO = qs.get('auto') === '1';
 // posti dell'aereo: 40, i primi 10 si riempiono (oro), gli altri 30 restano vuoti (arancio) al passo 2
-// la fusoliera: muso a sinistra, coda a destra, ali; 10 file da 4 posti (2 + corridoio + 2), i primi 10 posti (davanti) sono i passeggeri
+// l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 11 file da 4 (2 + corridoio + 2), coordinate nei pixel dell'immagine
 const NS = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(NS, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
-const svg = el('svg', { viewBox: '0 0 900 260' });
-svg.append(el('path', { class: 'ala', d: 'M300 118 L 420 118 L 560 20 L 600 20 L 500 118 Z' }));            // ala in alto (prospettiva)
-svg.append(el('path', { class: 'ala', d: 'M300 142 L 420 142 L 560 240 L 600 240 L 500 142 Z' }));          // ala in basso
-svg.append(el('path', { class: 'ala', d: 'M760 100 L 830 40 L 862 40 L 810 130 Z' }));                     // coda
-svg.append(el('path', { class: 'fusoliera', d: 'M60 130 C 60 88, 110 60, 190 60 L 740 60 C 810 60, 850 100, 860 130 C 850 160, 810 200, 740 200 L 190 200 C 110 200, 60 172, 60 130 Z' }));
-svg.append(el('path', { class: 'finestrino', d: 'M80 118 C 100 96, 130 84, 170 84 L 170 104 L 100 104 Z' }));   // cabina
+const svg = el('svg', { viewBox: '0 0 2170 725' });
 const seats = [];
-for (let f = 0; f < 10; f++) for (let r = 0; r < 4; r++) {
-  const x = 200 + f * 54, y = [78, 108, 152, 182][r];
-  const rect = el('rect', { class: 'posto', x, y, width: 34, height: 26, rx: 6 }); svg.append(rect); seats.push(rect);
+for (let f = 0; f < 11; f++) for (let r = 0; r < 4; r++) {
+  const cx = 532 + f * 116.3, cy = [241, 304, 419, 482][r];
+  const rect = el('rect', { class: 'posto', x: cx - 34, y: cy - 28, width: 68, height: 56, rx: 10 }); svg.append(rect); seats.push(rect);
 }
-document.getElementById('posti').append(svg);
-// ordine di riempimento: per fila, dal muso: i primi 10 posti = le prime 2 file e mezza
+const img = document.createElement('img'); img.src = 'aereo.png'; img.alt = 'Aereo visto dall’alto, 44 posti';
+document.getElementById('posti').append(img, svg);
 const ordine = seats.map((r, i) => i).sort((a, b) => Math.floor(a / 4) - Math.floor(b / 4) || (a % 4) - (b % 4));
 // passi: [scena, passo interno]; durate in ms per la modalità automatica (tempi dello storyboard, tarati sul parlato)
 const PASSI = [
@@ -192,7 +185,7 @@ function applica() {
   const scena = document.querySelector(`.scena[data-scena="${sc}"]`);
   scena.querySelectorAll('.el').forEach(e => e.classList.toggle('in', Number(e.dataset.t) <= t));
   // effetti speciali per passo
-  if (sc === 1) { ordine.forEach((idx, pos) => { const p = seats[idx]; p.classList.toggle('pieno', t >= 2 && pos < 10); p.classList.toggle('vuoto', t >= 3 && pos >= 10); p.style.transitionDelay = (t >= 2 && pos < 10) ? (pos * 70) + 'ms' : (t >= 3 ? ((pos - 10) * 35) + 'ms' : '0ms'); }); }
+  if (sc === 1) { ordine.forEach((idx, pos) => { const p = seats[idx]; p.classList.toggle('pieno', t >= 2 && pos < 11); p.classList.toggle('vuoto', t >= 3 && pos >= 11); p.style.transitionDelay = (t >= 2 && pos < 11) ? (pos * 70) + 'ms' : (t >= 3 ? ((pos - 11) * 35) + 'ms' : '0ms'); }); }
   if (sc === 3) { const righe = document.querySelectorAll('.scena[data-scena="3"] tbody tr'); righe.forEach((r, i) => { const on = t >= 1 + Math.min(i, 1) && !(i === 2 && t < 3); r.querySelectorAll('td.num').forEach(c => conta(c, on ? Number(c.dataset.n) : 0)); }); }
   if (sc === 4) { scena.querySelectorAll('.v').forEach((v, i) => { if (t >= i + 1) conta(v, v.dataset.conta, true); else v.textContent = '0'; }); }
   document.getElementById('hud').innerHTML = `passo <b>${k + 1}</b> / ${PASSI.length} · scena ${sc}`;
