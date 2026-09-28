@@ -158,13 +158,14 @@ td.scarto { color:var(--arancio); }
 const qs = new URLSearchParams(location.search);
 const AUTO = qs.get('auto') === '1';
 // posti dell'aereo: 40, i primi 10 si riempiono (oro), gli altri 30 restano vuoti (arancio) al passo 2
-// l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 10 file da 4 (2 + corridoio + 2), l'undicesima fila è stata coperta nell'immagine, coordinate nei pixel dell'immagine
+// l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 10 file numerate da 4 (2 + corridoio + 2), coordinate nei pixel dell'immagine
 const NS = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(NS, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
-const svg = el('svg', { viewBox: '0 0 2170 725' });
+const svg = el('svg', { viewBox: '0 0 2169 725' });
 const seats = [];
+const COLX = [600, 700, 799, 900, 999, 1177, 1275, 1375, 1473, 1569];   // centri delle 10 file (immagine 2169×725, stacco tra la 5 e la 6)
 for (let f = 0; f < 10; f++) for (let r = 0; r < 4; r++) {
-  const cx = 532 + f * 116.3, cy = [241, 304, 419, 482][r];
-  const rect = el('rect', { class: 'posto', x: cx - 34, y: cy - 28, width: 68, height: 56, rx: 10 }); svg.append(rect); seats.push(rect);
+  const cx = COLX[f], cy = [241, 301, 418, 477][r];
+  const rect = el('rect', { class: 'posto', x: cx - 31, y: cy - 25, width: 62, height: 50, rx: 9 }); svg.append(rect); seats.push(rect);
 }
 const img = document.createElement('img'); img.src = 'aereo.png'; img.alt = 'Aereo visto dall’alto, 40 posti';
 document.getElementById('posti').append(img, svg);
