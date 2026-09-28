@@ -48,6 +48,7 @@ input.cella.scritto { border-color:var(--gold); }
 .evidenza { border:1px solid var(--gold); border-radius:6px; padding:8px 12px 10px; margin:10px 0; background:var(--panel2); }  /* prodotto finito: il numero in evidenza nei Risultati */
 .evidenza h3 { margin:2px 0 8px; }
 .evidenza td.big { font-size:16px; font-weight:700; }
+.scheda { border:1px solid var(--border); border-radius:6px; padding:8px 12px 10px; margin:8px 0; background:var(--panel2); }  /* scheda del prodotto corrente */
 table.consuntivo td { height:52px; position:relative; }  /* righe di uguale altezza, spazio per il suggerimento sotto «entrati» */
 .hint { position:absolute; left:6px; right:6px; bottom:1px; color:var(--muted); font-size:10px; line-height:11px; white-space:nowrap; text-align:right; }  /* in sovrapposizione: l'input resta centrato come le altre celle */
 input.cella.errore { border-color:var(--ko); background:rgba(201,123,107,.15); }
@@ -208,15 +209,68 @@ function renderStandard(el) {
     const pesi = Array.from({ length: mesi }, (_, i) => pesiMese(i + 1));
     if (!pesi[0]) return out;
     out.push(['Σ pesi dei prodotti', pesi.map(w => { const x = w.fasi[riga.id]; const st = x.somma > 1 + 1e-9 ? 'color:var(--ko)' : (x.somma === 0 ? 'color:var(--grey)' : ''); return [pct(x.somma), st]; })]);
-    out.push(['pezzi equivalenti', pesi.map(w => { const e = w.fasi[riga.id].equivalenti; return [e ? `${fmt(e.usati, 0)} su ${fmt(e.capacita, 0)} ${nomeProdotto(e.riferimento)}` : '–', 'color:var(--muted);font-size:10px']; })]);
+    out.push(['pezzi equivalenti', pesi.map(w => { const e = w.fasi[riga.id].equivalenti; return [e ? `${fmt(e.usati, Number.isInteger(e.usati) ? 0 : 1)} su ${fmt(e.capacita, 0)} ${nomeProdotto(e.riferimento)}` : '–', 'color:var(--muted);font-size:10px']; })]);
     return out;
   };
   card.append(grigliaMesi('Linea · fisso standard di fase € al mese', sc.fasi.map(f => ({ id: f.id, nome: f.nome, mappa: (sc.linea[f.id] = sc.linea[f.id] || { fisso: {} }).fisso })), { sotto: sottoPesi }));
   renderProdotti(card);
   el.append(card);
 }
-// schede prodotto: al Task 7
-function renderProdotti(card) { void card; }
+// ---- schede prodotto: barra dei prodotti, poi la scheda del prodotto corrente (nome, percorso, capacità piena, quota, variabile, scrap, standard risolti)
+function renderProdotti(card) {
+  const sc = stato.scenario, mesi = sc.mesi || 12, p = prodottoCorrente();
+  const bar = h('div', { class: 'passi', style: 'margin:6px 0' });
+  for (const q of sc.prodotti) bar.append(h('button', { class: q.id === p.id ? 'attivo' : '', style: 'min-width:0;flex:0 0 auto;padding:7px 12px', onclick: () => { stato.prodottoCorrente = q.id; render(); } }, q.nome));
+  bar.append(h('button', { style: 'min-width:0;flex:0 0 auto;padding:7px 12px', onclick: () => { let k = sc.prodotti.length + 1; while (sc.prodotti.some(x => x.id === 'P' + k)) k++; const id = 'P' + k;
+    sc.prodotti.push({ id, nome: 'Prodotto ' + k, percorso: [], parametri: {} }); sc.consuntivo[id] = {}; stato.prodottoCorrente = id; ricalcola(); render(); } }, '+ Aggiungi prodotto'));
+  card.append(h('h3', {}, 'Prodotti'), h('p', { class: 'note' }, 'Ogni prodotto è uno strato: percorso, quote di capacità, variabile e scrap suoi; il fisso di fase gli arriva in proporzione al peso.'), bar);
+  const sez = h('div', { class: 'scheda' });
+  sez.append(h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, 'Nome prodotto ',
+    h('input', { class: 'nome', style: 'width:260px', value: p.nome, onchange: e => { p.nome = e.target.value.trim() || p.id; ricalcola(); render(); } }),
+    h('button', { disabled: sc.prodotti.length > 1 ? null : '', title: sc.prodotti.length > 1 ? 'Elimina il prodotto e il suo consuntivo' : 'Serve almeno un prodotto', onclick: () => {
+      if (!confirm(`Elimino «${p.nome}» con il suo consuntivo?`)) return;
+      sc.prodotti = sc.prodotti.filter(x => x.id !== p.id); delete sc.consuntivo[p.id]; stato.prodottoCorrente = null; ricalcola(); render(); } }, 'Elimina prodotto')));
+  // fasi del percorso (spunta sul catalogo) e ordine (chip con frecce)
+  const tb = h('table', { style: 'width:auto' }, h('thead', {}, h('tr', {}, h('th', {}, 'Fase'), h('th', {}, 'Nel percorso'))));
+  for (const f of sc.fasi) {
+    const inUso = p.percorso.includes(f.id);
+    tb.append(h('tr', {}, h('td', {}, f.nome), h('td', { style: 'text-align:center' }, h('input', { type: 'checkbox', ...(inUso ? { checked: '' } : {}), onchange: e => {
+      if (e.target.checked) { p.percorso.push(f.id); p.parametri[f.id] = p.parametri[f.id] || { capacita: {}, quota: {}, var: {}, scrap: {} }; } else p.percorso = p.percorso.filter(x => x !== f.id);
+      ricalcola(); render(); } }))));
+  }
+  const per = h('div', {}, h('h3', {}, `Percorso di ${p.nome}`), h('p', { class: 'note' }, 'Ordine in cui il pezzo attraversa le fasi. Frecce per riordinare; la spunta a sinistra aggiunge o toglie una fase.'));
+  p.percorso.forEach((fid, i) => {
+    per.append(h('span', { class: 'chip' }, `${String(i + 1).padStart(2, '0')} › ${nomeFase(fid)} `,
+      h('button', { disabled: i === 0 ? '' : null, onclick: () => { [p.percorso[i - 1], p.percorso[i]] = [p.percorso[i], p.percorso[i - 1]]; ricalcola(); render(); } }, '◀'),
+      h('button', { disabled: i === p.percorso.length - 1 ? '' : null, onclick: () => { [p.percorso[i + 1], p.percorso[i]] = [p.percorso[i], p.percorso[i + 1]]; ricalcola(); render(); } }, '▶')));
+  });
+  sez.append(h('div', { style: 'display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap' }, h('div', {}, h('h3', {}, 'Fasi del percorso'), tb), h('div', { style: 'flex:1 1 300px' }, per)));
+  // le quattro griglie del prodotto; sotto le quote il peso su ogni fase e la Σ pesi di tutti i prodotti (≤ 100 %)
+  const righe = voce => p.percorso.map(fid => { const par = p.parametri[fid] = p.parametri[fid] || { capacita: {}, quota: {}, var: {}, scrap: {} };
+    return { id: fid, nome: nomeFase(fid), mappa: par[voce], max: voce === 'quota' ? (m => CostiFasi.eredita(par.capacita, m) || undefined) : undefined }; });
+  const sottoQuota = riga => { const out = []; const pesi = Array.from({ length: mesi }, (_, i) => pesiMese(i + 1)); if (!pesi[0]) return out;
+    out.push(['peso su fase (quota ÷ capacità)', pesi.map(w => [pct(w.fasi[riga.id].pesi[p.id] || 0), ''])]);
+    out.push(['Σ pesi di tutti i prodotti', pesi.map(w => { const sm = w.fasi[riga.id].somma; return [pct(sm), sm > 1 + 1e-9 ? 'color:var(--ko);font-weight:700' : 'color:var(--ok)']; })]);
+    return out; };
+  for (const [voce, titolo] of VOCI_PRODOTTO) {
+    const opts = voce === 'scrap' ? { scala: 100, max: 99, regola: 'tra 0 e 99' } : (voce === 'quota' ? { regola: 'tra 1 e la capacità piena', sotto: sottoQuota } : {});
+    sez.append(grigliaMesi(titolo, righe(voce), opts));
+  }
+  // standard risolti dello strato (parametri del motore v1 sullo scenario del prodotto)
+  const r = stato.risultato;
+  if (r && !r.errori.length && r.strati[p.id]) {
+    const st = r.strati[p.id];
+    const d = h('div', { class: 'scroll' }, h('h3', {}, `Standard risolti di ${p.nome}: OLC, fisso del prodotto, standard per pezzo, cumulato, totale prodotto`));
+    const t = h('table', { class: 'derivati' }, h('thead', {}, h('tr', {}, h('th', {}, 'Voce'), ...st.parametri.map(x => h('th', {}, 'M' + x.mese)))));
+    t.append(h('tr', {}, h('td', {}, 'OLC del prodotto (la quota più bassa)'), ...st.parametri.map(x => h('td', {}, fmt(x.OLC, 0)))));
+    for (const fid of p.percorso) t.append(h('tr', {}, h('td', {}, `Fisso del prodotto ${nomeFase(fid)} € (fisso di fase × peso)`), ...st.parametri.map(x => h('td', {}, fmt(x.fasi[fid].fisso)))));
+    for (const fid of p.percorso) t.append(h('tr', {}, h('td', {}, `Standard ${nomeFase(fid)} €/pz`), ...st.parametri.map(x => h('td', {}, fmt(x.fasi[fid].E)))));
+    for (const fid of p.percorso) t.append(h('tr', {}, h('td', {}, `Cumulato ${nomeFase(fid)} €/pz`), ...st.parametri.map(x => h('td', {}, fmt(x.fasi[fid].Fcum)))));
+    t.append(h('tr', {}, h('td', {}, 'Totale prodotto €/pz'), ...st.parametri.map(x => h('td', {}, fmt(x.E7)))));
+    d.append(t); sez.append(d);
+  }
+  card.append(sez);
+}
 // ---- Passo 2 · Consuntivo per mese
 function renderConsuntivo(el) {
   const sc = stato.scenario, prod = sc.prodotti[0], r = stato.risultato;
