@@ -406,7 +406,7 @@ function tabellaLettere(righe, lettere, nomi, extra, decPezzi) {
   return h('div', { class: 'scroll' }, t);
 }
 // ---- Raccolta dati dai sistemi aziendali (simulazione, come nel Digital Twin): pulsante in evidenza, quattro passi animati,
-// poi il mese corrente si riempie con dati coerenti e sempre uguali a parità di scenario (nessun caso, così la demo è ripetibile)
+// poi il mese corrente si riempie con dati coerenti: pezzi deterministici, costi reali con un'oscillazione casuale intorno allo standard
 function renderRaccolta(m) {
   const sc = stato.scenario, st = stato.raccolta || {};
   const box = h('div', { class: 'raccolta' });
@@ -421,7 +421,7 @@ function renderRaccolta(m) {
   passi.forEach(([t, sotto], i) => { const n = st.mese === m ? st.passo : 0;
     riga.append(h('div', { class: 'p4 ' + (i + 1 < n ? 'fatto' : (i + 1 === n && st.inCorso ? 'attivo' : (i + 1 === n ? 'fatto' : ''))) }, h('div', { class: 'pallino' }, i + 1 <= n && !(i + 1 === n && st.inCorso) ? '✓' : ''), h('div', {}, h('b', {}, t), h('small', {}, sotto)))); });
   box.append(riga);
-  box.append(h('p', { class: 'note', style: 'margin:8px 0 0' }, 'Simulazione: nella versione per il cliente i dati arrivano dal MES o dall\u2019ERP con un flusso automatico; qui il mese si riempie con valori coerenti con lo standard.'));
+  box.append(h('p', { class: 'note', style: 'margin:8px 0 0' }, 'Simulazione: nella versione per il cliente i dati arrivano dal MES o dall\u2019ERP con un flusso automatico; qui il mese si riempie con valori coerenti con lo standard: fisso reale tra −5 % e +15 %, variabile tra −5 % e +10 %, diversi ogni volta.'));
   return box;
 }
 function avviaRaccolta(m) {
@@ -436,11 +436,11 @@ function avviaRaccolta(m) {
   setTimeout(() => { simulaConsuntivo(m); stato.raccolta = { mese: m, passo: 4, inCorso: false }; ricalcola(); avviso(`Dati di M${m} caricati dal gestionale (simulazione): pezzi per fase e prodotto, variabile reale, fisso reale di fase.`); render(); }, 4 * t);
 }
 // dati coerenti: lungo il percorso ogni fase lavora ciò che le entra (prima fase: la quota), scarto = scrap normale, usciti = lavorati − scarto;
-// variabile reale = standard × lavorati × 1,04; fisso reale di fase = fisso standard × 1,03. Deterministico.
+// fisso reale di fase = standard × un fattore casuale tra −5 % e +15 % (diverso per fase e per mese, Michele 28/09); variabile reale = standard × lavorati × fattore tra −5 % e +10 %.
 function simulaConsuntivo(m) {
   const sc = stato.scenario, r2 = x => Math.round(x * 100) / 100;
   sc.consuntivo.linea[String(m)] = {};
-  for (const f of sc.fasi) { const std = CostiFasi.eredita(sc.linea[f.id].fisso, m); if (std !== null && sc.prodotti.some(p => p.percorso.includes(f.id))) sc.consuntivo.linea[String(m)][f.id] = { fissoReale: r2(std * 1.03) }; }
+  for (const f of sc.fasi) { const std = CostiFasi.eredita(sc.linea[f.id].fisso, m); if (std !== null && sc.prodotti.some(p => p.percorso.includes(f.id))) sc.consuntivo.linea[String(m)][f.id] = { fissoReale: r2(std * (0.95 + Math.random() * 0.20)) }; }
   for (const p of sc.prodotti) {
     sc.consuntivo[p.id][String(m)] = {};
     // si lancia e si lavora al massimo l'OLC del prodotto (la quota più bassa del suo percorso): oltre il collo di bottiglia la linea vera non va
@@ -450,7 +450,7 @@ function simulaConsuntivo(m) {
       const par = p.parametri[fid], quota = Linea.quotaDi(par, m) || 0, g = CostiFasi.eredita(par.scrap, m) || 0, v = CostiFasi.eredita(par.var, m) || 0;
       const inp = i === 0 ? olc : entrati;
       const lav = Math.min(inp, Math.round(quota), olc), scrap = Math.round(lav * g), usciti = lav - scrap;
-      sc.consuntivo[p.id][String(m)][fid] = { entrati: inp, lavorati: lav, scrap, usciti, varReale: r2(v * lav * 1.04) };
+      sc.consuntivo[p.id][String(m)][fid] = { entrati: inp, lavorati: lav, scrap, usciti, varReale: r2(v * lav * (0.95 + Math.random() * 0.15)) };
       entrati = usciti;
     });
   }
