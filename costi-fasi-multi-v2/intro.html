@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<title>Intro · Recupera valore dalla produzione · MCSec</title>
+<!-- Slide di intro del video (29/09/2026), sul modello della copertina del deck ALIS (outputs/presentazioni/mcsec-presentazione-alis.html, slide 1).
+     Immagine: archimede-assets/bg-linea-produzione.png ritagliata 16:9. Foglio fisso 1600×900 come lo spot. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+:root { --bg-deep:#080C10; --bg-navy:#0D1B2A; --gold:#C29635; --gold-light:#D4AF37; --text:#FFFFFF; --muted:#B0B8C4;
+  --head:'Manrope','Segoe UI',sans-serif; --font:'Nunito Sans','Segoe UI',sans-serif; --serif:'Playfair Display',Georgia,serif; }
+* { box-sizing:border-box; }
+html,body { margin:0; background:#080C10; color:var(--text); font-family:var(--font); }
+.foglio { width:1600px; height:900px; margin:0 auto; position:relative; overflow:hidden;
+  background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%); }
+.foglio::before { content:''; position:absolute; left:0; top:0; width:160px; height:3px; background:var(--gold); }
+.watermark { position:absolute; right:-10px; bottom:-70px; font-family:var(--head); font-weight:800; font-size:300px; line-height:1; color:transparent; -webkit-text-stroke:1px rgba(194,150,53,0.14); }
+.hero { position:absolute; left:96px; right:80px; top:0; bottom:0; display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
+.logo-row { display:flex; align-items:center; gap:22px; margin-bottom:26px; }
+.logo-row img { height:64px; width:auto; filter:drop-shadow(0 0 18px rgba(194,150,53,0.35)); }
+.logo-row .sep { width:1px; height:52px; background:rgba(194,150,53,0.5); }
+.logo-row .kick { font-family:var(--head); font-weight:700; font-size:14px; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); }
+h1 { font-family:var(--head); font-weight:800; font-size:66px; line-height:1.08; margin:0; }
+.gold { color:var(--gold-light); }
+.lede { border-left:2px solid var(--gold); padding-left:22px; margin-top:30px; font-size:26px; line-height:1.45; color:#E6EAF0; }
+.trilogy { display:flex; gap:16px; align-items:center; margin-top:34px; font-family:var(--head); font-weight:700; font-size:15px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); }
+.trilogy .sep { color:var(--gold); }
+.foto { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:14px; border:1px solid rgba(194,150,53,0.35);
+  box-shadow:0 0 60px rgba(194,150,53,0.18), 0 20px 50px rgba(0,0,0,0.5); display:block; }
+.footer { position:absolute; bottom:20px; left:0; right:0; text-align:center; font-size:13px; letter-spacing:0.12em; color:var(--muted); opacity:0.75; }
+</style></head><body>
+<div class="foglio">
+  <div class="watermark" aria-hidden="true">MCSec</div>
+  <div class="hero">
+    <div>
+      <div class="logo-row"><img src="logo-mcsec-oro.png" alt="MCSec"><span class="sep"></span><span class="kick">Performance Intelligence</span></div>
+      <h1>Recupera <span class="gold">valore</span> dalla produzione</h1>
+      <p class="lede">Il valore recuperabile dalla conoscenza di dove lo perdi:<br>linea, scarto e capacità ferma, mese per mese… <span class="gold">automaticamente</span>.</p>
+      <div class="trilogy">Linea <span class="sep">›</span> Scarto <span class="sep">›</span> Non produzione <span class="sep">›</span> Valore</div>
+    </div>
+    <div><img class="foto" src="intro-linea.jpg" alt="Linea di produzione"></div>
+  </div>
+  <div class="footer">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania (CT)</div>
+</div>
+</body></html>

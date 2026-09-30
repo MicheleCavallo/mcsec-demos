@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Il modello in una pagina · controllo dei costi per fase · MCSec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Manrope:wght@700;800&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#0D1B2A; --panel:#12233C; --panel2:#0F1E33; --border:#23395A; --gold:#C29635; --gold-light:#D4AF37; --text:#FFFFFF; --muted:#B0B8C4;
+  --blu:#3987e5; --verde:#199e70; --arancio:#d95926; --rosa:#d55181; --grigio:#8A94A3; --ko:#C97B6B; --ok:#7FB98A;
+  --hand:'Caveat','Segoe Print','Comic Sans MS',cursive; --head:'Manrope','Segoe UI',sans-serif; --font:'Nunito Sans','Segoe UI',sans-serif; }
+* { box-sizing:border-box; }
+html,body { margin:0; background:#080C10; color:var(--text); font-family:var(--font); }
+.foglio { width:1600px; height:900px; margin:0 auto; position:relative; background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%); overflow:hidden; }
+svg { position:absolute; inset:0; width:1600px; height:900px; }
+text { fill:var(--text); }
+.titolo { font-family:var(--head); font-weight:800; font-size:30px; }
+.kicker { font-family:var(--head); font-weight:700; font-size:12px; letter-spacing:.16em; fill:var(--gold-light); }
+.sez { font-family:var(--hand); font-weight:700; font-size:36px; fill:var(--gold-light); }
+.t { font-family:var(--hand); font-size:23px; }
+.t.b { font-weight:700; }
+.s { font-family:var(--hand); font-size:18px; fill:var(--muted); }
+.m { font-family:var(--font); font-size:12px; fill:var(--muted); }
+.box { fill:var(--panel); stroke:var(--border); stroke-width:1.5; }
+.box.ko { stroke:var(--ko); } .box.oro { stroke:var(--gold); stroke-width:2.5; } .box.ok { stroke:var(--ok); }
+.arr { fill:none; stroke:var(--gold-light); stroke-width:2.5; stroke-linecap:round; }
+.fetta { stroke:#0D1B2A; stroke-width:1; }
+.num { font-family:var(--hand); font-weight:700; font-size:30px; fill:var(--gold-light); }
+/* modalità presentazione: ogni elemento [data-step] entra quando il passo è raggiunto (entrata breve, decelerata) */
+.pres [data-step] { opacity:0; transform:translateY(14px); transition:opacity .38s cubic-bezier(.2,.7,.2,1), transform .38s cubic-bezier(.2,.7,.2,1); }
+.pres [data-step].on { opacity:1; transform:none; }
+.pres path.arr[data-step] { transform:none; stroke-dasharray:140; stroke-dashoffset:140; transition:opacity .2s, stroke-dashoffset .55s cubic-bezier(.2,.7,.2,1) .1s; }
+.pres path.arr[data-step].on { stroke-dashoffset:0; }
+.pres rect.fetta[data-step] { transform:scaleX(0); transform-origin:left center; transform-box:fill-box; transition:opacity .2s, transform .5s cubic-bezier(.2,.7,.2,1); }
+.pres rect.fetta[data-step].on { transform:scaleX(1); }
+/* dentro un gruppo, le righe entrano sfalsate di 90 ms come se qualcuno le indicasse */
+.pres g.stag[data-step] > * { opacity:0; transform:translateY(10px); transition:opacity .34s cubic-bezier(.2,.7,.2,1), transform .34s cubic-bezier(.2,.7,.2,1); }
+.pres g.stag[data-step].on > * { opacity:1; transform:none; }
+.pres g.stag[data-step].on > *:nth-child(2) { transition-delay:.09s; } .pres g.stag[data-step].on > *:nth-child(3) { transition-delay:.18s; } .pres g.stag[data-step].on > *:nth-child(4) { transition-delay:.27s; }
+#hud { position:absolute; right:16px; bottom:10px; font:12px var(--font); color:var(--muted); opacity:.7; }
+#hud b { color:var(--gold-light); }
+</style>
+</head>
+<body>
+<div class="foglio">
+<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Il modello in una pagina: il problema, cosa fa, cosa ottieni">
+  <defs>
+    <marker id="freccia" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#D4AF37"/></marker>
+    <filter id="mano"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>
+  </defs>
+
+  <!-- testata -->
+<g data-step="0" class="stag">
+  <text class="kicker" x="40" y="42">PERFORMANCE INTELLIGENCE · MCSEC</text>
+  <text class="titolo" x="40" y="78">Quanto mi costa davvero un pezzo? Lo sai dal primo mese, non a fine anno.</text>
+  <text class="t" x="40" y="110" style="fill:#B0B8C4">Controllo dei costi per fase a costo standard, anche con più prodotti sulla stessa linea. Il modello in una pagina.</text>
+
+</g>
+  <!-- ===== IL PROBLEMA ===== -->
+  <g data-step="1" class="stag"><text class="sez" x="40" y="170">Il problema</text>
+  <text class="s" x="40" y="196">quello che succede nella maggior parte delle fabbriche</text></g>
+  <g filter="url(#mano)">
+    <rect class="box ko" x="40" y="212" width="440" height="108" rx="10" data-step="1"/>
+    <rect class="box ko" x="40" y="334" width="440" height="108" rx="10" data-step="2"/>
+    <rect class="box ko" x="40" y="456" width="440" height="108" rx="10" data-step="3"/>
+    <rect class="box ko" x="40" y="578" width="440" height="108" rx="10" data-step="4"/>
+  </g>
+  <g data-step="1" class="stag">
+  <text class="t b" x="58" y="244">Il costo del pezzo si sa a fine anno</text>
+  <text class="t" x="58" y="273">e nel frattempo si vende con un prezzo</text>
+  <text class="t" x="58" y="300">costruito su una stima vecchia.</text>
+  </g>
+
+  <g data-step="2" class="stag">
+  <text class="t b" x="58" y="366">Quando i volumi calano, il pezzo «costa di più»</text>
+  <text class="t" x="58" y="395">perché il fisso della fabbrica si spalma su meno pezzi:</text>
+  <text class="t" x="58" y="422">la macchina ferma finisce nel prezzo del prodotto.</text>
+  </g>
+
+  <g data-step="3" class="stag">
+  <text class="t b" x="58" y="488">Più prodotti sulla stessa linea: chi paga cosa?</text>
+  <text class="t" x="58" y="517">il prodotto che si ferma scarica i fissi sull'altro,</text>
+  <text class="t" x="58" y="544">e nessuno vede la capacità che resta vuota.</text>
+  </g>
+
+  <g data-step="4" class="stag">
+  <text class="t b" x="58" y="610">Scarti e fasi ferme si perdono nel mucchio</text>
+  <text class="t" x="58" y="639">un numero solo a fine mese, che non quadra con la</text>
+  <text class="t" x="58" y="666">contabilità e che nessuno riesce a spiegare.</text>
+  </g>
+
+  <path class="arr" data-step="5" d="M484 450 L 540 450" marker-end="url(#freccia)"/>
+
+  <!-- ===== COSA FA ===== -->
+  <g data-step="5" class="stag"><text class="sez" x="550" y="170">Cosa fa il modello</text>
+  <text class="s" x="550" y="196">quattro mosse, ogni mese, in mezz'ora</text></g>
+  <g filter="url(#mano)"><rect class="box oro" x="550" y="212" width="470" height="474" rx="12" data-step="5"/></g>
+
+  <g data-step="6" class="stag">
+  <text class="num" x="572" y="255">1</text>
+  <text class="t b" x="605" y="248">Fissa lo standard a capacità piena</text>
+  <text class="t" x="605" y="276">cosa deve costare un pezzo, fase per fase,</text>
+  <text class="t" x="605" y="303">se la linea lavora come progettata.</text>
+  </g>
+
+  <g data-step="7" class="stag">
+  <text class="num" x="572" y="352">2</text>
+  <text class="t b" x="605" y="345">Il prodotto paga solo ciò che usa</text>
+  <text class="t" x="605" y="373">ogni prodotto si prenota i suoi posti sulla linea;</text>
+  <text class="t" x="605" y="400">il fisso gli arriva per la parte prenotata, non oltre.</text>
+  </g>
+
+  <g data-step="8" class="stag">
+  <text class="num" x="572" y="449">3</text>
+  <text class="t b" x="605" y="442">La capacità vuota ha un nome e un costo</text>
+  <text class="t" x="605" y="470">fasi ferme, posti vuoti, posti di nessuno:</text>
+  <text class="t" x="605" y="497">costo del mese, a conto economico, mai sul pezzo.</text>
+  </g>
+
+  <g data-step="9" class="stag">
+  <text class="num" x="572" y="546">4</text>
+  <text class="t b" x="605" y="539">Tutto quadra, ogni mese</text>
+  <text class="t" x="605" y="567">cinque numeri per fase, il resto lo calcola lui;</text>
+  <text class="t" x="605" y="594">ogni euro speso sta in un prodotto o sulla linea.</text>
+  </g>
+
+  <g data-step="9" class="stag">
+  <text class="s" x="572" y="640">Un solo motore di verità: l'Excel del metodo,</text>
+  <text class="s" x="572" y="664">riprodotto al centesimo nella pagina web.</text>
+  </g>
+
+  <path class="arr" data-step="10" d="M1024 450 L 1080 450" marker-end="url(#freccia)"/>
+
+  <!-- ===== COSA OTTIENI ===== -->
+  <g data-step="10" class="stag"><text class="sez" x="1090" y="170">Cosa ottieni</text>
+  <text class="s" x="1090" y="196">le risposte del primo del mese, con i numeri dell'esempio</text></g>
+  <g filter="url(#mano)">
+    <rect class="box ok" x="1090" y="212" width="470" height="108" rx="10" data-step="11"/>
+    <rect class="box ok" x="1090" y="334" width="470" height="108" rx="10" data-step="12"/>
+    <rect class="box ok" x="1090" y="456" width="470" height="108" rx="10" data-step="13"/>
+    <rect class="box ok" x="1090" y="578" width="470" height="108" rx="10" data-step="14"/>
+  </g>
+  <g data-step="11" class="stag">
+  <text class="t b" x="1108" y="244">Il costo vero del pezzo finito, subito</text>
+  <text class="t" x="1108" y="273">33,31 € contro 18,00 previsti: +85 %.</text>
+  <text class="t" x="1108" y="300">E la fase colpevole ha un nome: la terza.</text>
+  </g>
+
+  <g data-step="12" class="stag">
+  <text class="t b" x="1108" y="366">Dove sono finiti gli euro</text>
+  <text class="t" x="1108" y="395">1.106 € spesi, 854 di capacità non usata:</text>
+  <text class="t" x="1108" y="422">il problema non è l'efficienza, è la linea vuota.</text>
+  </g>
+
+  <g data-step="13" class="stag">
+  <text class="t b" x="1108" y="488">Quanto hai speso oltre il lecito, a questi volumi</text>
+  <text class="t" x="1108" y="517">+190 €, di cui 110 sui fissi:</text>
+  <text class="t" x="1108" y="544">si sa dove guardare per primo.</text>
+  </g>
+
+  <g data-step="14" class="stag">
+  <text class="t b" x="1108" y="610">Chi si prende la capacità, chi la spreca</text>
+  <text class="t" x="1108" y="639">per ogni prodotto la sua parte; il 15 % di una fase</text>
+  <text class="t" x="1108" y="666">non è di nessuno: o lo assegni o è capacità in eccesso.</text>
+  </g>
+
+  <!-- la barra degli euro come firma visiva -->
+  <text class="s" x="1090" y="722" data-step="15">e ogni mese la lettura scritta dei risultati: regole fisse, nessuna opinione</text>
+  <rect x="1090" y="736" width="470" height="20" rx="4" fill="#0F1E33" stroke="#23395A" data-step="15"/>
+  <rect class="fetta" data-step="15" style="transition-delay:0.10s" x="1090" y="736" width="204" height="20" rx="4" fill="#3987e5"/>
+  <rect class="fetta" data-step="15" style="transition-delay:0.22s" x="1294" y="736" width="159" height="20" fill="#d95926"/>
+  <rect class="fetta" data-step="15" style="transition-delay:0.34s" x="1453" y="736" width="60" height="20" fill="#199e70"/>
+  <rect class="fetta" data-step="15" style="transition-delay:0.46s" x="1513" y="736" width="5" height="20" fill="#c98500"/>
+  <rect class="fetta" data-step="15" style="transition-delay:0.58s" x="1518" y="736" width="42" height="20" rx="4" fill="#d55181"/>
+  <text class="m" x="1090" y="774" data-step="15">fasi ferme · posti vuoti · scarto anomalo · semilavorati · finiti: i 1.106 € dell'esempio</text>
+
+  <!-- piede -->
+  <g data-step="16" class="stag">
+  <line x1="40" y1="800" x2="1560" y2="800" stroke="#23395A"/>
+  <text class="t" x="40" y="836">Per chi: PMI manifatturiere con più prodotti su linee condivise, che vogliono sapere ogni mese cosa costa un pezzo e perché.</text>
+  <text class="s" x="40" y="864">Demo interattiva con dati di esempio · metodologia MCSec</text>
+  <text class="m" x="1560" y="864" text-anchor="end">www.mcsec.it · info@mcsec.it · Catania</text>
+  </g>
+</svg>
+<div id="hud"></div>
+</div>
+<script>
+'use strict';
+// Modalità presentazione: ?pres=1 (a passi: spazio, freccia destra o clic avanti; freccia sinistra indietro; Home/End),
+// ?auto=1 (da sola, 2,8 s a passo, ?t=ms per cambiare) per registrare lo schermo. Senza parametri la pagina è statica, tutta visibile.
+const qs = new URLSearchParams(location.search);
+const PRES = qs.get('pres') === '1' || qs.get('auto') === '1';
+const ULTIMO = 16;
+let passo = PRES ? -1 : ULTIMO;
+function applica() {
+  document.querySelectorAll('[data-step]').forEach(e => e.classList.toggle('on', Number(e.dataset.step) <= passo));
+  document.getElementById('hud').innerHTML = PRES ? `passo <b>${Math.max(0, passo + 1)}</b> / ${ULTIMO + 1} · spazio avanti · ← indietro` : '';
+}
+function avanti() { if (passo < ULTIMO) { passo++; applica(); } }
+function indietro() { if (passo > -1) { passo--; applica(); } }
+if (PRES) {
+  document.body.classList.add('pres');
+  document.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); avanti(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); indietro(); }
+    else if (e.key === 'Home') { passo = -1; applica(); } else if (e.key === 'End') { passo = ULTIMO; applica(); }
+  });
+  document.querySelector('.foglio').addEventListener('click', avanti);
+  if (qs.get('auto') === '1') { const t = Number(qs.get('t')) || 2800; setTimeout(function tick() { avanti(); if (passo < ULTIMO) setTimeout(tick, t); }, 900); }
+}
+applica();
+</script>
+</div>
+</body>
+</html>

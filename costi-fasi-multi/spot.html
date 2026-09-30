@@ -42,11 +42,13 @@ h1 .oro { color:var(--gold-light); }
 .on .sat.in div { transform:scaleX(1); }
 .sat div.vuoto { background:var(--arancio); color:#0D1B2A; }
 .mappa .col { font-family:var(--head); font-weight:700; font-size:18px; color:var(--muted); text-align:center; }
+.mappa .col.cap { display:block; margin-top:2px; font-weight:600; font-size:14px; line-height:1.35; color:var(--gold-light); }
 .fase { border:1.5px solid var(--blu); border-left:6px solid var(--blu); border-radius:6px; padding:12px 16px; font-family:var(--head); font-weight:700; font-size:20px; background:var(--panel2); }
 .fase.p2 { border-color:var(--verde); }
 .fase.cond { border-color:var(--gold-light); box-shadow:0 0 0 3px rgba(212,175,55,.25), 0 0 24px rgba(194,150,53,.35); }
 .fase.no { border:1.5px dashed var(--border); border-left:1.5px dashed var(--border); background:transparent; color:transparent; }
 .fase small { color:var(--muted); font-weight:400; margin-right:8px; }
+.nota { position:absolute; left:80px; bottom:40px; font-family:var(--serif); font-style:italic; font-size:17px; color:var(--muted); }
 /* scena 2: i pezzi si muovono */
 table { border-collapse:collapse; margin-top:34px; font-size:22px; }
 th, td { border:1px solid var(--border); padding:10px 18px; text-align:right; }
@@ -73,6 +75,11 @@ td.scarto { color:var(--arancio); }
 .logo { font-family:var(--head); font-weight:800; font-size:64px; color:var(--gold-light); letter-spacing:-.01em; }
 .centro { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 120px; }
 .contatti { position:absolute; left:80px; right:80px; bottom:40px; display:flex; justify-content:space-between; color:var(--muted); font-size:15px; border-top:1px solid var(--border); padding-top:12px; }
+/* versione statica (spot-statico.html o ?statico=1): tutte le scene complete, una sotto l'altra, niente animazioni */
+.statico .foglio { height:auto; overflow:visible; background:none; }
+.statico .scena { position:relative; inset:auto; height:900px; opacity:1; margin-bottom:24px; background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%); }
+.statico .scena, .statico .scena *, .statico .posto { transition:none !important; }
+.statico #hud { display:none; }
 #hud { position:absolute; right:16px; bottom:10px; font:12px var(--font); color:var(--muted); opacity:.7; }
 #hud b { color:var(--gold-light); }
 </style>
@@ -94,8 +101,8 @@ td.scarto { color:var(--arancio); }
 <!-- 1b · Il problema: due prodotti, una fase condivisa -->
 <section class="scena" data-scena="2">
   <div class="kicker el" data-t="0">Il problema</div>
-  <h1 class="el" data-t="0">Due prodotti, fasi diverse, <span class="oro">due impianti condivisi</span>.</h1>
-  <div class="sub el" data-t="1">Produci e non saturi? Il costo di ciò che produci, e il costo della capacità che non usi.</div>
+  <h1 class="el" data-t="0">Il problema sta nella <span class="oro">capacità inutilizzata*</span>, nei fermi, nello scrap.</h1>
+  <div class="sub el" data-t="1">Produci e non saturi? Il costo di ciò che produci, e il costo della capacità che non usi</div>
   <div class="mappa">
     <div class="col el" data-t="1">Prodotto 1</div><div class="col el" data-t="1">Prodotto 2</div><div class="col el" data-t="5">Saturazione dell'impianto · posti riservati e posti di nessuno</div>
     <div class="fase cond el" data-t="2"><small>01</small>Fase 1 · condivisa</div><div class="fase p2 cond el" data-t="2"><small>01</small>Fase 1 · condivisa</div>
@@ -104,7 +111,9 @@ td.scarto { color:var(--arancio); }
     <div class="sat el" data-t="5" style="transition-delay:.15s"><div style="flex:62.5;background:var(--blu);transition-delay:.15s">P1 · 62,5 %</div><div class="vuoto" style="flex:37.5;transition-delay:.15s">37,5 % di nessuno</div></div>
     <div class="fase cond el" data-t="4"><small>03</small>Fase 3 · condivisa</div><div class="fase p2 cond el" data-t="4"><small>02</small>Fase 3 · condivisa</div>
     <div class="sat el" data-t="5" style="transition-delay:.3s"><div style="flex:60;background:var(--blu);transition-delay:.3s">P1 · 60 %</div><div style="flex:25;background:var(--verde);transition-delay:.3s">P2 · 25 %</div><div class="vuoto" style="flex:15;transition-delay:.3s">15 %</div></div>
+    <div class="col cap el" data-t="4">capacità linea · 40 pezzi/mese<br>collo di bottiglia: Fase 2</div><div class="col cap el" data-t="4">capacità linea · 60 pezzi/mese<br>collo di bottiglia: Fase 3</div><div></div>
   </div>
+  <div class="nota el" data-t="1">* capacità inutilizzata legata al bilanciamento ed alla capacità complessiva della linea</div>
 </section>
 
 <!-- 2 · La produzione -->
@@ -165,9 +174,10 @@ td.scarto { color:var(--arancio); }
 <script>
 'use strict';
 // Sei scene, ognuna con passi interni (data-t). ?auto=1 va da sola con i tempi dello storyboard (versione 5);
-// ?pres=1 a passi: spazio/→/clic avanti, ← indietro. Senza parametri: tutto visibile della prima scena, poi a passi.
+// ?auto=1 (o spot-auto.html) va da solo con i tempi dello storyboard. Senza parametri va a clic: spazio/→/clic avanti, ← indietro.
 const qs = new URLSearchParams(location.search);
-const AUTO = qs.get('auto') === '1';
+const STATICO = qs.get('statico') === '1';   // spot-statico.html: scene ferme e complete, si scorre col mouse
+const AUTO = !STATICO && qs.get('auto') === '1';   // spot.html va a clic; spot-auto.html (o ?auto=1) va da solo
 // posti dell'aereo: 40, i primi 10 si riempiono (oro), gli altri 30 restano vuoti (arancio) al passo 2
 // l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 10 file numerate da 4 (2 + corridoio + 2), coordinate nei pixel dell'immagine
 const NS = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(NS, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
@@ -216,9 +226,15 @@ function conta(el, target, virgola) {   // numero che sale in ~900 ms, ease-out;
 }
 function avanti() { if (k < PASSI.length - 1) { k++; applica(); } }
 function indietro() { if (k > 0) { k--; applica(); } }
-document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); avanti(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); indietro(); } else if (e.key === 'Home') { k = 0; applica(); } });
-document.getElementById('foglio').addEventListener('click', avanti);
-k = 0; applica();
+if (!STATICO) document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); avanti(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); indietro(); } else if (e.key === 'Home') { k = 0; applica(); } });
+if (!STATICO) document.getElementById('foglio').addEventListener('click', avanti);
+if (STATICO) {
+  document.body.classList.add('statico');
+  document.querySelectorAll('.scena').forEach(sc => { sc.classList.add('on'); sc.querySelectorAll('.el').forEach(e => e.classList.add('in')); });
+  ordine.forEach((idx, pos) => seats[idx].classList.add(pos < 10 ? 'pieno' : 'vuoto'));
+  document.querySelectorAll('.scena[data-scena="3"] td.num').forEach(c => { c.textContent = c.dataset.n; });
+  document.querySelectorAll('.scena[data-scena="4"] [data-conta]').forEach(v => { v.textContent = v.dataset.conta; });
+} else { k = 0; applica(); }
 if (AUTO) { const vel = Number(qs.get('v')) || 1; const tick = () => { if (k >= PASSI.length - 1) return; setTimeout(() => { avanti(); tick(); }, PASSI[k][2] / vel); }; tick(); }
 </script>
 </body>
