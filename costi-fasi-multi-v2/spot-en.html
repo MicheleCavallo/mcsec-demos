@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>What does non-production cost you? · spot · MCSec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Nunito+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#0D1B2A; --panel:#12233C; --panel2:#0F1E33; --border:#23395A; --gold:#C29635; --gold-light:#D4AF37; --text:#FFFFFF; --muted:#B0B8C4; --grey:#6B7686;
+  --blu:#3987e5; --arancio:#d95926; --verde:#199e70; --rosa:#d55181; --head:'Manrope','Segoe UI',sans-serif; --font:'Nunito Sans','Segoe UI',sans-serif; --serif:'Playfair Display',Georgia,serif;
+  --ease:cubic-bezier(.2,.7,.2,1); }
+* { box-sizing:border-box; }
+html,body { margin:0; background:#080C10; color:var(--text); font-family:var(--font); }
+.foglio { width:1600px; height:900px; margin:0 auto; position:relative; overflow:hidden; background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%); }
+.scena { position:absolute; inset:0; padding:60px 80px; opacity:0; transition:opacity .4s var(--ease); pointer-events:none; }
+.scena.on { opacity:1; pointer-events:auto; }
+.kicker { font-family:var(--head); font-weight:700; font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold-light); }
+h1 { font-family:var(--head); font-weight:800; font-size:44px; line-height:1.15; margin:8px 0 0; max-width:1100px; }
+h1 .oro { color:var(--gold-light); }
+.big { font-family:var(--head); font-weight:800; font-size:64px; line-height:1.1; color:var(--gold-light); }
+.sub { font-family:var(--serif); font-style:italic; color:var(--muted); font-size:22px; margin-top:10px; }
+.el { opacity:0; transform:translateY(14px); transition:opacity .38s var(--ease), transform .38s var(--ease); }
+.on .el.in { opacity:1; transform:none; }
+/* scena 1: l'aereo */
+.posti { margin:18px 0 6px; width:1100px; position:relative; }
+.posti img { width:1100px; height:auto; display:block; border-radius:12px; }
+.posti svg { position:absolute; inset:0; width:100%; height:100%; }
+.posto { fill:transparent; stroke:transparent; stroke-width:6; transition:fill .35s var(--ease), stroke .35s var(--ease); }
+.posto.pieno { fill:rgba(212,175,55,.85); stroke:var(--gold-light); }
+.posto.vuoto { fill:rgba(217,89,38,.85); stroke:var(--arancio); }
+.leg { display:flex; gap:28px; align-items:center; font-family:var(--head); font-weight:700; font-size:16px; color:var(--muted); }
+.leg i { display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:8px; vertical-align:-2px; }
+.dida { font-family:var(--head); font-weight:700; font-size:16px; color:var(--muted); letter-spacing:.04em; }
+.frase1 { font-family:var(--head); font-weight:700; font-size:40px; margin-top:40px; }
+.frase2 { font-family:var(--head); font-weight:800; font-size:64px; color:var(--gold-light); line-height:1.1; }
+/* scena 1b e 5: mappa fasi × prodotti */
+.mappa { display:grid; grid-template-columns:260px 260px 520px; gap:14px 40px; margin-top:40px; align-items:center; }
+.sat { display:flex; height:44px; gap:2px; border-radius:6px; overflow:hidden; background:var(--panel2); border:1px solid var(--border); }
+.sat div { height:100%; transform:scaleX(0); transform-origin:left; transition:transform .55s var(--ease); display:flex; align-items:center; justify-content:center; font-family:var(--head); font-weight:700; font-size:15px; color:#0D1B2A; white-space:nowrap; }
+.on .sat.in div { transform:scaleX(1); }
+.sat div.vuoto { background:var(--arancio); color:#0D1B2A; }
+.mappa .col { font-family:var(--head); font-weight:700; font-size:18px; color:var(--muted); text-align:center; }
+.mappa .col.cap { display:block; margin-top:2px; font-weight:600; font-size:14px; line-height:1.35; color:var(--gold-light); }
+.fase { border:1.5px solid var(--blu); border-left:6px solid var(--blu); border-radius:6px; padding:12px 16px; font-family:var(--head); font-weight:700; font-size:20px; background:var(--panel2); }
+.fase.p2 { border-color:var(--verde); }
+.fase.cond { border-color:var(--gold-light); box-shadow:0 0 0 3px rgba(212,175,55,.25), 0 0 24px rgba(194,150,53,.35); }
+.fase.no { border:1.5px dashed var(--border); border-left:1.5px dashed var(--border); background:transparent; color:transparent; }
+.fase small { color:var(--muted); font-weight:400; margin-right:8px; }
+.nota { position:absolute; left:80px; bottom:40px; font-family:var(--serif); font-style:italic; font-size:17px; color:var(--muted); }
+/* scena 2: i pezzi si muovono */
+table { border-collapse:collapse; margin-top:34px; font-size:22px; }
+th, td { border:1px solid var(--border); padding:10px 18px; text-align:right; }
+th { background:var(--panel2); font-family:var(--head); font-size:15px; color:var(--muted); font-weight:700; }
+td:first-child, th:first-child { text-align:left; font-family:var(--head); font-weight:700; }
+td.num { font-family:var(--head); font-weight:700; min-width:110px; }
+tr.ferma td { color:var(--grey); }
+tr.ferma td:first-child::after { content:' · ferma'; color:var(--arancio); font-size:15px; }
+td.scarto { color:var(--arancio); }
+/* scena 1c: l'effetto dello scrap */
+table.scrap { font-size:19px; margin-top:20px; table-layout:fixed; width:1400px; }
+table.scrap th, table.scrap td { width:20%; }   /* 5 colonne uguali (Michele 29/09) */
+table.scrap td, table.scrap th { padding:6px 22px; }
+table.scrap td.oro { color:var(--gold-light); font-family:var(--head); font-weight:800; font-size:24px; }
+table.scrap td.verde { color:var(--verde); font-family:var(--head); font-weight:700; }
+table.scrap td.rosso { color:var(--arancio); font-family:var(--head); font-weight:700; }
+table.scrap td.muto { color:var(--muted); font-size:17px; }
+table.scrap tr.olc td { border-top:2px solid var(--gold-light); }
+table.scrap .tag { font-size:13px; color:var(--gold-light); border:1px solid var(--gold); border-radius:10px; padding:1px 8px; margin-left:8px; font-weight:700; vertical-align:2px; }
+.due { display:flex; gap:60px; margin-top:34px; max-width:1300px; }
+.due .n { flex:1; }
+.due .v { font-family:var(--head); font-weight:800; font-size:64px; line-height:1; color:var(--gold-light); }
+.due .v.ar { color:var(--arancio); }
+.due .l { color:var(--muted); font-size:18px; margin-top:8px; }
+.due .l strong { color:var(--text); }
+.paghi { margin-top:22px; font-family:var(--head); font-weight:800; font-size:26px; color:var(--gold-light); max-width:1400px; line-height:1.3; }
+.chiusura { display:flex; align-items:center; gap:28px; margin-top:22px; max-width:1400px; }
+.chiusura .paghi { margin-top:0; }
+.riquadro { flex:none; border:2px solid var(--gold-light); border-radius:10px; padding:10px 22px; text-align:center; background:rgba(212,175,55,.08); }
+.riquadro .v { font-family:var(--head); font-weight:800; font-size:58px; line-height:1; color:var(--gold-light); }
+.riquadro .l { font-size:15px; color:var(--muted); margin-top:4px; }
+.ponte-succ { margin-top:22px; font-size:22px; color:var(--muted); max-width:1400px; line-height:1.4; }
+.ponte-succ strong { color:var(--text); font-family:var(--head); font-weight:800; }
+.ponte-succ .oro-t { color:var(--gold-light); font-family:var(--head); font-weight:800; }
+.domanda { margin-top:18px; font-size:22px; }
+.domanda .q { font-family:var(--head); font-weight:800; color:var(--text); }
+.domanda .r { color:var(--muted); margin-left:10px; }
+.ponte { margin-top:10px; width:1400px; }
+.ponte .riga { display:flex; align-items:center; gap:18px; margin:7px 0; }
+.ponte .et { width:380px; color:var(--muted); font-size:18px; }
+.ponte .bar { flex:1; height:30px; display:flex; background:var(--panel2); border-radius:4px; overflow:hidden; }
+.ponte .pieno { background:var(--blu); }
+.ponte .pieno.oro { background:var(--gold-light); }
+.ponte .perso { background:repeating-linear-gradient(45deg, rgba(217,89,38,.85) 0 8px, rgba(217,89,38,.45) 8px 16px); }
+.ponte .num { width:150px; font-family:var(--head); font-weight:800; font-size:26px; text-align:right; }
+.ponte .num small { font-size:16px; color:var(--arancio); margin-left:6px; }
+.ponte .num.oro { color:var(--gold-light); }
+.estremo { margin-top:30px; font-size:20px; color:var(--text); border-left:3px solid var(--gold); padding-left:16px; max-width:1300px; }
+/* scena 3 · la soluzione */
+.riass { margin-top:54px; display:flex; flex-wrap:wrap; gap:12px 16px; align-items:center; font-size:21px; }
+.riass .lbl { font-family:var(--head); font-weight:800; color:var(--muted); }
+.riass .chip { font-family:var(--head); font-weight:700; border:1px solid var(--border); background:var(--panel2); border-radius:22px; padding:6px 16px; }
+table.sol { font-size:19px; margin-top:22px; width:1440px; table-layout:fixed; }
+table.sol th, table.sol td { padding:6px 18px; }
+table.sol th:first-child, table.sol td:first-child { width:980px; font-weight:600; }
+table.sol td { font-family:var(--head); font-weight:700; }
+table.sol tr.tot td { color:var(--arancio); border-top:2px solid var(--arancio); font-weight:800; }
+table.qta { font-size:17px; margin-top:32px; width:1440px; table-layout:fixed; }
+table.qta th, table.qta td { padding:5px 12px; }
+table.qta th:nth-child(1), table.qta td:nth-child(1) { width:330px; }
+table.qta th:nth-child(8), table.qta td:nth-child(8) { width:190px; }
+table.qta .tag { font-size:13px; color:var(--gold-light); border:1px solid var(--gold); border-radius:10px; padding:1px 8px; margin-left:8px; font-weight:700; vertical-align:2px; }
+table.qta td { font-family:var(--head); font-weight:700; }
+table.qta td.sc { color:var(--verde); } table.qta td.np { color:var(--arancio); } table.qta td.li { color:#b89cf0; }
+table.qta tr.ferma td { color:var(--grey); } table.qta tr.ferma td.np { color:var(--arancio); } table.qta tr.ferma td.li { color:#b89cf0; }
+table.qta .fm { font-size:13px; color:var(--arancio); margin-left:6px; }
+table.qta tr.ferma td:first-child::after { content:none; }
+
+table.qta tr.tot td { border-top:2px solid var(--gold-light); color:var(--gold-light); font-weight:800; }
+table.qta tr.tot td.np { color:var(--arancio); } table.qta tr.tot td.li { color:#b89cf0; } table.qta tr.tot td.sc { color:var(--verde); }
+/* scena 3: tre numeri e la barra */
+.tre { display:flex; gap:60px; margin-top:44px; }
+.tre .n { flex:1; }
+.tre .n .v { font-family:var(--head); font-weight:800; font-size:76px; color:var(--gold-light); line-height:1; }
+.tre .n .l { color:var(--muted); font-size:18px; margin-top:8px; }
+.tre .n.ar .v { color:var(--arancio); }
+.staffe { display:flex; gap:3px; margin-top:44px; }
+.staffe div { border-top:2px solid var(--gold-light); border-left:2px solid var(--gold-light); border-right:2px solid var(--gold-light); height:14px; position:relative; }
+.staffe div span { position:absolute; left:0; right:0; top:-26px; text-align:center; font-family:var(--head); font-weight:700; font-size:15px; color:var(--gold-light); }
+.barra { display:flex; height:54px; margin-top:6px; gap:3px; }
+.barra div { height:100%; border-radius:4px; transform:scaleX(0); transform-origin:left; transition:transform .5s var(--ease); display:flex; align-items:center; justify-content:center; font-family:var(--head); font-weight:700; color:#0D1B2A; font-size:16px; white-space:nowrap; overflow:hidden; }
+.on .barra.in div { transform:scaleX(1); }
+.legenda { color:var(--muted); font-size:15px; margin-top:12px; }
+.apertura { margin-top:30px; font-family:var(--head); font-weight:800; font-size:26px; line-height:1.35; color:var(--text); max-width:1440px; }
+.apertura .cta { color:var(--gold-light); }
+.barra .sotto { position:absolute; top:58px; transform:translateX(-4px); font-family:var(--head); font-weight:700; font-size:14px; color:#c98500; white-space:nowrap; }
+#barra div { font-size:15px; }
+.el[data-solo]:not(.in) { display:none; }
+.resp { margin-top:26px; }
+.resp .tit { font-family:var(--head); font-weight:800; font-size:26px; }
+.resp .tit .oro { color:var(--gold-light); }
+.resp .box { display:flex; gap:20px; margin-top:14px; }
+.resp .box > div { flex:1; background:var(--panel2); border:1px solid var(--border); border-left:6px solid var(--gold); border-radius:8px; padding:12px 20px; }
+.resp .k { font-family:var(--head); font-weight:700; font-size:14px; letter-spacing:.12em; text-transform:uppercase; }
+.resp .r { font-family:var(--head); font-weight:800; font-size:24px; margin-top:2px; }
+.resp .s { color:var(--muted); font-size:16px; }
+.render .scena, .render .scena *, .render .posto { transition:none !important; }
+.render #hud { display:none; }
+/* scena 4 e 5 */
+.logo { font-family:var(--head); font-weight:800; font-size:64px; color:var(--gold-light); letter-spacing:-.01em; }
+.centro { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 120px; }
+.contatti { position:absolute; left:80px; right:80px; bottom:40px; display:flex; justify-content:space-between; color:var(--muted); font-size:15px; border-top:1px solid var(--border); padding-top:12px; }
+/* versione statica (spot-statico.html o ?statico=1): tutte le scene complete, una sotto l'altra, niente animazioni */
+.statico .foglio { height:auto; overflow:visible; background:none; }
+.statico .scena { position:relative; inset:auto; height:900px; opacity:1; margin-bottom:24px; background: radial-gradient(ellipse at 75% 15%, rgba(37,53,81,0.55) 0%, transparent 55%), linear-gradient(165deg, #0D1B2A 0%, #080C10 90%); }
+.statico .scena, .statico .scena *, .statico .posto { transition:none !important; }
+.statico #hud { display:none; }
+#hud { position:absolute; right:16px; bottom:10px; font:12px var(--font); color:var(--muted); opacity:.7; }
+#hud b { color:var(--gold-light); }
+/* intro (copertina, 29/09) */
+.intro { padding:0; overflow:hidden; }
+.intro::before { content:''; position:absolute; left:0; top:0; width:160px; height:3px; background:var(--gold); }
+.intro .wm { position:absolute; right:-10px; bottom:-70px; font-family:var(--head); font-weight:800; font-size:300px; line-height:1; color:transparent; -webkit-text-stroke:1px rgba(194,150,53,0.14); }
+.intro .hero { position:absolute; left:96px; right:80px; top:0; bottom:0; display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
+.intro .logo-row { display:flex; align-items:center; gap:22px; margin-bottom:26px; }
+.intro .logo-row img { height:64px; width:auto; filter:drop-shadow(0 0 18px rgba(194,150,53,0.35)); }
+.intro .logo-row .sep { width:1px; height:52px; background:rgba(194,150,53,0.5); }
+.intro .kick { font-family:var(--head); font-weight:700; font-size:14px; letter-spacing:0.38em; text-transform:uppercase; color:var(--gold); }
+.intro h1 { font-size:66px; line-height:1.08; margin:0; max-width:none; }
+.intro .lede { border-left:2px solid var(--gold); padding-left:22px; margin-top:30px; font-size:26px; line-height:1.45; color:#E6EAF0; }
+.intro .lede .oro { color:var(--gold-light); }
+.intro .trilogy { display:flex; gap:16px; align-items:center; margin-top:34px; font-family:var(--head); font-weight:700; font-size:15px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); }
+.intro .trilogy .sep { color:var(--gold); }
+.intro .foto { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:14px; border:1px solid rgba(194,150,53,0.35); box-shadow:0 0 60px rgba(194,150,53,0.18), 0 20px 50px rgba(0,0,0,0.5); display:block; }
+.intro .footer-intro { position:absolute; bottom:20px; left:0; right:0; text-align:center; font-size:13px; letter-spacing:0.12em; color:var(--muted); opacity:0.75; }
+.finale .logo-img { height:96px; width:auto; filter:drop-shadow(0 0 22px rgba(194,150,53,0.35)); }
+.finale .riga-oro { width:90px; height:2px; background:var(--gold); margin:38px auto 30px; }
+.finale .invito { font-family:var(--head); font-weight:800; font-size:38px; }
+.finale .invito .oro { color:var(--gold-light); }
+.finale .sub { margin-top:14px; max-width:1100px; }
+</style>
+</head>
+<body>
+<div class="foglio" id="foglio">
+
+<!-- 0 · Intro (29/09): copertina sul modello del deck ALIS; stesso contenuto di intro.html -->
+<section class="scena intro" data-scena="1">
+  <div class="wm" aria-hidden="true">MCSec</div>
+  <div class="hero">
+    <div>
+      <div class="logo-row el" data-t="0"><img src="logo-mcsec-oro.png" alt="MCSec"><span class="sep"></span><span class="kick">Performance Intelligence</span></div>
+      <h1 class="el" data-t="0">Recover <span class="oro">value</span> from your production</h1>
+      <p class="lede el" data-t="0">The value you can recover by knowing where you lose it:<br>line, scrap and idle capacity, month after month… <span class="oro">automatically</span>.</p>
+      <div class="trilogy el" data-t="0">Line <span class="sep">›</span> Scrap <span class="sep">›</span> Non-production <span class="sep">›</span> Value</div>
+    </div>
+    <div class="el" data-t="0"><img class="foto" src="intro-linea.jpg" alt="Production line"></div>
+  </div>
+  <div class="footer-intro">www.mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;info@mcsec.it&nbsp;&nbsp;|&nbsp;&nbsp;Catania, Italy</div>
+</section>
+
+<!-- 1 · Intro, l'aereo -->
+<section class="scena" data-scena="2">
+  <div class="kicker el" data-t="0">Performance Intelligence · MCSec</div>
+  <h1 class="el" data-t="0">Production is like a 40-seat plane <span class="oro">taking off with 10 passengers</span>.</h1>
+  <div class="sub el" data-t="1">Fuel, crew, runway: you pay for them all the same.</div>
+  <div class="posti el" data-t="1" id="posti"></div>
+  <div class="leg el" data-t="3"><span><i style="background:var(--gold-light)"></i>seats taken · 10</span><span><i style="background:var(--arancio)"></i>empty seats · 30</span><span class="dida">the flight costs the same</span></div>
+  <div class="frase1 el" data-t="4">You know what your product costs <span style="color:var(--gold-light)">(the seat)</span>, but…</div>
+  <div class="frase2 el" data-t="5">you don’t know what “non-production” costs you.</div>
+</section>
+
+<!-- 1c · Scrap e dimensionamento (29/09, impostazione di Michele): dati, due domande, risposta.
+     Potenziale teorico: tutte le fasi a 50 e scrap zero = 50 pezzi buoni. Macchine: la Fase 2 detta il ritmo, 50 → 40 (−10).
+     Scrap: 8 in Fase 2 + 3,2 in Fase 3 = 11,2, 40 → 28,8. 28,8 ÷ 50 = 57,6 % ≈ 58 % del potenziale teorico.
+     Nel modello (Excel DEF_02, app v2) lo sbilanciamento è 20,94 posti: tiene conto dello scrap per imputare i costi. -->
+<section class="scena" data-scena="3">
+  <div class="kicker el" data-t="0">Scrap and line sizing</div>
+  <h1 class="el" data-t="0">How much does <span class="oro">your line</span> really deliver?</h1>
+  <table class="scrap el" data-t="1">
+    <thead><tr><th>Stage</th><th>Capacity</th><th>Scrap</th><th>Good pieces coming in</th><th>Unusable seats without scrap</th></tr></thead>
+    <tbody>
+      <tr><td>Stage 1</td><td>50</td><td class="rosso">15%</td><td class="muto">–</td><td class="rosso">10</td></tr>
+      <tr><td>Stage 2 <span class="tag">bottleneck</span></td><td>40</td><td class="rosso">20%</td><td>42.50</td><td class="verde">0</td></tr>
+      <tr><td>Stage 3</td><td>50</td><td class="rosso">10%</td><td>32.00</td><td class="rosso">10</td></tr>
+    </tbody>
+  </table>
+  <div class="domanda el" data-t="2"><span class="q">Do you know your maximum theoretical efficiency?</span> <span class="r">50 pieces a month: every stage at 50, no scrap.</span></div>
+  <div class="domanda el" data-t="3"><span class="q">Do you know the line’s inefficiency and the impact of scrap?</span></div>
+  <div class="ponte el" data-t="3">
+    <div class="riga"><div class="et">Theoretical potential</div><div class="bar"><div class="pieno" style="width:100%"></div></div><div class="num">50</div></div>
+    <div class="riga"><div class="et">The machines: Stage 2 sets the pace</div><div class="bar"><div class="pieno" style="width:80%"></div><div class="perso" style="width:20%"></div></div><div class="num">40 <small>−10</small></div></div>
+    <div class="riga"><div class="et">Scrap: 8 in Stage 2, 3.2 in Stage 3</div><div class="bar"><div class="pieno oro" style="width:57.6%"></div><div class="perso" style="width:22.4%"></div></div><div class="num oro">28.8 <small>−11.2</small></div></div>
+  </div>
+  <div class="chiusura el" data-t="4">
+    <div class="riquadro"><div class="v">58%</div><div class="l">28.8 out of 50</div></div>
+    <div class="paghi">Today you run at about 58% of your line’s theoretical potential. You pay for the rest anyway: idle capacity every month, scrap on every piece.</div>
+  </div>
+  <div class="ponte-succ el" data-t="5">This is if you produce the maximum your current line allows. <strong>But what if you produced less?</strong> <span class="oro-t">… Well, then you also have to add the costs of “non-production”.</span></div>
+  <div class="nota el" data-t="4">Note · measured on the line as it is: 14% of installed seats cannot be used even with zero scrap (20 out of 140); scrap removes 28% of the pieces the bottleneck processes (11.2 out of 40).</div>
+</section>
+
+<!-- 3 · Il risultato · la soluzione (29/09, testo di Michele). Versione «tutto nel mese 1» (calcolata con costi-fasi-v2/engine.js): 626 € = linea 47,76 + scarto 132,88 + non produzione 340,24 + magazzino 105,12. Prima versione, trimestre 1.106 €:
+     linea (sbilanciamento AW) 65,41 · scarto anomalo 132,88 · non produzione 802,59 (fasi ferme 462,35 + posti vuoti 340,24) = disperso 1.000,88 (90,5 %);
+     a magazzino 105,12 (semilavorati 10,20 + finiti 94,92, che contengono lo scarto fisiologico 9,49). -->
+<section class="scena" data-scena="4">
+  <div class="kicker el" data-t="0">The result · the solution</div>
+  <h1 class="el" data-t="0">We’ve seen that the first way to create value is <span class="oro">to recover what you are losing</span>.</h1>
+  <div class="riass"><span class="el lbl" data-t="1">In short:</span>
+    <span class="el chip" data-t="1"><i style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#9467d4;margin-right:10px;vertical-align:-1px"></i>Line inefficiency</span>
+    <span class="el chip" data-t="2"><i style="display:inline-block;width:14px;height:14px;border-radius:3px;background:var(--verde);margin-right:10px;vertical-align:-1px"></i>Scrap inefficiency</span>
+    <span class="el chip" data-t="3"><i style="display:inline-block;width:14px;height:14px;border-radius:3px;background:var(--arancio);margin-right:10px;vertical-align:-1px"></i>And finally… “non-production” inefficiency</span></div>
+  <table class="qta el" data-t="4">
+    <thead><tr><th>Month 1</th><th>Capacity</th><th>Processed</th><th>Scrapped</th><th>Out</th><th>Actual cost €</th><th>On product €</th><th>Non-production €</th><th>Line €</th></tr></thead>
+    <tbody><tr><td>Stage 1</td><td>50</td><td>10</td><td class="sc">0</td><td>10</td><td>211.00</td><td>51.00</td><td class="np">148.24</td><td class="li">11.76</td></tr><tr><td>Stage 2 <span class="tag">bottleneck</span></td><td>40</td><td>8</td><td class="sc">0</td><td>8</td><td>235.00</td><td>91.00</td><td class="np">144.00</td><td class="li">0</td></tr><tr><td>Stage 3</td><td>50</td><td>8</td><td class="sc">5</td><td>3 finished</td><td>180.00</td><td>96.00</td><td class="np">48.00</td><td class="li">36.00</td></tr><tr class="tot"><td>Total month 1</td><td>140</td><td>26</td><td class="sc">5</td><td>3 finished</td><td>626.00</td><td>238.00</td><td class="np">340.24</td><td class="li">47.76</td></tr></tbody>
+  </table>
+  <div class="staffe el" data-t="4"><div style="flex:520.88"><span>lost · €520.88 (83%)</span></div><div style="flex:105.12"><span style="white-space:nowrap">in stock · €105.12</span></div></div>
+  <div class="barra el" data-t="4" id="barra" style="position:relative;overflow:visible">
+    <div style="flex:47.76;background:#9467d4">line 48 · 8%</div>
+    <div style="flex:132.88;background:var(--verde)">scrap 133 · 21%</div>
+    <div style="flex:340.24;background:var(--arancio)">non-production 340 · 54%</div>
+    <div style="flex:10.2;background:#c98500"></div>
+    <div style="flex:94.92;background:var(--rosa)">finished 95 · 15%</div>
+    <span class="sotto" style="left:83.2%">▲ WIP 10 · 2%</span>
+  </div>
+  <div class="legenda el" data-t="4" style="margin-top:34px">All in month 1, calculated by the model (app v2, parameters from the DEF_02 Excel). Spend €626 = line 47.76 + scrap above the normal rate 132.88 + non-production 340.24 (empty seats) + in stock 105.12 (WIP 10.20 + finished 94.92). On product €238 = 105.12 in stock + 132.88 of scrap written off; normal scrap, €9.49, stays in the cost of finished goods.</div>
+  <div class="resp el" data-t="5" data-solo="5"><div class="tit">For each inefficiency, <span class="oro">its owner</span>: a specific task every month.</div><div class="box"><div style="border-left-color:#9467d4"><div class="k" style="color:#b89cf0">Line · €48</div><div class="r">Engineering</div><div class="s">line balancing</div></div><div style="border-left-color:var(--verde)"><div class="k" style="color:var(--verde)">Scrap · €133</div><div class="r">Quality</div><div class="s">production scrap</div></div><div style="border-left-color:var(--arancio)"><div class="k" style="color:var(--arancio)">Non-production · €340</div><div class="r">Production manager · Sales</div><div class="s">lost production</div></div></div></div>
+  <div class="apertura el" data-t="6">Do you have all this visibility in your production? And what if I told you it can become a model that updates itself every month? <span class="cta">Let me show you…</span></div>
+</section>
+
+<!-- 4 · La proposta e l'invito (29/09: le due scene finali unite; logo da Google Drive/MCSec/Logo/PS/Logo_Corto_Colori_oro.png) -->
+<section class="scena" data-scena="5">
+  <div class="centro finale">
+    <img class="logo-img el" data-t="0" src="logo-mcsec-corto-oro.png" alt="MCSec">
+    <div class="riga-oro el" data-t="1"></div>
+    <div class="invito el" data-t="1">Let’s get your plane off the ground <span class="oro">fully loaded</span>.</div>
+    <div class="sub el" data-t="2">We start with a prototype on your process, then we grow: the app is modular by stage and product.</div>
+  </div>
+  <div class="contatti el" data-t="2"><span>www.mcsec.it &nbsp;|&nbsp; info@mcsec.it &nbsp;|&nbsp; Catania, Italy</span><span>Performance Intelligence · MCSec methodology</span></div>
+</section>
+
+<div id="hud"></div>
+</div>
+<script>
+'use strict';
+// Cinque scene: intro, aereo, linea, soluzione, proposta+invito (29/09: + «Scrap e dimensionamento», tolte «Il problema» e «La produzione»), ognuna con passi interni (data-t). ?auto=1 va da sola con i tempi dello storyboard (versione 5);
+// ?auto=1 (o spot-auto.html) va da solo con i tempi dello storyboard. Senza parametri va a clic: spazio/→/clic avanti, ← indietro.
+const qs = new URLSearchParams(location.search);
+const STATICO = qs.get('statico') === '1';   // spot-statico.html: scene ferme e complete, si scorre col mouse
+const AUTO = !STATICO && qs.get('auto') === '1';   // spot.html va a clic; spot-auto.html (o ?auto=1) va da solo
+// posti dell'aereo: 40, i primi 10 si riempiono (oro), gli altri 30 restano vuoti (arancio) al passo 2
+// l'aereo: immagine di Michele (aereo.png, 2170×725) con i posti sovrapposti in SVG: 10 file numerate da 4 (2 + corridoio + 2), coordinate nei pixel dell'immagine
+const NS = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(NS, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
+const svg = el('svg', { viewBox: '0 0 2169 725' });
+const seats = [];
+const COLX = [600, 700, 799, 900, 999, 1177, 1275, 1375, 1473, 1569];   // centri delle 10 file (immagine 2169×725, stacco tra la 5 e la 6)
+for (let f = 0; f < 10; f++) for (let r = 0; r < 4; r++) {
+  const cx = COLX[f], cy = [241, 301, 418, 477][r];
+  const rect = el('rect', { class: 'posto', x: cx - 31, y: cy - 25, width: 62, height: 50, rx: 9 }); svg.append(rect); seats.push(rect);
+}
+const img = document.createElement('img'); img.src = 'aereo.png'; img.alt = 'Plane seen from above, 40 seats';
+document.getElementById('posti').append(img, svg);
+const ordine = seats.map((r, i) => i).sort((a, b) => Math.floor(a / 4) - Math.floor(b / 4) || (a % 4) - (b % 4));
+// passi: [scena, passo interno]; durate in ms per la modalità automatica (tempi dello storyboard, tarati sul parlato)
+const PASSI = [
+  [1, 0, 3200],                                                                        // 0 intro (copertina, 29/09)
+  [2, 0, 2600], [2, 1, 2200], [2, 2, 2600], [2, 3, 2600], [2, 4, 2400], [2, 5, 3800],   // 0:00–0:16 + frase in due tempi
+  [3, 0, 2400], [3, 1, 3200], [3, 2, 4000], [3, 3, 5200], [3, 4, 5600], [3, 5, 5200],                // 1c scrap e dimensionamento (29/09)
+  [4, 0, 3200], [4, 1, 2400], [4, 2, 2200], [4, 3, 2800], [4, 4, 6500], [4, 5, 5500], [4, 6, 5500],                // 3 il risultato · la soluzione
+  [5, 0, 1800], [5, 1, 2800], [5, 2, 5000]];                             // 4 proposta + invito (unite 29/09)
+let k = -1;
+function applica() {
+  const [sc, t] = k >= 0 ? PASSI[k] : [1, -1];
+  document.querySelectorAll('.scena').forEach(s => s.classList.toggle('on', Number(s.dataset.scena) === sc));
+  document.querySelectorAll('.scena').forEach(s => { if (Number(s.dataset.scena) !== sc) s.querySelectorAll('.el').forEach(e => e.classList.remove('in')); });
+  const scena = document.querySelector(`.scena[data-scena="${sc}"]`);
+  scena.querySelectorAll('.el').forEach(e => e.classList.toggle('in', e.dataset.solo ? Number(e.dataset.solo) === t : Number(e.dataset.t) <= t));
+  // effetti speciali per passo
+  if (sc === 2) { ordine.forEach((idx, pos) => { const p = seats[idx]; p.classList.toggle('pieno', t >= 2 && pos < 10); p.classList.toggle('vuoto', t >= 3 && pos >= 10); p.style.transitionDelay = (t >= 2 && pos < 10) ? (pos * 70) + 'ms' : (t >= 3 ? ((pos - 10) * 35) + 'ms' : '0ms'); }); }
+  if (sc === 4) { scena.querySelectorAll('[data-conta]').forEach((v, i) => { if (t >= i + 1) conta(v, v.dataset.conta, true); else v.textContent = '0'; }); }
+  document.getElementById('hud').innerHTML = `passo <b>${k + 1}</b> / ${PASSI.length} · scena ${sc}`;
+}
+const timer = new Map();
+function conta(el, target, virgola) {   // numero che sale in ~900 ms, ease-out; virgola = formato it con due decimali
+  const fine = virgola ? Number(String(target).replace('.', '').replace(',', '.')) : Number(target);
+  const inizio = virgola ? Number(String(el.textContent).replace('.', '').replace(',', '.')) || 0 : Number(el.textContent) || 0;
+  if (inizio === fine) return;
+  clearInterval(timer.get(el)); const t0 = performance.now(), dur = 900;
+  const id = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - p, 3), v = inizio + (fine - inizio) * e;
+    const dec = virgola && String(target).includes(',') ? 2 : 0;   // formato it-IT a mano (punto migliaia, virgola decimali): non dipende dalle locali del browser
+    el.textContent = v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/,/g, '§').replace('.', ',').replace(/§/g, '.');
+    if (p >= 1) clearInterval(id); }, 30);
+  timer.set(el, id);
+}
+function avanti() { if (k < PASSI.length - 1) { k++; applica(); } }
+function indietro() { if (k > 0) { k--; applica(); } }
+if (!STATICO) document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); avanti(); } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); indietro(); } else if (e.key === 'Home') { k = 0; applica(); } });
+if (!STATICO) document.getElementById('foglio').addEventListener('click', avanti);
+if (STATICO) {
+  document.body.classList.add('statico');
+  document.querySelectorAll('.scena').forEach(sc => { sc.classList.add('on'); sc.querySelectorAll('.el').forEach(e => e.classList.add('in')); });
+  ordine.forEach((idx, pos) => seats[idx].classList.add(pos < 10 ? 'pieno' : 'vuoto'));
+  document.querySelectorAll('.scena[data-scena="4"] [data-conta]').forEach(v => { v.textContent = v.dataset.conta; });
+} else if (qs.get('scena')) { document.body.classList.add('render'); k = PASSI.findIndex(p => p[0] === Number(qs.get('scena')) && p[1] === Number(qs.get('t'))); applica(); }
+ else { k = 0; applica(); }
+if (AUTO) { const vel = Number(qs.get('v')) || 1; const tick = () => { if (k >= PASSI.length - 1) return; setTimeout(() => { avanti(); tick(); }, PASSI[k][2] / vel); }; tick(); }
+</script>
+</body>
+</html>
